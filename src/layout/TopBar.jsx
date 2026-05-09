@@ -217,3 +217,4 @@ export default function TopBar({ keycloak, sidebarHidden, onToggleSidebar }) {
     </header>
   );
 }
+
