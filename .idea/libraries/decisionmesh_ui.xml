@@ -1,0 +1,9 @@
+<component name="libraryTable">
+  <library name="decisionmesh-ui">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/decisionmesh-ui.zip!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>
