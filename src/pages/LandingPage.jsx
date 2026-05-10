@@ -410,17 +410,9 @@ function NavBar({ onLogin, onRegister }) {
       <div style={{ maxWidth: 1100, margin: '0 auto', padding: '0 24px', display: 'flex', alignItems: 'center', height: 60 }}>
         {/* Logo */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1 }}>
-          <div style={{
-            width: 32, height: 32, borderRadius: 8,
-            background: 'linear-gradient(135deg, #2563eb, #7c3aed)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-          }}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="white">
-              <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
-            </svg>
-          </div>
-          <span style={{ color: '#fff', fontWeight: 600, fontSize: 16, letterSpacing: '-0.3px' }}>
-            DecisionMesh
+          <img src="/decimeshi-icon.svg" alt="DecisionMesh" style={{ width: 32, height: 32, borderRadius: 8 }} />
+          <span style={{ fontWeight: 700, fontSize: 15, letterSpacing: '-0.3px' }}>
+            <span style={{ color: '#fff' }}>Decision</span><span style={{ color: '#2563eb' }}>Mesh</span>
           </span>
           <span style={{
             fontSize: 10, fontWeight: 600, color: '#2563eb',
@@ -1300,9 +1292,7 @@ function Footer() {
     <footer style={{ background: '#08080a', borderTop: '1px solid rgba(255,255,255,0.06)', padding: '40px 24px' }}>
       <div style={{ maxWidth: 1000, margin: '0 auto', display: 'flex', flexWrap: 'wrap', gap: 24, alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <div style={{ width: 24, height: 24, borderRadius: 6, background: 'linear-gradient(135deg, #2563eb, #7c3aed)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="white"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
-          </div>
+          <img src="/decimeshi-icon.svg" alt="DecisionMesh" style={{ width: 24, height: 24, borderRadius: 6 }} />
           <span style={{ color: '#9ca3af', fontSize: 14 }}>© 2025 DecisionMesh. All rights reserved.</span>
         </div>
         <div style={{ display: 'flex', gap: 24 }}>

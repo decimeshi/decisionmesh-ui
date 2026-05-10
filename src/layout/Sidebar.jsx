@@ -174,7 +174,7 @@ function ProjectSwitcher() {
           <div className="rounded-xl border overflow-hidden animate-fadeIn"
             style={{ ...dropdownStyle, background: '#1e293b', borderColor: 'rgba(255,255,255,0.1)', boxShadow: '0 8px 32px rgba(0,0,0,0.4)' }}>
             <div className="px-3 py-2 border-b" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
-              <p className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: 'var(--sidebar-label)' }}>
+              <p className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: '#38bdf8' }}>
                 Projects
               </p>
             </div>
@@ -202,8 +202,8 @@ function ProjectSwitcher() {
                 <button key={label} onClick={() => { setOpen(false); action(); }}
                   className="w-full flex items-center gap-2 px-3 py-2 transition-colors text-left text-xs"
                   style={{ color: 'var(--sidebar-label)' }}
-                  onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; e.currentTarget.style.color = 'var(--sidebar-text)'; }}
-                  onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--sidebar-label)'; }}
+                  onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.1)'; e.currentTarget.style.color = '#e2e8f0'; }}
+                  onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#64748b'; }}
                 >
                   <Icon size={12} /> {label}
                 </button>

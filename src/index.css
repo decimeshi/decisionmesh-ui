@@ -1,13 +1,56 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
 
 @tailwind base;
 
 @layer base {
   :root {
-    --brand-primary: #2563eb;
-    --brand-light:   #eff6ff;
-    --brand-dark:    #1d4ed8;
-    --brand-text:    #1e40af;
+    /* ── Brand ─────────────────────────────────────────────────────────────── */
+    --brand:          #2563eb;
+    --brand-hover:    #1d4ed8;
+    --brand-light:    #eff6ff;
+    --brand-muted:    #bfdbfe;
+    --brand-purple:   #7c3aed;
+    --brand-gradient: linear-gradient(135deg, #2563eb, #7c3aed);
+
+    /* Aliases kept for backward compat */
+    --brand-primary:  #2563eb;
+    --brand-dark:     #1d4ed8;
+    --brand-text:     #1e40af;
+
+    /* ── Sidebar (dark) ─────────────────────────────────────────────────────── */
+    --sidebar-bg:       #0f172a;
+    --sidebar-border:   rgba(255,255,255,0.06);
+    --sidebar-text:     #94a3b8;
+    --sidebar-text-active: #f1f5f9;
+    --sidebar-hover:    rgba(255,255,255,0.05);
+    --sidebar-active:   rgba(37,99,235,0.18);
+    --sidebar-active-border: #2563eb;
+    --sidebar-label:    #475569;
+    --sidebar-width:    220px;
+    --sidebar-collapsed: 52px;
+
+    /* ── Content ────────────────────────────────────────────────────────────── */
+    --content-bg:     #f8fafc;
+    --topbar-bg:      #ffffff;
+    --topbar-border:  #e2e8f0;
+    --topbar-h:       52px;
+
+    /* ── Card ───────────────────────────────────────────────────────────────── */
+    --card-bg:        #ffffff;
+    --card-border:    #e2e8f0;
+    --card-radius:    12px;
+    --card-shadow:    0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+
+    /* ── Text ───────────────────────────────────────────────────────────────── */
+    --text-primary:   #0f172a;
+    --text-secondary: #475569;
+    --text-muted:     #94a3b8;
+
+    /* ── Status ─────────────────────────────────────────────────────────────── */
+    --green:  #16a34a;
+    --amber:  #d97706;
+    --red:    #dc2626;
+    --purple: #7c3aed;
   }
 }
 
@@ -17,23 +60,64 @@
 @layer base {
   * { box-sizing: border-box; }
 
-  /* Base font size increased from browser default 16px to 17px.
-     All rem-based Tailwind sizes scale up proportionally:
-       text-xs  → 13.6px  (was 12px)
-       text-sm  → 15.3px  (was 14px)
-       text-base→ 17px    (was 16px)
-       text-lg  → 20.4px  (was 18px)          */
   html {
-    font-size: 17px;
-    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 16px;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
     -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 
-  body { @apply bg-slate-50 text-slate-900; margin: 0; }
+  body {
+    @apply m-0;
+    background: var(--content-bg);
+    color: var(--text-primary);
+  }
+
+  code, pre, .font-mono {
+    font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  }
 }
 
 @layer utilities {
-  .scrollbar-thin::-webkit-scrollbar { width: 5px; height: 5px; }
-  .scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
-  .scrollbar-thin::-webkit-scrollbar-thumb { @apply bg-slate-200 rounded-full; }
+  /* ── Scrollbar ────────────────────────────────────────────────────────────── */
+  .scrollbar-thin::-webkit-scrollbar        { width: 4px; height: 4px; }
+  .scrollbar-thin::-webkit-scrollbar-track  { background: transparent; }
+  .scrollbar-thin::-webkit-scrollbar-thumb  { background: rgba(255,255,255,0.08); border-radius: 999px; }
+  .scrollbar-thin-light::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 999px; }
+
+  /* ── Gradient text ────────────────────────────────────────────────────────── */
+  .text-gradient {
+    background: var(--brand-gradient);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* ── Brand button ─────────────────────────────────────────────────────────── */
+  .btn-brand {
+    background: var(--brand);
+    color: #fff;
+    border-radius: 8px;
+    font-weight: 600;
+    transition: background 0.15s, transform 0.1s, box-shadow 0.15s;
+  }
+  .btn-brand:hover {
+    background: var(--brand-hover);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 16px rgba(37,99,235,0.3);
+  }
+
+  /* ── Fade-in animation ────────────────────────────────────────────────────── */
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .animate-fadeIn { animation: fadeIn 0.2s ease both; }
+
+  /* ── Pulse dot ────────────────────────────────────────────────────────────── */
+  @keyframes pulse-dot {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50%       { opacity: 0.5; transform: scale(0.85); }
+  }
+  .animate-pulse-dot { animation: pulse-dot 2s ease-in-out infinite; }
 }
