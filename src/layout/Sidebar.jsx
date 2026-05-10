@@ -3,229 +3,195 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, FlaskConical, ListOrdered, Cpu,
   Puzzle, ShieldCheck, BarChart3, TrendingUp,
-  KeyRound, ScrollText, ChevronLeft, ChevronRight,
+  KeyRound, ScrollText, ChevronRight,
   UserPlus, PanelLeftClose, FolderOpen,
-  ChevronDown, Check, Plus, Palette, CreditCard, Receipt, Bug, Library,
-  MessageSquarePlus, TestTube2,
-  Users, Coins, Webhook, HeartPulse,
+  ChevronDown, Check, Plus, Palette, CreditCard, Receipt,
+  Bug, Library, MessageSquarePlus, TestTube2,
+  Users, Coins, Webhook, HeartPulse, Zap,
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { useProject } from '../context/ProjectContext';
 import { useCredits } from '../context/CreditContext';
 import { hasSysAdminRole } from '../components/SysAdminRoute';
 
-// ── Single top-level item (no section header) ────────────────────────────────
-const DASHBOARD = { label: 'Dashboard', icon: LayoutDashboard, to: '/' };
-
-// ── Grouped nav sections ──────────────────────────────────────────────────────
-// All section headers: slate-700 (uniform)
-// All item panels:     white bg, slate-200 border (neutral — no colored tints)
-// Color reserved for:  active item bg only
-const NAV_SECTIONS = [
+// ── Nav structure ─────────────────────────────────────────────────────────────
+const NAV = [
   {
-    label:      'Playground',
-    headerBg:   '#334155',
-    headerText: '#ffffff',
-    itemBg:     '#ffffff',
-    itemBorder: '#e2e8f0',
-    itemColor:  '#4b5563',
-    activeBg:   '#7c3aed',
-    hoverBg:    '#f3f0ff',
-    hoverText:  '#6d28d9',
-    maxHeight:  '100px',
+    label: 'CORE',
     items: [
-      { label: 'Playground',     icon: FlaskConical, to: '/playground'     },
-      { label: 'Intent Library', icon: Library,      to: '/intent-library' },
+      { label: 'Dashboard',     icon: LayoutDashboard, to: '/',              end: true },
     ],
   },
   {
-    label:      'Operations',
-    headerBg:   '#334155',
-    headerText: '#ffffff',
-    itemBg:     '#ffffff',
-    itemBorder: '#e2e8f0',
-    itemColor:  '#4b5563',
-    activeBg:   '#2563eb',
-    hoverBg:    '#eff6ff',
-    hoverText:  '#1d4ed8',
-    maxHeight:  '180px',
+    label: 'PLAYGROUND',
     items: [
-      { label: 'Intents',    icon: ListOrdered, to: '/intents'    },
-      { label: 'Executions', icon: Cpu,         to: '/executions' },
-      { label: 'Adapters',   icon: Puzzle,      to: '/adapters'   },
-      { label: 'Policies',   icon: ShieldCheck, to: '/policies'   },
+      { label: 'Playground',    icon: FlaskConical,    to: '/playground'     },
+      { label: 'Intent Library',icon: Library,         to: '/intent-library' },
     ],
   },
   {
-    label:      'Analytics',
-    headerBg:   '#334155',
-    headerText: '#ffffff',
-    itemBg:     '#ffffff',
-    itemBorder: '#e2e8f0',
-    itemColor:  '#4b5563',
-    activeBg:   '#0d9488',
-    hoverBg:    '#f0fdfa',
-    hoverText:  '#0f766e',
-    maxHeight:  '100px',
+    label: 'OPERATIONS',
     items: [
-      { label: 'Cost',  icon: BarChart3,  to: '/analytics/cost'  },
-      { label: 'Drift', icon: TrendingUp, to: '/analytics/drift' },
+      { label: 'Intents',       icon: ListOrdered,     to: '/intents'        },
+      { label: 'Executions',    icon: Cpu,             to: '/executions'     },
+      { label: 'Adapters',      icon: Puzzle,          to: '/adapters'       },
+      { label: 'Policies',      icon: ShieldCheck,     to: '/policies'       },
     ],
   },
   {
-    label:      'Organisation',
-    headerBg:   '#334155',
-    headerText: '#ffffff',
-    itemBg:     '#ffffff',
-    itemBorder: '#e2e8f0',
-    itemColor:  '#4b5563',
-    activeBg:   '#4f46e5',
-    hoverBg:    '#eef2ff',
-    hoverText:  '#4338ca',
-    maxHeight:  '100px',
+    label: 'ANALYTICS',
     items: [
-      { label: 'Invite',   icon: UserPlus, to: '/invite'       },
-      { label: 'Branding', icon: Palette,  to: '/org/branding' },
+      { label: 'Cost',          icon: BarChart3,       to: '/analytics/cost' },
+      { label: 'Drift',         icon: TrendingUp,      to: '/analytics/drift'},
     ],
   },
   {
-    label:      'Account',
-    headerBg:   '#334155',
-    headerText: '#ffffff',
-    itemBg:     '#ffffff',
-    itemBorder: '#e2e8f0',
-    itemColor:  '#4b5563',
-    activeBg:   '#374151',
-    hoverBg:    '#f8fafc',
-    hoverText:  '#111827',
-    maxHeight:  '180px',
+    label: 'ORGANISATION',
     items: [
-      { label: 'API Keys', icon: KeyRound,   to: '/api-keys' },
-      { label: 'Audit',    icon: ScrollText, to: '/audit'    },
-      { label: 'Credits',  icon: Receipt,    to: '/credits'  },
-      { label: 'Billing',  icon: CreditCard, to: '/billing'  },
+      { label: 'API Keys',      icon: KeyRound,        to: '/api-keys'       },
+      { label: 'Audit Log',     icon: ScrollText,      to: '/audit'          },
+      { label: 'Credits',       icon: Receipt,         to: '/credits'        },
+      { label: 'Billing',       icon: CreditCard,      to: '/billing'        },
+      { label: 'Invite Team',   icon: UserPlus,        to: '/invite'         },
+      { label: 'Branding',      icon: Palette,         to: '/org/branding'   },
     ],
   },
 ];
 
-// Visible only to sys_admin role
-const ADMIN_NAV = [
+const ADMIN_ITEMS = [
   { label: 'Users',           icon: Users,             to: '/admin/users'    },
-  { label: 'Credit Ledger',   icon: Coins,             to: '/admin/credits'  },
+  { label: 'Credits',         icon: Coins,             to: '/admin/credits'  },
   { label: 'Webhooks',        icon: Webhook,           to: '/admin/webhooks' },
   { label: 'Health',          icon: HeartPulse,        to: '/admin/health'   },
   { label: 'Feedback',        icon: MessageSquarePlus, to: '/admin/feedback' },
-  { label: 'Payment Testing', icon: TestTube2,         to: '/admin/payments' },
+  { label: 'Payments',        icon: TestTube2,         to: '/admin/payments' },
   { label: 'Token Debug',     icon: Bug,               to: '/debug/token'    },
 ];
 
-const ENV_DOTS = {
-  Production: 'bg-green-500',
-  Staging:    'bg-amber-500',
-  Dev:        'bg-blue-500',
-};
-
+// ── Credit footer ─────────────────────────────────────────────────────────────
 function CreditFooter() {
   const navigate = useNavigate();
   const { balance, allocated, statusColor, isEmpty, isLow } = useCredits();
   if (balance === null) return null;
+
   const pct = allocated ? Math.min(100, (balance / allocated) * 100) : 100;
+  const isWarning = isEmpty || isLow;
+
   return (
     <div
       onClick={() => navigate('/billing?tab=credits')}
-      className="mx-2 mb-1 p-2.5 rounded-lg hover:bg-slate-50 cursor-pointer border border-slate-100 transition-colors"
+      className="mx-3 mb-3 mt-1 cursor-pointer rounded-lg border transition-all"
+      style={{
+        background: isWarning ? 'rgba(239,68,68,0.08)' : 'rgba(255,255,255,0.04)',
+        borderColor: isWarning ? 'rgba(239,68,68,0.2)' : 'rgba(255,255,255,0.07)',
+        padding: '10px 12px',
+      }}
     >
-      <div className="flex items-center justify-between mb-1.5">
-        <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">Credits</span>
-        <span className="text-xs font-bold" style={{ color: statusColor }}>
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center gap-1.5">
+          <Zap size={11} style={{ color: statusColor }} />
+          <span className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: 'var(--sidebar-label)' }}>
+            Credits
+          </span>
+        </div>
+        <span className="text-xs font-bold tabular-nums" style={{ color: statusColor }}>
           {balance?.toLocaleString()}
         </span>
       </div>
-      <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
-        <div className="h-full rounded-full transition-all"
-          style={{ width: `${pct}%`, backgroundColor: statusColor }} />
+      <div className="h-1 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.08)' }}>
+        <div className="h-full rounded-full transition-all duration-500"
+          style={{ width: `${pct}%`, background: isWarning ? statusColor : 'var(--brand-gradient)' }} />
       </div>
-      {(isEmpty || isLow) && (
-        <p className="text-[10px] mt-1" style={{ color: statusColor }}>
-          {isEmpty ? '⚠ No credits — top up' : '⚠ Running low'}
+      {isWarning && (
+        <p className="text-[10px] mt-1.5 font-medium" style={{ color: statusColor }}>
+          {isEmpty ? '⚠ No credits — top up now' : '⚠ Running low'}
         </p>
       )}
     </div>
   );
 }
 
+// ── Project switcher ─────────────────────────────────────────────────────────
+const ENV_COLOR = { Production: '#22c55e', Staging: '#f59e0b', Dev: '#3b82f6' };
+
 function ProjectSwitcher() {
   const navigate = useNavigate();
   const { org, projects, activeProject, switchProject, loading } = useProject();
   const [open, setOpen] = useState(false);
 
-  if (loading) return <div className="h-12 border-b border-slate-100" />;
-
-  function handleSwitch(project) {
-    switchProject(project);
-    setOpen(false);
-  }
+  if (loading) return <div className="h-14 border-b" style={{ borderColor: 'var(--sidebar-border)' }} />;
 
   return (
-    <div className="relative px-2 pb-2 border-b border-slate-200">
+    <div className="relative px-3 pb-2 border-b" style={{ borderColor: 'var(--sidebar-border)' }}>
       <button
         onClick={() => setOpen(o => !o)}
-        className="w-full flex items-center gap-2.5 px-2 py-2 rounded-xl hover:bg-slate-100 transition-colors text-left"
+        className="w-full flex items-center gap-2.5 px-2 py-2 rounded-lg transition-all text-left group"
+        style={{ ':hover': { background: 'var(--sidebar-hover)' } }}
+        onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
+        onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
       >
         <div
-          className="w-8 h-8 rounded-xl flex items-center justify-center text-white text-xs font-bold shrink-0 shadow-sm"
-          style={{ backgroundColor: 'var(--brand-primary)' }}
+          className="w-7 h-7 rounded-lg flex items-center justify-center text-white text-xs font-bold shrink-0"
+          style={{ background: 'var(--brand-gradient)' }}
         >
           {org.name?.[0]?.toUpperCase() ?? 'O'}
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-[11px] font-semibold text-slate-500 leading-none truncate">{org.name}</p>
+          <p className="text-[11px] font-semibold leading-none truncate" style={{ color: 'var(--sidebar-text)' }}>
+            {org.name}
+          </p>
           <div className="flex items-center gap-1 mt-1">
-            <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${ENV_DOTS[activeProject?.environment] ?? 'bg-slate-400'}`} />
-            <p className="text-xs font-bold text-slate-900 leading-none truncate">{activeProject?.name ?? 'No project'}</p>
+            <div className="w-1.5 h-1.5 rounded-full shrink-0"
+              style={{ background: ENV_COLOR[activeProject?.environment] ?? '#94a3b8' }} />
+            <p className="text-[11px] font-medium leading-none truncate" style={{ color: 'var(--sidebar-text-active)' }}>
+              {activeProject?.name ?? 'No project'}
+            </p>
           </div>
         </div>
-        <ChevronDown size={12} className={`text-slate-400 shrink-0 transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
+        <ChevronDown size={11} className="shrink-0 transition-transform duration-200"
+          style={{ color: 'var(--sidebar-label)', transform: open ? 'rotate(180deg)' : 'none' }} />
       </button>
 
       {open && (
         <>
           <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
-          <div className="absolute left-2 right-2 top-full mt-1 z-20 bg-white rounded-xl border border-slate-200 shadow-lg overflow-hidden">
-            <div className="px-3 py-2 border-b border-slate-100">
-              <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Projects</p>
+          <div className="absolute left-3 right-3 top-full mt-1 z-20 rounded-xl border overflow-hidden animate-fadeIn"
+            style={{ background: '#1e293b', borderColor: 'rgba(255,255,255,0.1)', boxShadow: '0 8px 32px rgba(0,0,0,0.4)' }}>
+            <div className="px-3 py-2 border-b" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
+              <p className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: 'var(--sidebar-label)' }}>
+                Projects
+              </p>
             </div>
-            <div className="max-h-52 overflow-y-auto py-1">
+            <div className="max-h-48 overflow-y-auto py-1 scrollbar-thin">
               {projects.map(p => (
-                <button key={p.id}
-                  onClick={() => handleSwitch(p)}
-                  className="w-full flex items-center gap-2.5 px-3 py-2 hover:bg-slate-50 transition-colors text-left"
+                <button key={p.id} onClick={() => { switchProject(p); setOpen(false); }}
+                  className="w-full flex items-center gap-2.5 px-3 py-2 transition-colors text-left"
+                  onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
+                  onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                 >
-                  <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${ENV_DOTS[p.environment] ?? 'bg-slate-400'}`} />
-                  <span className="flex-1 text-sm text-slate-700 truncate">{p.name}</span>
+                  <div className="w-1.5 h-1.5 rounded-full shrink-0"
+                    style={{ background: ENV_COLOR[p.environment] ?? '#94a3b8' }} />
+                  <span className="flex-1 text-sm truncate" style={{ color: 'var(--sidebar-text)' }}>{p.name}</span>
                   {p.id === activeProject?.id && (
-                    <Check size={12} className="shrink-0" style={{ color: 'var(--brand-primary)' }} />
+                    <Check size={12} style={{ color: 'var(--brand)' }} />
                   )}
                 </button>
               ))}
             </div>
-            <div className="border-t border-slate-100 py-1">
-              <button
-                onClick={() => { setOpen(false); navigate('/projects'); }}
-                className="w-full flex items-center gap-2 px-3 py-2 text-xs text-slate-500 hover:bg-slate-50 transition-colors"
-                onMouseEnter={e => e.currentTarget.style.color = 'var(--brand-primary)'}
-                onMouseLeave={e => e.currentTarget.style.color = ''}
-              >
-                <FolderOpen size={12} /> Manage projects
-              </button>
-              <button
-                onClick={() => { setOpen(false); navigate('/projects?new=1'); }}
-                className="w-full flex items-center gap-2 px-3 py-2 text-xs text-slate-500 hover:bg-slate-50 transition-colors"
-                onMouseEnter={e => e.currentTarget.style.color = 'var(--brand-primary)'}
-                onMouseLeave={e => e.currentTarget.style.color = ''}
-              >
-                <Plus size={12} /> New project
-              </button>
+            <div className="border-t py-1" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
+              {[
+                { label: 'Manage projects', icon: FolderOpen, action: () => navigate('/projects') },
+                { label: 'New project',     icon: Plus,       action: () => navigate('/projects?new=1') },
+              ].map(({ label, icon: Icon, action }) => (
+                <button key={label} onClick={() => { setOpen(false); action(); }}
+                  className="w-full flex items-center gap-2 px-3 py-2 transition-colors text-left text-xs"
+                  style={{ color: 'var(--sidebar-label)' }}
+                  onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; e.currentTarget.style.color = 'var(--sidebar-text)'; }}
+                  onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--sidebar-label)'; }}
+                >
+                  <Icon size={12} /> {label}
+                </button>
+              ))}
             </div>
           </div>
         </>
@@ -234,294 +200,168 @@ function ProjectSwitcher() {
   );
 }
 
+// ── Nav item ─────────────────────────────────────────────────────────────────
+function NavItem({ item, collapsed }) {
+  return (
+    <NavLink
+      to={item.to}
+      end={item.end}
+      title={collapsed ? item.label : undefined}
+      className={({ isActive }) => cn(
+        'flex items-center gap-2.5 rounded-md text-[13px] font-medium transition-all duration-150 relative',
+        collapsed ? 'justify-center px-0 py-2 mx-1' : 'px-2.5 py-1.5 mx-2',
+        'group'
+      )}
+      style={({ isActive }) => isActive
+        ? {
+            background: 'rgba(37,99,235,0.15)',
+            color: '#93c5fd',
+            borderLeft: collapsed ? 'none' : '2px solid var(--brand)',
+            paddingLeft: collapsed ? undefined : '10px',
+          }
+        : { color: 'var(--sidebar-text)' }
+      }
+      onMouseEnter={e => {
+        if (!e.currentTarget.getAttribute('data-active')) {
+          e.currentTarget.style.background = 'rgba(255,255,255,0.05)';
+          e.currentTarget.style.color = 'var(--sidebar-text-active)';
+        }
+      }}
+      onMouseLeave={e => {
+        if (!e.currentTarget.getAttribute('data-active')) {
+          e.currentTarget.style.background = '';
+          e.currentTarget.style.color = '';
+        }
+      }}
+    >
+      {({ isActive }) => (
+        <>
+          <item.icon
+            size={14}
+            className="shrink-0"
+            style={{ color: isActive ? 'var(--brand)' : 'inherit', opacity: isActive ? 1 : 0.8 }}
+          />
+          {!collapsed && <span className="truncate">{item.label}</span>}
+        </>
+      )}
+    </NavLink>
+  );
+}
+
+// ── Main sidebar ─────────────────────────────────────────────────────────────
 export default function Sidebar({ collapsed, onToggle, onHide, keycloak }) {
   const isAdmin = hasSysAdminRole(keycloak);
 
-  // Track which sections are open — all open by default
-  const [openSections, setOpenSections] = useState(() =>
-    Object.fromEntries(
-      [...NAV_SECTIONS.map(s => s.label), 'admin'].map(k => [k, true])
-    )
-  );
-
-  function toggleSection(label) {
-    setOpenSections(prev => ({ ...prev, [label]: !prev[label] }));
-  }
-
   return (
-    <aside className={cn(
-      'flex flex-col h-screen bg-white border-r border-slate-200 transition-all duration-200 shrink-0',
-      collapsed ? 'w-14' : 'w-48'
-    )}>
-      {/* Header */}
-      <div className={cn(
-        'flex items-center border-b border-slate-200 shrink-0',
-        collapsed ? 'justify-center px-0 py-4' : 'px-3 py-3 gap-2.5'
-      )}>
-        {/* Icon — bordered container for clean edge */}
-        <div className="shrink-0 w-9 h-9 rounded-xl border border-slate-200 overflow-hidden shadow-sm bg-white flex items-center justify-center">
-          <img
-            src="/decimeshi-icon.svg"
-            alt="DecisionMesh"
-            className="w-7 h-7 object-contain"
-          />
-        </div>
+    <aside
+      className="flex flex-col h-screen shrink-0 transition-all duration-200"
+      style={{
+        width: collapsed ? 'var(--sidebar-collapsed)' : 'var(--sidebar-width)',
+        background: 'var(--sidebar-bg)',
+        borderRight: '1px solid var(--sidebar-border)',
+      }}
+    >
+      {/* ── Logo ─────────────────────────────────────────────────────────── */}
+      <div
+        className={cn(
+          'flex items-center border-b shrink-0',
+          collapsed ? 'justify-center px-0 py-[14px]' : 'px-3 py-[11px] gap-2.5'
+        )}
+        style={{ borderColor: 'var(--sidebar-border)', minHeight: 'var(--topbar-h)' }}
+      >
+        <img src="/decimeshi-icon.svg" alt="DecisionMesh" className="w-8 h-8 rounded-lg shrink-0" />
 
         {!collapsed && (
           <>
-            {/* Two-tone wordmark */}
             <div className="flex-1 min-w-0">
-              <p className="text-[15px] font-extrabold leading-none tracking-tight">
-                <span className="text-slate-900">Decision</span><span style={{ color: 'var(--brand-primary)' }}>Mesh</span>
+              <p className="text-[14px] font-bold leading-none tracking-tight">
+                <span className="text-white">Decision</span>
+                <span style={{ color: 'var(--brand)' }}>Mesh</span>
               </p>
-              <p className="text-[9px] font-semibold tracking-[0.10em] uppercase mt-1 whitespace-nowrap"
-                style={{ color: 'var(--brand-primary)', opacity: 0.75 }}>
+              <p className="text-[9px] font-semibold tracking-[0.12em] uppercase mt-1"
+                style={{ color: 'var(--sidebar-label)' }}>
                 AI Control Plane
               </p>
             </div>
-            <button
-              onClick={onHide}
-              title="Collapse sidebar"
-              className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors shrink-0"
+            <button onClick={onHide} title="Hide sidebar"
+              className="p-1 rounded-md transition-colors shrink-0"
+              style={{ color: 'var(--sidebar-label)' }}
+              onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; e.currentTarget.style.color = 'var(--sidebar-text)'; }}
+              onMouseLeave={e => { e.currentTarget.style.background = ''; e.currentTarget.style.color = 'var(--sidebar-label)'; }}
             >
-              <PanelLeftClose size={14} />
+              <PanelLeftClose size={13} />
             </button>
           </>
         )}
       </div>
 
-      {/* Project switcher */}
+      {/* ── Project switcher ──────────────────────────────────────────────── */}
       {!collapsed && <ProjectSwitcher />}
 
-      {/* Main nav */}
-      <nav className="flex-1 py-2 overflow-y-auto scrollbar-thin">
-
-        {/* Dashboard — standalone */}
-        <NavLink
-          to={DASHBOARD.to}
-          end
-          className={({ isActive }) => cn(
-            'select-none flex items-center gap-2.5 py-2 mx-2 px-2.5 rounded-lg text-sm font-medium transition-colors mb-2',
-            isActive
-              ? 'text-blue-700'
-              : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900',
-            collapsed && 'justify-center mx-1 px-0'
-          )}
-          style={({ isActive }) => isActive
-            ? { backgroundColor: 'var(--brand-light)', color: 'var(--brand-primary)' }
-            : {}
-          }
-          title={collapsed ? DASHBOARD.label : undefined}
-        >
-          <DASHBOARD.icon size={15} className="shrink-0" />
-          {!collapsed && <span>{DASHBOARD.label}</span>}
-        </NavLink>
-
-        {/* ── Grouped sections ─────────────────────────────────────── */}
-        {NAV_SECTIONS.map(section => {
-          const isOpen = openSections[section.label] !== false;
-          return (
-            <div key={section.label} className={cn('mb-1.5', collapsed ? 'mx-1' : 'mx-2')}>
-
-              {collapsed ? (
-                /* Collapsed — colored dot only */
-                <>
-                  <div className="flex justify-center mt-2 mb-1">
-                    <div className="w-4 h-0.5 rounded-full opacity-40"
-                      style={{ backgroundColor: section.headerBg }} />
-                  </div>
-                  {section.items.map(({ label, icon: Icon, to }) => (
-                    <NavLink
-                      key={to}
-                      to={to}
-                      className={({ isActive }) => cn(
-                        'select-none flex items-center justify-center py-2 rounded-lg mb-0.5 transition-colors'
-                      )}
-                      style={({ isActive }) => isActive
-                        ? { backgroundColor: section.activeBg, color: '#fff' }
-                        : { color: '#64748b' }
-                      }
-                      title={label}
-                    >
-                      <Icon size={14} />
-                    </NavLink>
-                  ))}
-                </>
-              ) : (
-                <>
-                  {/* Section header */}
-                  <button
-                    onClick={() => toggleSection(section.label)}
-                    className="select-none w-full flex items-center justify-between px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-white transition-all duration-150"
-                    style={{
-                      backgroundColor: section.headerBg,
-                      borderRadius: isOpen ? '6px 6px 0 0' : '6px',
-                    }}
-                    onMouseEnter={e => e.currentTarget.style.opacity = '0.9'}
-                    onMouseLeave={e => e.currentTarget.style.opacity = '1'}
-                  >
-                    <span>{section.label}</span>
-                    <ChevronDown
-                      size={11}
-                      className="shrink-0 transition-transform duration-200 opacity-70"
-                      style={{ transform: isOpen ? 'rotate(0deg)' : 'rotate(-90deg)' }}
-                    />
-                  </button>
-
-                  {/* Animated items panel */}
-                  <div style={{
-                    maxHeight:  isOpen ? `${section.items.length * 36 + 10}px` : '0px',
-                    overflow:   'hidden',
-                    transition: 'max-height 0.2s ease-in-out',
-                  }}>
-                    <div
-                      className="border-x border-b rounded-b-md px-1 py-1"
-                      style={{ borderColor: section.itemBorder, backgroundColor: section.itemBg }}
-                    >
-                      {section.items.map(({ label, icon: Icon, to }) => (
-                        <NavLink
-                          key={to}
-                          to={to}
-                          className={({ isActive }) => cn(
-                            'select-none flex items-center gap-2 py-1.5 px-2 rounded text-xs font-medium mb-0.5 last:mb-0 transition-colors duration-150',
-                            isActive
-                              ? 'text-white'
-                              : 'text-slate-600 hover:text-slate-900'
-                          )}
-                          style={({ isActive }) => isActive
-                            ? { backgroundColor: section.activeBg }
-                            : {}
-                          }
-                          onMouseEnter={e => {
-                            if (!e.currentTarget.style.backgroundColor) {
-                              e.currentTarget.style.backgroundColor = section.hoverBg;
-                            }
-                          }}
-                          onMouseLeave={e => {
-                            if (e.currentTarget.style.backgroundColor === section.hoverBg) {
-                              e.currentTarget.style.backgroundColor = '';
-                            }
-                          }}
-                          title={label}
-                        >
-                          <Icon size={13} className="shrink-0" />
-                          <span>{label}</span>
-                        </NavLink>
-                      ))}
-                    </div>
-                  </div>
-                </>
-              )}
+      {/* ── Nav ──────────────────────────────────────────────────────────── */}
+      <nav className="flex-1 py-3 overflow-y-auto scrollbar-thin space-y-4">
+        {NAV.map(section => (
+          <div key={section.label}>
+            {/* Section label */}
+            {!collapsed && (
+              <p className="px-4 mb-1 text-[10px] font-semibold tracking-widest uppercase"
+                style={{ color: '#38bdf8' }}>
+                {section.label}
+              </p>
+            )}
+            {collapsed && (
+              <div className="mx-auto mb-1 mt-1" style={{ width: 24, height: 1, background: 'rgba(56,189,248,0.3)' }} />
+            )}
+            {/* Items */}
+            <div className="space-y-0.5">
+              {section.items.map(item => (
+                <NavItem key={item.to} item={item} collapsed={collapsed} />
+              ))}
             </div>
-          );
-        })}
+          </div>
+        ))}
 
-        {/* ── Admin section — sys_admin only ───────────────────────── */}
-        {isAdmin && (() => {
-          const isOpen = openSections['admin'] !== false;
-          return (
-            <div className={cn('mb-1.5', collapsed ? 'mx-1' : 'mx-2')}>
-              {collapsed ? (
-                <>
-                  <div className="flex justify-center mt-2 mb-1">
-                    <div className="w-4 h-0.5 rounded-full bg-blue-400 opacity-60" />
-                  </div>
-                  {ADMIN_NAV.map(({ label, icon: Icon, to }) => (
-                    <NavLink
-                      key={to}
-                      to={to}
-                      className={({ isActive }) => cn(
-                        'select-none flex items-center justify-center py-2 rounded-lg mb-0.5 transition-colors',
-                        !isActive && 'hover:bg-blue-50'
-                      )}
-                      style={({ isActive }) => isActive
-                        ? { backgroundColor: '#2563eb', color: '#fff' }
-                        : { color: '#3b82f6' }
-                      }
-                      title={label}
-                    >
-                      <Icon size={14} />
-                    </NavLink>
-                  ))}
-                </>
-              ) : (
-                <>
-                  {/* Admin header */}
-                  <button
-                    onClick={() => toggleSection('admin')}
-                    className="select-none w-full flex items-center justify-between px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-white transition-all duration-150"
-                    style={{
-                      backgroundColor: '#334155',
-                      borderRadius: isOpen ? '6px 6px 0 0' : '6px',
-                      borderLeft: '3px solid #3b82f6',
-                    }}
-                    onMouseEnter={e => e.currentTarget.style.opacity = '0.9'}
-                    onMouseLeave={e => e.currentTarget.style.opacity = '1'}
-                  >
-                    <div className="flex items-center gap-1.5">
-                      <ShieldCheck size={11} className="text-blue-300 shrink-0" />
-                      <span>Admin</span>
-                    </div>
-                    <ChevronDown
-                      size={11}
-                      className="shrink-0 transition-transform duration-200 opacity-60"
-                      style={{ transform: isOpen ? 'rotate(0deg)' : 'rotate(-90deg)' }}
-                    />
-                  </button>
-
-                  {/* Admin items */}
-                  <div style={{
-                    maxHeight:  isOpen ? `${ADMIN_NAV.length * 36 + 10}px` : '0px',
-                    overflow:   'hidden',
-                    transition: 'max-height 0.2s ease-in-out',
-                  }}>
-                    <div className="border-x border-b border-slate-200 rounded-b-md bg-white px-1 py-1">
-                      {ADMIN_NAV.map(({ label, icon: Icon, to }) => (
-                        <NavLink
-                          key={to}
-                          to={to}
-                          className={({ isActive }) => cn(
-                            'select-none flex items-center gap-2 py-1.5 px-2 rounded text-xs font-medium mb-0.5 last:mb-0 transition-colors duration-150',
-                            isActive
-                              ? 'text-white'
-                              : 'text-blue-700 hover:bg-blue-100 hover:text-blue-900'
-                          )}
-                          style={({ isActive }) => isActive
-                            ? { backgroundColor: '#2563eb' }
-                            : {}
-                          }
-                          title={label}
-                        >
-                          <Icon size={13} className="shrink-0" />
-                          <span>{label}</span>
-                        </NavLink>
-                      ))}
-                    </div>
-                  </div>
-                </>
-              )}
+        {/* Admin section */}
+        {isAdmin && (
+          <div>
+            {!collapsed && (
+              <p className="px-4 mb-1 text-[10px] font-semibold tracking-widest uppercase flex items-center gap-1.5"
+                style={{ color: '#38bdf8' }}>
+                <ShieldCheck size={9} /> Admin
+              </p>
+            )}
+            {collapsed && (
+              <div className="mx-auto mb-1 mt-1" style={{ width: 24, height: 1, background: 'rgba(59,130,246,0.3)' }} />
+            )}
+            <div className="space-y-0.5">
+              {ADMIN_ITEMS.map(item => (
+                <NavItem key={item.to} item={item} collapsed={collapsed} />
+              ))}
             </div>
-          );
-        })()}
-
+          </div>
+        )}
       </nav>
 
-      {/* Credit footer */}
+      {/* ── Credits ───────────────────────────────────────────────────────── */}
       {!collapsed && <CreditFooter />}
 
-      {/* Collapse toggle */}
+      {/* ── Collapse toggle ───────────────────────────────────────────────── */}
       <button
         onClick={onToggle}
         className={cn(
-          'flex items-center gap-2 px-4 py-3 border-t border-slate-100 text-xs text-slate-400 hover:text-slate-700 hover:bg-slate-50 transition-colors',
-          collapsed && 'justify-center px-0'
+          'flex items-center gap-2 py-3 border-t text-[11px] transition-colors shrink-0',
+          collapsed ? 'justify-center px-0' : 'px-4'
         )}
-        title={collapsed ? 'Expand' : 'Collapse'}
+        style={{
+          borderColor: 'var(--sidebar-border)',
+          color: 'var(--sidebar-label)',
+        }}
+        onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; e.currentTarget.style.color = 'var(--sidebar-text)'; }}
+        onMouseLeave={e => { e.currentTarget.style.background = ''; e.currentTarget.style.color = 'var(--sidebar-label)'; }}
+        title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
       >
-        {collapsed
-          ? <ChevronRight size={13} />
-          : <><ChevronLeft size={13} /><span>Collapse</span></>
-        }
+        <ChevronRight size={12} className={cn('transition-transform duration-200', !collapsed && 'rotate-180')} />
+        {!collapsed && <span>Collapse</span>}
       </button>
     </aside>
   );
