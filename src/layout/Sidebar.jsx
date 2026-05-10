@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, FlaskConical, ListOrdered, Cpu,
@@ -118,12 +118,28 @@ function ProjectSwitcher() {
   const navigate = useNavigate();
   const { org, projects, activeProject, switchProject, loading } = useProject();
   const [open, setOpen] = useState(false);
+  const buttonRef = useRef(null);
+  const [dropdownStyle, setDropdownStyle] = useState({});
+
+  useEffect(() => {
+    if (open && buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect();
+      setDropdownStyle({
+        position: 'fixed',
+        top: rect.bottom + 4,
+        left: rect.left,
+        width: rect.width + 24,
+        zIndex: 9999,
+      });
+    }
+  }, [open]);
 
   if (loading) return <div className="h-14 border-b" style={{ borderColor: 'var(--sidebar-border)' }} />;
 
   return (
     <div className="relative px-3 pb-2 border-b" style={{ borderColor: 'var(--sidebar-border)' }}>
       <button
+        ref={buttonRef}
         onClick={() => setOpen(o => !o)}
         className="w-full flex items-center gap-2.5 px-2 py-2 rounded-lg transition-all text-left group"
         style={{ ':hover': { background: 'var(--sidebar-hover)' } }}
@@ -154,9 +170,9 @@ function ProjectSwitcher() {
 
       {open && (
         <>
-          <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
-          <div className="absolute left-3 right-3 top-full mt-1 z-20 rounded-xl border overflow-hidden animate-fadeIn"
-            style={{ background: '#1e293b', borderColor: 'rgba(255,255,255,0.1)', boxShadow: '0 8px 32px rgba(0,0,0,0.4)' }}>
+          <div className="fixed inset-0 z-[9998]" onClick={() => setOpen(false)} />
+          <div className="rounded-xl border overflow-hidden animate-fadeIn"
+            style={{ ...dropdownStyle, background: '#1e293b', borderColor: 'rgba(255,255,255,0.1)', boxShadow: '0 8px 32px rgba(0,0,0,0.4)' }}>
             <div className="px-3 py-2 border-b" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
               <p className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: 'var(--sidebar-label)' }}>
                 Projects
@@ -273,12 +289,11 @@ export default function Sidebar({ collapsed, onToggle, onHide, keycloak }) {
 
         {!collapsed && (
           <>
-            <div className="flex-1 min-w-0">
-              <p className="text-[14px] font-bold leading-none tracking-tight">
-                <span className="text-white">Decision</span>
-                <span style={{ color: 'var(--brand)' }}>Mesh</span>
+            <div className="flex-1 overflow-hidden">
+              <p className="text-[14px] font-bold leading-none tracking-tight whitespace-nowrap">
+                <span className="text-white">Decision</span><span style={{ color: 'var(--brand)' }}>Mesh</span>
               </p>
-              <p className="text-[9px] font-semibold tracking-[0.12em] uppercase mt-1"
+              <p className="text-[9px] font-semibold tracking-[0.12em] uppercase mt-1 whitespace-nowrap"
                 style={{ color: 'var(--sidebar-label)' }}>
                 AI Control Plane
               </p>
