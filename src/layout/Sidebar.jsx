@@ -230,23 +230,22 @@ function NavItem({ item, collapsed }) {
       )}
       style={({ isActive }) => isActive
         ? {
-            background: 'rgba(37,99,235,0.15)',
+            background: 'rgba(37,99,235,0.2)',
             color: '#93c5fd',
-            borderLeft: collapsed ? 'none' : '2px solid var(--brand)',
+            borderLeft: collapsed ? 'none' : '2px solid #2563eb',
             paddingLeft: collapsed ? undefined : '10px',
           }
-        : { color: 'var(--sidebar-text)' }
+        : { color: '#94a3b8' }
       }
       onMouseEnter={e => {
-        if (!e.currentTarget.getAttribute('data-active')) {
-          e.currentTarget.style.background = 'rgba(255,255,255,0.05)';
-          e.currentTarget.style.color = 'var(--sidebar-text-active)';
-        }
+        e.currentTarget.style.background = 'rgba(255,255,255,0.07)';
+        e.currentTarget.style.color = '#f1f5f9';
       }}
       onMouseLeave={e => {
-        if (!e.currentTarget.getAttribute('data-active')) {
+        const isActive = e.currentTarget.getAttribute('aria-current');
+        if (!isActive) {
           e.currentTarget.style.background = '';
-          e.currentTarget.style.color = '';
+          e.currentTarget.style.color = '#94a3b8';
         }
       }}
     >
@@ -272,9 +271,9 @@ export default function Sidebar({ collapsed, onToggle, onHide, keycloak }) {
     <aside
       className="flex flex-col h-screen shrink-0 transition-all duration-200"
       style={{
-        width: collapsed ? 'var(--sidebar-collapsed)' : 'var(--sidebar-width)',
-        background: 'var(--sidebar-bg)',
-        borderRight: '1px solid var(--sidebar-border)',
+        width: collapsed ? '52px' : '220px',
+        background: '#0f172a',
+        borderRight: '1px solid rgba(255,255,255,0.06)',
       }}
     >
       {/* ── Logo ─────────────────────────────────────────────────────────── */}
@@ -283,7 +282,7 @@ export default function Sidebar({ collapsed, onToggle, onHide, keycloak }) {
           'flex items-center border-b shrink-0',
           collapsed ? 'justify-center px-0 py-[14px]' : 'px-3 py-[11px] gap-2.5'
         )}
-        style={{ borderColor: 'var(--sidebar-border)', minHeight: 'var(--topbar-h)' }}
+        style={{ borderColor: 'rgba(255,255,255,0.06)', minHeight: '52px' }}
       >
         <img src="/decimeshi-icon.svg" alt="DecisionMesh" className="w-8 h-8 rounded-lg shrink-0" />
 
@@ -291,7 +290,7 @@ export default function Sidebar({ collapsed, onToggle, onHide, keycloak }) {
           <>
             <div className="flex-1 overflow-hidden">
               <p className="text-[14px] font-bold leading-none tracking-tight whitespace-nowrap">
-                <span className="text-white">Decision</span><span style={{ color: 'var(--brand)' }}>Mesh</span>
+                <span className="text-white">Decision</span><span className="text-white">Mesh</span>
               </p>
               <p className="text-[9px] font-semibold tracking-[0.12em] uppercase mt-1 whitespace-nowrap"
                 style={{ color: 'var(--sidebar-label)' }}>
@@ -299,10 +298,10 @@ export default function Sidebar({ collapsed, onToggle, onHide, keycloak }) {
               </p>
             </div>
             <button onClick={onHide} title="Hide sidebar"
-              className="p-1 rounded-md transition-colors shrink-0"
-              style={{ color: 'var(--sidebar-label)' }}
-              onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; e.currentTarget.style.color = 'var(--sidebar-text)'; }}
-              onMouseLeave={e => { e.currentTarget.style.background = ''; e.currentTarget.style.color = 'var(--sidebar-label)'; }}
+              className="p-1.5 rounded-md transition-colors shrink-0"
+              style={{ color: '#94a3b8', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)' }}
+              onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.12)'; e.currentTarget.style.color = '#f1f5f9'; }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; e.currentTarget.style.color = '#94a3b8'; }}
             >
               <PanelLeftClose size={13} />
             </button>
@@ -368,8 +367,8 @@ export default function Sidebar({ collapsed, onToggle, onHide, keycloak }) {
           collapsed ? 'justify-center px-0' : 'px-4'
         )}
         style={{
-          borderColor: 'var(--sidebar-border)',
-          color: 'var(--sidebar-label)',
+          borderColor: 'rgba(255,255,255,0.06)',
+          color: '#475569',
         }}
         onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; e.currentTarget.style.color = 'var(--sidebar-text)'; }}
         onMouseLeave={e => { e.currentTarget.style.background = ''; e.currentTarget.style.color = 'var(--sidebar-label)'; }}
