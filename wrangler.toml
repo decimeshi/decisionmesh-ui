@@ -1,3 +1,7 @@
+@"
 name = "decisionmesh-ui"
 pages_build_output_dir = "dist"
 
+[assets]
+directory = "./dist"
+"@ | Set-Content E:\decimeshi\decisionmesh-ui\wrangler.toml -Encoding UTF8
