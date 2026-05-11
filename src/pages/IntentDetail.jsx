@@ -536,7 +536,7 @@ function DecisionOutputCard({ executions }) {
 
 // ── Main component ────────────────────────────────────────────────────────────
 export default function IntentDetail({ keycloak }) {
-  const { id }     = useParams();
+  const { id: intentId } = useParams();
   const navigate   = useNavigate();
 
   const [intent,       setIntent]       = useState(null);
@@ -552,11 +552,11 @@ export default function IntentDetail({ keycloak }) {
     try {
       const [intentData, eventsData, execData, adaptersData, policyData] =
         await Promise.allSettled([
-          getIntent(keycloak, id),
-          getIntentEvents(keycloak, id),
-          getExecutionsByIntent(keycloak, id),
+          getIntent(keycloak, intentId),
+          getIntentEvents(keycloak, intentId),
+          getExecutionsByIntent(keycloak, intentId),
           listAdapters(keycloak),
-          getPolicyEvaluations(keycloak, id),
+          getPolicyEvaluations(keycloak, intentId),
         ]);
       if (intentData.value)   setIntent(intentData.value);
       if (eventsData.value)   setEvents(eventsData.value ?? []);
@@ -567,7 +567,7 @@ export default function IntentDetail({ keycloak }) {
       setLoading(false);
       setFetching(false);
     }
-  }, [id, keycloak]);
+  }, [intentId, keycloak]);
 
   useEffect(() => {
     load();
