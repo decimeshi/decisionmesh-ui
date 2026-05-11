@@ -14,6 +14,7 @@ import {
 import ExecutionTimeline from '../components/timeline/ExecutionTimeline';
 import { getIntent, getIntentEvents, getExecutionsByIntent, getPolicyEvaluations, listAdapters } from '../utils/api';
 import { formatCost, formatDate, formatLatency, shortId, cn } from '../lib/utils';
+import ReplayPanel from '../components/replay/ReplayPanel';
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 
@@ -781,6 +782,7 @@ export default function IntentDetail({ keycloak }) {
             violationReason={intent.violationReason}
             constraints={intent.constraints}
           />
+          <ReplayPanel intentId={intentId} keycloak={keycloak} />
 
           {/* Adapter detail */}
           <AdapterCard events={events} adapters={adapters} executions={executions} />
