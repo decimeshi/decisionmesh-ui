@@ -1,7 +1,14 @@
-node_modules
-dist
+# Dependencies
+node_modules/
+
+# Vite
+.vite/
+dist/
+
+# Local env files
 .env.local
 .env.*.local
 .idea/
 .vscode/
 .DS_Store
+Thumbs.db

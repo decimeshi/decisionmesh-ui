@@ -6,6 +6,8 @@ import { Spinner } from './components/shared';
 import LowCreditBanner from './components/shared/LowCreditBanner';
 import FeedbackWidget from './components/FeedbackWidget';
 import SysAdminRoute from './components/SysAdminRoute';
+import AIGovernanceInfrastructure from "./pages/blog/AIGovernanceInfrastructure.jsx";
+import IntentBasedAIControlPlane from "./pages/blog/IntentBasedAIControlPlane.jsx";
 
 
 const Dashboard        = lazy(() => import('./pages/Dashboard'));
@@ -127,6 +129,10 @@ export default function App({ keycloak }) {
                 <Route path="/credits"                element={<CreditLedger     keycloak={keycloak} />} />
                 <Route path="/debug/token"            element={<TokenDebugPage   keycloak={keycloak} />} />
                 <Route path="/intent-library"         element={<FintechIntents   keycloak={keycloak} />} />
+
+                <Route path="/blog/intent-based-ai-control-plane" element={<IntentBasedAIControlPlane />}/>
+
+                <Route path="/blog/ai-governance-enterprise-infrastructure" element={<AIGovernanceInfrastructure />}/>
 
                 {/* ── sys_admin only routes ──────────────────────────────── */}
                 <Route path="/admin/payments" element={
