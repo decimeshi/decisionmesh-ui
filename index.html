@@ -1,15 +1,215 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="DecisionMesh — AI Control Plane for intelligent decision routing" />
+
+  <!-- Primary SEO -->
+  <title>DecisionMesh — AI Governance &amp; LLM Cost Control Platform</title>
+  <meta name="description" content="DecisionMesh enforces AI budgets, governs LLM policies, routes across OpenAI and Anthropic, and logs every decision with a SOC 2-ready audit trail. PII masking, hallucination detection, and prompt injection protection included. Free to start." />
+  <link rel="canonical" href="https://decimeshi.com/" />
+  <meta name="robots" content="index, follow" />
+
+  <!-- Keywords (supporting signal) -->
+  <meta name="keywords" content="AI governance platform, LLM cost control, AI audit trail, LLM policy enforcement, AI compliance software, prompt injection protection, hallucination detection, AI budget enforcement, SOC 2 AI, GDPR AI compliance, LLM routing, AI observability, shadow AI management" />
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://decimeshi.com/" />
+  <meta property="og:title" content="DecisionMesh — AI Governance &amp; LLM Cost Control Platform" />
+  <meta property="og:description" content="Enforce AI budgets, govern LLM policies, route across AI models, and log every decision with a tamper-proof audit trail. SOC 2 ready. Free to start." />
+  <meta property="og:image" content="https://decimeshi.com/og-image.png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:site_name" content="DecisionMesh" />
+  <meta property="og:locale" content="en_US" />
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:site" content="@decisionmesh" />
+  <meta name="twitter:title" content="DecisionMesh — AI Governance Platform" />
+  <meta name="twitter:description" content="Budget enforcement, LLM routing, policy governance, PII masking, and compliance-ready audit trails for every AI decision. Free to start." />
+  <meta name="twitter:image" content="https://decimeshi.com/og-image.png" />
+
+  <!-- Structured Data -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "Organization",
+        "@id": "https://decimeshi.com/#organization",
+        "name": "DecisionMesh",
+        "url": "https://decimeshi.com",
+        "logo": {
+          "@type": "ImageObject",
+          "url": "https://decimeshi.com/decimeshi-icon.svg"
+        },
+        "contactPoint": [
+          {
+            "@type": "ContactPoint",
+            "email": "sales@decisionmesh.io",
+            "contactType": "sales"
+          },
+          {
+            "@type": "ContactPoint",
+            "email": "support@decisionmesh.io",
+            "contactType": "customer support"
+          }
+        ]
+      },
+      {
+        "@type": "WebSite",
+        "@id": "https://decimeshi.com/#website",
+        "url": "https://decimeshi.com",
+        "name": "DecisionMesh",
+        "publisher": { "@id": "https://decimeshi.com/#organization" }
+      },
+      {
+        "@type": "SoftwareApplication",
+        "@id": "https://decimeshi.com/#product",
+        "name": "DecisionMesh",
+        "applicationCategory": "BusinessApplication",
+        "applicationSubCategory": "AI Governance Platform",
+        "operatingSystem": "Web",
+        "url": "https://decimeshi.com",
+        "description": "DecisionMesh is an AI governance platform that enforces budgets, governs LLM policies, routes across OpenAI, Anthropic, Google, and Azure, and logs every AI decision with a tamper-proof compliance audit trail.",
+        "screenshot": "https://decimeshi.com/og-image.png",
+        "featureList": [
+          "LLM budget enforcement with hard cost ceilings",
+          "Multi-adapter routing across OpenAI, Anthropic, Google, Azure",
+          "Automatic fallback on timeout or failure",
+          "Policy governance engine with custom rules",
+          "Compliance-ready audit trail for SOC 2 and GDPR",
+          "PII detection and masking before data reaches AI models",
+          "Hallucination detection and output quality scoring",
+          "Prompt injection protection",
+          "Decision replay — re-run any past AI decision",
+          "Drift detection and model version tracking",
+          "Multi-tenancy with full tenant isolation",
+          "Human-in-the-loop approval gates",
+          "Shadow AI enterprise gateway",
+          "Real-time cost dashboard"
+        ],
+        "offers": [
+          {
+            "@type": "Offer",
+            "name": "Free",
+            "description": "500 one-time credits, 2 adapters, basic audit",
+            "price": "0",
+            "priceCurrency": "USD"
+          },
+          {
+            "@type": "Offer",
+            "name": "Hobby",
+            "description": "2,000 credits per month, 3 adapters, 90-day audit",
+            "price": "0",
+            "priceCurrency": "USD"
+          },
+          {
+            "@type": "Offer",
+            "name": "Builder",
+            "description": "15,000 credits per month, all adapters, policy builder, decision replay",
+            "price": "19",
+            "priceCurrency": "USD",
+            "priceSpecification": {
+              "@type": "UnitPriceSpecification",
+              "price": "19",
+              "priceCurrency": "USD",
+              "unitCode": "MON"
+            }
+          },
+          {
+            "@type": "Offer",
+            "name": "Pro",
+            "description": "60,000 credits per month, multi-tenancy, SSO, human-in-the-loop gates",
+            "price": "49",
+            "priceCurrency": "USD",
+            "priceSpecification": {
+              "@type": "UnitPriceSpecification",
+              "price": "49",
+              "priceCurrency": "USD",
+              "unitCode": "MON"
+            }
+          }
+        ],
+        "publisher": { "@id": "https://decimeshi.com/#organization" }
+      },
+      {
+        "@type": "FAQPage",
+        "mainEntity": [
+          {
+            "@type": "Question",
+            "name": "What is DecisionMesh?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "DecisionMesh is an AI governance platform that sits between your applications and AI execution. It enforces cost budgets, applies policy rules before and after every LLM call, routes across models like OpenAI, Anthropic, Google, and Azure, and logs every decision with a tamper-proof audit trail built for SOC 2 and GDPR compliance."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "How does DecisionMesh enforce AI budgets?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "DecisionMesh lets you set hard cost ceilings per intent. Execution stops the moment spend exceeds your configured limit — before the bill arrives. You can set budget rules at the organisation, project, or per-adapter level."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Is DecisionMesh SOC 2 and GDPR compliant?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "DecisionMesh is built with a SOC 2-ready architecture including immutable signed audit logs, PII detection and masking before data reaches any AI model, and GDPR data residency controls per tenant. Every decision is permanently logged and exportable for compliance reviews."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Which AI models does DecisionMesh support?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "DecisionMesh supports multiple AI adapters including OpenAI, Anthropic, Google Gemini, and Azure OpenAI, with automatic fallback to the next adapter on timeout or rate limit failure."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Does DecisionMesh protect against prompt injection?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Yes. DecisionMesh scans payloads for prompt injection patterns before execution reaches any model. Attacks are blocked and logged, not silently swallowed."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "How much does DecisionMesh cost?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "DecisionMesh offers a free tier with 500 one-time credits, a Hobby plan with 2,000 credits per month at no cost, a Builder plan at $19 per month with 15,000 credits, and a Pro plan at $49 per month with 60,000 credits. Enterprise pricing with unlimited credits is available on request."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "What is decision replay in DecisionMesh?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Decision replay lets you re-run any past AI intent with a single click. Every intent is stored with its full context — objective, constraints, adapter, and budget. You can compare outputs across different models, debug failures from production, and build regression test suites from real history."
+            }
+          }
+        ]
+      }
+    ]
+  }
+  </script>
+
+  <!-- Favicon -->
   <link rel="icon" type="image/svg+xml" href="/decimeshi-icon.svg" />
   <link rel="apple-touch-icon" href="/decimeshi-icon.svg" />
-  <title>DecisionMesh — AI Control Plane</title>
+
+  <!-- Preconnect for performance -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
-  </body>
+<body>
+  <div id="root"></div>
+  <script type="module" src="/src/main.jsx"></script>
+</body>
 </html>
