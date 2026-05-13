@@ -127,6 +127,9 @@ export default function App({ keycloak }) {
                 <Route path="/credits"                element={<CreditLedger     keycloak={keycloak} />} />
                 <Route path="/debug/token"            element={<TokenDebugPage   keycloak={keycloak} />} />
                 <Route path="/intent-library"         element={<FintechIntents   keycloak={keycloak} />} />
+                <Route path="/blog/intent-based-ai-control-plane" element={<IntentBasedAIControlPlane />}/>
+
+                <Route path="/blog/ai-governance-enterprise-infrastructure" element={<AIGovernanceInfrastructure />}/>
 
                 {/* ── sys_admin only routes ──────────────────────────────── */}
                 <Route path="/admin/payments" element={
