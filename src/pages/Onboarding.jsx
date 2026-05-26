@@ -67,7 +67,7 @@ export default function Onboarding({ keycloak, onComplete }) {
       <div style={styles.overlay}>
         <div style={styles.card}>
           <div style={styles.logo}>
-            <img src="/decimeshi-icon.svg" alt="DecisionMesh" style={{ width: 40, height: 40 }} />
+            <img src="/decimeshi-icon.svg" alt="DecisionMesh" style={{ width: 44, height: 44 }} />
           </div>
           <h1 style={styles.title}>Welcome to DecisionMesh</h1>
           <p style={styles.subtitle}>How will you be using the platform?</p>
@@ -129,7 +129,7 @@ export default function Onboarding({ keycloak, onComplete }) {
     <div style={styles.overlay}>
       <div style={styles.card}>
         <div style={styles.logo}>
-          <img src="/decimeshi-icon.svg" alt="DecisionMesh" style={{ width: 40, height: 40 }} />
+          <img src="/decimeshi-icon.svg" alt="DecisionMesh" style={{ width: 44, height: 44 }} />
         </div>
         <h1 style={styles.title}>Tell us about your organisation</h1>
         <p style={styles.subtitle}>This helps us tailor your experience</p>

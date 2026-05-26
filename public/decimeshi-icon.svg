@@ -1,23 +1,84 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
-  <rect width="64" height="64" rx="16" fill="#111827"/>
-  
-  <!-- Diamond outline -->
-  <polygon points="32,10 50,32 32,54 14,32" fill="none" stroke="#38bdf8" stroke-width="2"/>
-  
-  <!-- Grid lines -->
-  <line x1="14" y1="32" x2="50" y2="32" stroke="#38bdf8" stroke-width="1.2" opacity="0.4"/>
-  <line x1="32" y1="10" x2="32" y2="54" stroke="#38bdf8" stroke-width="1.2" opacity="0.4"/>
-  
-  <!-- Inner mesh nodes -->
-  <circle cx="32" cy="21" r="3" fill="#38bdf8"/>
-  <circle cx="32" cy="32" r="4.5" fill="#38bdf8"/>
-  <circle cx="32" cy="43" r="3" fill="#38bdf8"/>
-  <circle cx="23" cy="32" r="2.5" fill="#38bdf8" opacity="0.6"/>
-  <circle cx="41" cy="32" r="2.5" fill="#38bdf8" opacity="0.6"/>
-  
-  <!-- Corner accent nodes -->
-  <circle cx="32" cy="10" r="2.5" fill="#7dd3fc"/>
-  <circle cx="50" cy="32" r="2.5" fill="#7dd3fc"/>
-  <circle cx="32" cy="54" r="2.5" fill="#7dd3fc"/>
-  <circle cx="14" cy="32" r="2.5" fill="#7dd3fc"/>
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 100 100">
+  <defs>
+    <!-- Bracket: white/light top → vivid blue bottom -->
+    <linearGradient id="bg" x1="42" y1="22" x2="70" y2="78" gradientUnits="userSpaceOnUse">
+      <stop offset="0%"   stop-color="#e2e8f0"/>
+      <stop offset="35%"  stop-color="#93c5fd"/>
+      <stop offset="100%" stop-color="#2563eb"/>
+    </linearGradient>
+    <!-- Mesh: deep purple bottom-left → electric blue top-right -->
+    <linearGradient id="mg" x1="14" y1="70" x2="46" y2="30" gradientUnits="userSpaceOnUse">
+      <stop offset="0%"   stop-color="#7c3aed"/>
+      <stop offset="45%"  stop-color="#4f46e5"/>
+      <stop offset="100%" stop-color="#3b82f6"/>
+    </linearGradient>
+    <!-- Node glow -->
+    <filter id="glow" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="1.2" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <!--
+    HEX D BRACKET
+    stroke-width=11 on a 100-unit viewBox
+    → at 36px display: 11 × (36/100) = 3.96px  ← clearly visible
+    → at 24px display: 11 × (24/100) = 2.64px  ← still visible
+    Path: flat-top hex right portion, center(58,50), avg R=32
+  -->
+  <path d="M 42,22 L 74,22 L 90,50 L 74,78 L 42,78"
+    fill="none"
+    stroke="url(#bg)"
+    stroke-width="11"
+    stroke-linecap="round"
+    stroke-linejoin="miter"
+    stroke-miterlimit="4"/>
+
+  <!--
+    MESH LATTICE  — 7 nodes, 2-3-2 arrangement
+    stroke-width=2.8 → at 36px: 2.8 × 0.36 = 1.0px  ← visible
+    stroke-width=2.8 → at 24px: 2.8 × 0.24 = 0.67px ← thin but present
+  -->
+  <g stroke="url(#mg)" stroke-width="2.8" fill="none"
+     stroke-linecap="round" stroke-linejoin="round">
+    <!-- Row A horizontal -->
+    <line x1="22" y1="30" x2="38" y2="30"/>
+    <!-- A → B diagonals -->
+    <line x1="22" y1="30" x2="14" y2="50"/>
+    <line x1="22" y1="30" x2="30" y2="50"/>
+    <line x1="38" y1="30" x2="30" y2="50"/>
+    <line x1="38" y1="30" x2="46" y2="50"/>
+    <!-- Row B horizontal -->
+    <line x1="14" y1="50" x2="30" y2="50"/>
+    <line x1="30" y1="50" x2="46" y2="50"/>
+    <!-- B → C diagonals -->
+    <line x1="14" y1="50" x2="22" y2="70"/>
+    <line x1="30" y1="50" x2="22" y2="70"/>
+    <line x1="30" y1="50" x2="38" y2="70"/>
+    <line x1="46" y1="50" x2="38" y2="70"/>
+    <!-- Row C horizontal -->
+    <line x1="22" y1="70" x2="38" y2="70"/>
+  </g>
+
+  <!-- Mesh nodes — radius 3.5 → at 36px: 1.26px dots ← visible -->
+  <g filter="url(#glow)">
+    <circle cx="22" cy="30" r="3.5" fill="url(#mg)"/>
+    <circle cx="38" cy="30" r="3.5" fill="url(#mg)"/>
+    <circle cx="14" cy="50" r="3.5" fill="url(#mg)"/>
+    <circle cx="30" cy="50" r="5"   fill="url(#mg)"/>
+    <circle cx="46" cy="50" r="3.5" fill="url(#mg)"/>
+    <circle cx="22" cy="70" r="3.5" fill="url(#mg)"/>
+    <circle cx="38" cy="70" r="3.5" fill="url(#mg)"/>
+  </g>
+
+  <!-- Node inner highlights (subtle depth) -->
+  <g fill="white" opacity="0.6">
+    <circle cx="21" cy="29" r="1.2"/>
+    <circle cx="37" cy="29" r="1.2"/>
+    <circle cx="13" cy="49" r="1.2"/>
+    <circle cx="29" cy="49" r="1.5"/>
+    <circle cx="45" cy="49" r="1.2"/>
+    <circle cx="21" cy="69" r="1.2"/>
+    <circle cx="37" cy="69" r="1.2"/>
+  </g>
 </svg>

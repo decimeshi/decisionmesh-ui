@@ -284,18 +284,18 @@ export default function Sidebar({ collapsed, onToggle, onHide, keycloak }) {
         )}
         style={{ borderColor: 'rgba(255,255,255,0.06)', minHeight: '52px' }}
       >
-        <img src="/decimeshi-icon.svg" alt="DecisionMesh" className="w-8 h-8 rounded-lg shrink-0" />
+        <img src="/decimeshi-icon.svg" alt="DecisionMesh" className="w-10 h-10 shrink-0" />
 
         {!collapsed && (
           <>
             <div className="flex-1 overflow-hidden">
-              <p className="text-[14px] font-bold leading-none tracking-tight whitespace-nowrap">
-                <span className="text-white">Decision</span><span className="text-white">Mesh</span>
-              </p>
-              <p className="text-[9px] font-semibold tracking-[0.12em] uppercase mt-1 whitespace-nowrap"
-                style={{ color: 'var(--sidebar-label)' }}>
-                AI Control Plane
-              </p>
+              <p className="text-[14px] font-black leading-none tracking-tight whitespace-nowrap"
+                style={{
+                  background: 'linear-gradient(90deg, #f1f5f9 0%, #f1f5f9 52%, #3b82f6 53%, #7c3aed 100%)',
+                  WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text'
+                }}>DecisionMesh</p>
+              <p className="text-[8px] font-semibold tracking-[0.15em] uppercase mt-0.5 whitespace-nowrap"
+                style={{ color: '#475569' }}>AI Control Plane</p>
             </div>
             <button onClick={onHide} title="Hide sidebar"
               className="p-1.5 rounded-md transition-colors shrink-0"
