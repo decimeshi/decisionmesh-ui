@@ -13,6 +13,7 @@ import CisoVendorChecklist from './pages/blog/CisoVendorChecklist.jsx';
 import EuActVsUsEo       from './pages/blog/EuActVsUsEo.jsx';
 import AIGovernanceInfrastructure  from './pages/blog/AIGovernanceInfrastructure.jsx';
 import IntentBasedAIControlPlane   from './pages/blog/IntentBasedAIControlPlane.jsx';
+import EuAiActChecklist            from './pages/blog/EuAiActChecklist.jsx';
 import { ProjectProvider }  from './context/ProjectContext';
 import { BrandingProvider } from './context/BrandingContext';
 import { CreditProvider }   from './context/CreditContext';
@@ -193,6 +194,7 @@ function AppWrapper() {
         <Route path="/blog/eu-ai-act-vs-us-ai-executive-order-comparison"  element={<EuActVsUsEo />} />
         <Route path="/blog/ai-governance-enterprise-infrastructure"        element={<AIGovernanceInfrastructure />} />
         <Route path="/blog/intent-based-ai-control-plane"                  element={<IntentBasedAIControlPlane />} />
+        <Route path="/blog/eu-ai-act-compliance-checklist-llm"             element={<EuAiActChecklist />} />
       </Routes>
     );
   }
