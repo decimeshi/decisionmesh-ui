@@ -5,4 +5,12 @@
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
   </url>
+  <url><loc>https://decimeshi.com/blog</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://decimeshi.com/blog/shadow-ai-enterprise-risk-ciso-guide</loc><priority>0.9</priority></url>
+  <url><loc>https://decimeshi.com/blog/soc2-ai-compliance-what-auditors-ask</loc><priority>0.9</priority></url>
+  <url><loc>https://decimeshi.com/blog/how-to-audit-openai-api-calls</loc><priority>0.9</priority></url>
+  <url><loc>https://decimeshi.com/blog/llm-cost-control-enterprise-budgets</loc><priority>0.9</priority></url>
+  <url><loc>https://decimeshi.com/blog/prompt-injection-detection-llm</loc><priority>0.9</priority></url>
+  <url><loc>https://decimeshi.com/blog/ciso-ai-vendor-security-assessment-checklist</loc><priority>0.9</priority></url>
+  <url><loc>https://decimeshi.com/blog/eu-ai-act-vs-us-ai-executive-order-comparison</loc><priority>0.9</priority></url>
 </urlset>
