@@ -8,6 +8,14 @@ import FeedbackWidget from './components/FeedbackWidget';
 import SysAdminRoute from './components/SysAdminRoute';
 import AIGovernanceInfrastructure from "./pages/blog/AIGovernanceInfrastructure.jsx";
 import IntentBasedAIControlPlane from "./pages/blog/IntentBasedAIControlPlane.jsx";
+import BlogIndex from "./pages/blog/BlogIndex.jsx";
+import AuditOpenAiCalls from "./pages/blog/AuditOpenAiCalls.jsx";
+import ShadowAiRisk from "./pages/blog/ShadowAiRisk.jsx";
+import LlmCostControl from "./pages/blog/LlmCostControl.jsx";
+import Soc2AiCompliance from "./pages/blog/Soc2AiCompliance.jsx";
+import PromptInjection from "./pages/blog/PromptInjection.jsx";
+import CisoVendorChecklist from "./pages/blog/CisoVendorChecklist.jsx";
+import EuActVsUsEo from "./pages/blog/EuActVsUsEo.jsx";
 
 
 const Dashboard        = lazy(() => import('./pages/Dashboard'));
@@ -131,8 +139,15 @@ export default function App({ keycloak }) {
                 <Route path="/intent-library"         element={<FintechIntents   keycloak={keycloak} />} />
 
                 <Route path="/blog/intent-based-ai-control-plane" element={<IntentBasedAIControlPlane />}/>
-
                 <Route path="/blog/ai-governance-enterprise-infrastructure" element={<AIGovernanceInfrastructure />}/>
+                <Route path="/blog" element={<BlogIndex />}/>
+                <Route path="/blog/soc2-ai-compliance-what-auditors-ask" element={<Soc2AiCompliance />}/>
+                <Route path="/blog/shadow-ai-enterprise-risk-ciso-guide" element={<ShadowAiRisk />}/>
+                <Route path="/blog/how-to-audit-openai-api-calls" element={<AuditOpenAiCalls />}/>
+                <Route path="/blog/llm-cost-control-enterprise-budgets" element={<LlmCostControl />}/>
+                <Route path="/blog/prompt-injection-detection-llm" element={<PromptInjection />}/>
+                <Route path="/blog/ciso-ai-vendor-security-assessment-checklist" element={<CisoVendorChecklist />}/>
+                <Route path="/blog/eu-ai-act-vs-us-ai-executive-order-comparison" element={<EuActVsUsEo />}/>
 
                 {/* ── sys_admin only routes ──────────────────────────────── */}
                 <Route path="/admin/payments" element={

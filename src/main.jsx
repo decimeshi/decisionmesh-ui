@@ -2,7 +2,17 @@ import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import ReactDOM from 'react-dom/client';
 import { AuthProvider, useAuth } from 'react-oidc-context';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { BrowserRouter } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
+import BlogIndex         from './pages/blog/BlogIndex.jsx';
+import AuditOpenAiCalls  from './pages/blog/AuditOpenAiCalls.jsx';
+import ShadowAiRisk      from './pages/blog/ShadowAiRisk.jsx';
+import LlmCostControl    from './pages/blog/LlmCostControl.jsx';
+import Soc2AiCompliance  from './pages/blog/Soc2AiCompliance.jsx';
+import PromptInjection   from './pages/blog/PromptInjection.jsx';
+import CisoVendorChecklist from './pages/blog/CisoVendorChecklist.jsx';
+import EuActVsUsEo       from './pages/blog/EuActVsUsEo.jsx';
+import AIGovernanceInfrastructure  from './pages/blog/AIGovernanceInfrastructure.jsx';
+import IntentBasedAIControlPlane   from './pages/blog/IntentBasedAIControlPlane.jsx';
 import { ProjectProvider }  from './context/ProjectContext';
 import { BrandingProvider } from './context/BrandingContext';
 import { CreditProvider }   from './context/CreditContext';
@@ -167,6 +177,26 @@ function AppWrapper() {
   }, [auth.isAuthenticated]);
 
   // ── Render ─────────────────────────────────────────────────
+
+  // Public blog routes — no auth required
+  const { pathname } = useLocation();
+  if (pathname === '/blog' || pathname.startsWith('/blog/')) {
+    return (
+      <Routes>
+        <Route path="/blog"                                                element={<BlogIndex />} />
+        <Route path="/blog/how-to-audit-openai-api-calls"                  element={<AuditOpenAiCalls />} />
+        <Route path="/blog/shadow-ai-enterprise-risk-ciso-guide"           element={<ShadowAiRisk />} />
+        <Route path="/blog/llm-cost-control-enterprise-budgets"            element={<LlmCostControl />} />
+        <Route path="/blog/soc2-ai-compliance-what-auditors-ask"           element={<Soc2AiCompliance />} />
+        <Route path="/blog/prompt-injection-detection-llm"                 element={<PromptInjection />} />
+        <Route path="/blog/ciso-ai-vendor-security-assessment-checklist"   element={<CisoVendorChecklist />} />
+        <Route path="/blog/eu-ai-act-vs-us-ai-executive-order-comparison"  element={<EuActVsUsEo />} />
+        <Route path="/blog/ai-governance-enterprise-infrastructure"        element={<AIGovernanceInfrastructure />} />
+        <Route path="/blog/intent-based-ai-control-plane"                  element={<IntentBasedAIControlPlane />} />
+      </Routes>
+    );
+  }
+
   if (auth.isLoading)        return <FullScreenSpinner />;
   if (auth.error)            return <LandingPage />;
   if (!auth.isAuthenticated) return <LandingPage />;
