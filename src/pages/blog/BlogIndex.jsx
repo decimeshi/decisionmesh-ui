@@ -1,4 +1,5 @@
 import React from 'react';
+import BlogSeo from '../../components/BlogSeo';
 import { Link } from 'react-router-dom';
 
 const ARTICLES = [
@@ -140,6 +141,11 @@ export default function BlogIndex() {
 
   return (
     <div style={{ background: '#f8fafc', minHeight: '100vh' }}>
+      <BlogSeo
+        title='AI Governance, Compliance and Security Blog'
+        description='Practical guides on EU AI Act compliance, SOC 2 + AI, shadow AI risks, LLM cost control, prompt injection detection, and AI vendor assessment for enterprise teams.'
+        slug=''
+      />
 
       {/* Hero */}
       <div style={{ background: 'linear-gradient(135deg, #0a1045 0%, #1e3a8a 100%)', padding: '64px 24px 48px', textAlign: 'center' }}>

@@ -1,4 +1,5 @@
 import React from 'react';
+import BlogSeo from '../../components/BlogSeo';
 
 export default function Soc2AiCompliance() {
   return (
