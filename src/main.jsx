@@ -157,7 +157,7 @@ function AppWrapper() {
       // token with roles on a new redirect flow. prompt=login in
       // extraQueryParams forces a new session even if one exists.
       console.warn('[Auth] Falling back to redirect login...');
-      sessionStorage.setItem('post_onboard_redirect', 'true');
+      sessionStorage.setItem(`dm_${import.meta.env.VITE_APP_ENV ?? 'dev'}_post_onboard_redirect`, 'true');
       await auth.signinRedirect({ extraQueryParams: { prompt: 'login' } });
     } finally {
       setRefreshingToken(false);
@@ -169,9 +169,9 @@ function AppWrapper() {
   // reloads after login. Restore the correct state here.
   useEffect(() => {
     if (!auth.isAuthenticated) return;
-    const wasRedirected = sessionStorage.getItem('post_onboard_redirect');
+    const wasRedirected = sessionStorage.getItem(`dm_${import.meta.env.VITE_APP_ENV ?? 'dev'}_post_onboard_redirect`);
     if (wasRedirected) {
-      sessionStorage.removeItem('post_onboard_redirect');
+      sessionStorage.removeItem(`dm_${import.meta.env.VITE_APP_ENV ?? 'dev'}_post_onboard_redirect`);
       // getMe will run via the main useEffect above — no extra action needed
       console.log('[Auth] Returned from post-onboard redirect — getMe will re-check onboarded state');
     }

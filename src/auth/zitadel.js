@@ -88,7 +88,14 @@ export const oidcConfig = {
     includeIdTokenInSilentRenew: false, // Zitadel: access_token renewal only
     filterProtocolClaims:        true,  // strips nonce/at_hash from profile
 
-    userStore: new WebStorageStateStore({ store: window.sessionStorage }),
+    // ENV ISOLATION FIX: prefix isolates production/staging/dev tokens.
+    // Both environments share the same Zitadel authority + client_id,
+    // so without a prefix oidc-client-ts uses identical sessionStorage keys
+    // and whichever environment you log into first bleeds into the other.
+    userStore: new WebStorageStateStore({
+        store:  window.sessionStorage,
+        prefix: `dm_${import.meta.env.VITE_APP_ENV ?? 'dev'}_`,
+    }),
     loadUserInfo: true,
 };
 
