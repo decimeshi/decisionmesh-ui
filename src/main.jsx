@@ -19,6 +19,7 @@ import { BrandingProvider } from './context/BrandingContext';
 import { CreditProvider }   from './context/CreditContext';
 import App          from './App';
 import LandingPage  from './pages/LandingPage';
+import DocsPage     from './pages/DocsPage';
 import Onboarding   from './pages/Onboarding';
 import { getMe }    from './utils/api';
 import { oidcConfig, createKeycloakShim, debugToken } from './auth/zitadel';
@@ -179,8 +180,19 @@ function AppWrapper() {
 
   // ── Render ─────────────────────────────────────────────────
 
-  // Public blog routes — no auth required
+  // Public routes — no auth required
   const { pathname } = useLocation();
+
+  // Docs — public route, same pattern as /blog
+  if (pathname === '/docs') {
+    return (
+      <Routes>
+        <Route path="/docs" element={<DocsPage />} />
+      </Routes>
+    );
+  }
+
+  // Blog routes
   if (pathname === '/blog' || pathname.startsWith('/blog/')) {
     return (
       <Routes>

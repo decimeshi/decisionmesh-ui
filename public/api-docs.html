@@ -116,7 +116,7 @@
       <span class="logo-badge">API v1.0</span>
     </a>
     <div class="header-actions">
-      <a class="btn btn-ghost" href="/openapi.yaml" download="decisionmesh-openapi.yaml">
+      <a class="btn btn-ghost" href="javascript:void(0)" onclick="window.location.href=window.location.origin+'/openapi.yaml'">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
         Download Spec
       </a>
@@ -131,7 +131,7 @@
       <p class="hero-sub">Orchestrate AI intents, enforce governance policies, track costs, and integrate DecisionMesh into your stack with our REST API.</p>
       <div class="hero-actions">
         <a class="btn btn-primary" href="#swagger-ui">Explore Endpoints ↓</a>
-        <a class="btn btn-ghost" href="/openapi.yaml" download="decisionmesh-openapi.yaml">
+        <a class="btn btn-ghost" href="javascript:void(0)" onclick="window.location.href=window.location.origin+'/openapi.yaml'">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
           openapi.yaml
         </a>
@@ -159,7 +159,7 @@
     </div>
     <div class="footer-links">
       <a href="https://decimeshi.com">Home</a>
-      <a href="/openapi.yaml" download>Download Spec</a>
+      <a href="javascript:void(0)" onclick="window.location.href=window.location.origin+'/openapi.yaml'">Download Spec</a>
       <a href="mailto:support@decimeshi.com">Support</a>
     </div>
   </footer>
@@ -169,7 +169,7 @@
   <script>
     window.onload = () => {
       SwaggerUIBundle({
-        url: '/openapi.yaml',
+        url: window.location.origin + '/openapi.yaml',
         dom_id: '#swagger-ui-root',
         presets: [SwaggerUIBundle.presets.apis, SwaggerUIStandalonePreset],
         layout: 'StandaloneLayout',

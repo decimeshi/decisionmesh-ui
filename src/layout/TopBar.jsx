@@ -115,7 +115,7 @@ function UserMenu({ keycloak }) {
     {
       group: 'Developer',
       items: [
-        { icon: FileText,   label: 'API Reference',         action: () => window.open('/api-docs', '_blank') },
+        { icon: FileText,   label: 'API Reference',         action: () => navigate('/docs') },
         {
           icon: Download,
           label: 'Download OpenAPI spec',

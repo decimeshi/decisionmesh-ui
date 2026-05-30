@@ -7,7 +7,7 @@ import {
   UserPlus, PanelLeftClose, FolderOpen,
   ChevronDown, Check, Plus, Palette, CreditCard, Receipt,
   Bug, Library, MessageSquarePlus, TestTube2,
-  Users, Coins, Webhook, HeartPulse, Zap,
+  Users, Coins, Webhook, HeartPulse, Zap, BookOpen,
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { useProject } from '../context/ProjectContext';
@@ -54,6 +54,12 @@ const NAV = [
       { label: 'Billing',       icon: CreditCard,      to: '/billing'        },
       { label: 'Invite Team',   icon: UserPlus,        to: '/invite'         },
       { label: 'Branding',      icon: Palette,         to: '/org/branding'   },
+    ],
+  },
+  {
+    label: 'RESOURCES',
+    items: [
+      { label: 'Docs',          icon: BookOpen,        to: '/docs'           },
     ],
   },
 ];

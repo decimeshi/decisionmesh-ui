@@ -46,6 +46,7 @@ const AdminUsers          = lazy(() => import('./pages/AdminUsers'));
 const AdminCredits        = lazy(() => import('./pages/AdminCredits'));
 const AdminWebhooks       = lazy(() => import('./pages/AdminWebhooks'));
 const AdminHealth         = lazy(() => import('./pages/AdminHealth'));
+const DocsPage            = lazy(() => import('./pages/DocsPage'));
 
 // ── Error boundary ────────────────────────────────────────────────────────────
 class ErrorBoundary extends Component {
@@ -180,6 +181,8 @@ export default function App({ keycloak }) {
                     <AdminHealth keycloak={keycloak} />
                   </SysAdminRoute>
                 } />
+
+                <Route path="/docs" element={<DocsPage />} />
 
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>

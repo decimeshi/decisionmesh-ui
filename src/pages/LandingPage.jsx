@@ -1,22 +1,45 @@
 import { useAuth } from 'react-oidc-context';
 import { useState, useEffect, useRef } from 'react';
 
-// ── Design tokens ─────────────────────────────────────────────────────────────
+// ── Design tokens — Deep Ocean theme (Tailwind UI · Planetscale · Clerk) ─────
+// Rich navy base · electric cyan accents · authoritative & calm
 const C = {
-  bg:        '#020817',
-  surface:   '#080f1e',
-  border:    'rgba(255,255,255,0.07)',
-  blue:      '#1e6fff',
-  blueGlow:  'rgba(30,111,255,0.18)',
+  // Backgrounds
+  bg:        '#0a1628',          // deep navy page base
+  surface:   '#0d1e35',          // card / section surfaces
+  surfaceAlt:'#091220',          // alternate deeper section
+  border:    '#0c2040',          // borders
+  borderSub: '#0e2848',          // subtle dividers
+
+  // Brand — muted steel blue (toned down, easier on dark navy bg)
+  blue:      '#2e7cb8',          // primary CTA — softer, less glaring
+  blueHover: '#245f91',          // hover — slightly deeper
+  blueLight: 'rgba(14,165,233,0.12)',  // tinted bg
+  blueMuted: 'rgba(14,165,233,0.30)',
+  blueGlow:  'rgba(14,165,233,0.15)',
+
+  // Status — brightened to pop on dark bg
   amber:     '#f59e0b',
   red:       '#ef4444',
   green:     '#10b981',
   purple:    '#8b5cf6',
   cyan:      '#06b6d4',
-  textPrimary: '#e2e8f0',
-  textMuted:   '#64748b',
-  textSub:     '#94a3b8',
+
+  // Text — soft whites, never pure white (reduces eye strain on dark)
+  textPrimary:  '#e0f2fe',       // headings — ice blue-white
+  textSecondary:'#7dd3fc',       // body — sky blue-grey
+  textMuted:    '#64748b',       // captions
+  textSub:      '#7eb8d4',       // subtitle text — visible on dark navy
+
+  // Misc
   mono:        "'Courier New', monospace",
+
+  // Nav — same deep navy as page, crisp border
+  navBg:     '#0a1628',
+  navBorder: '#0c2040',
+  navText:   '#7dd3fc',
+  navHover:  '#e0f2fe',
+  navHoverBg:'rgba(14,165,233,0.10)',
 };
 
 // ── Icons ─────────────────────────────────────────────────────────────────────
@@ -90,15 +113,53 @@ const COMPLIANCE_FRAMEWORKS = [
   { name: 'HIPAA', color: '#f59e0b', icon: '🏥', desc: 'PHI access logging, authorization tracking, de-identification support, and breach detection tools.', note: 'HIPAA compliance requires BAA and additional controls.' },
 ];
 
+// ── Billing intervals (mirrors Billing.jsx exactly) ──────────────────────────
+const BILLING_INTERVALS = [
+  { id: 'monthly',    label: 'Monthly',   months: 1,  discount: 0,    badge: null         },
+  { id: 'quarterly',  label: 'Quarterly', months: 3,  discount: 0.10, badge: 'Save 10%'   },
+  { id: 'halfyearly', label: '6 Months',  months: 6,  discount: 0.15, badge: 'Save 15%'   },
+  { id: 'yearly',     label: 'Yearly',    months: 12, discount: 0.20, badge: 'Save 20%'   },
+];
+// Exact prices from Billing.jsx
+const PLAN_PRICES = {
+  builder: { monthly: 19, quarterly: 51,  halfyearly: 97,  yearly: 182  },
+  pro:     { monthly: 49, quarterly: 132, halfyearly: 250, yearly: 470  },
+};
+
+// Arctic White — all plan cards use white/light bg, strong borders, dark text
 const PLANS = [
-  { key: 'free', name: 'Free', price: 'Free', note: '500 one-time credits', color: '#64748b', checkColor: '#22c55e', bg: 'rgba(255,255,255,0.03)', border: 'rgba(255,255,255,0.07)', cta: 'Get started free', features: ['500 credits (one-time)', '2 adapters', 'Budget enforcement', 'Basic audit (30 days)', 'Community support'] },
-  { key: 'hobby', name: 'Hobby', price: 'Free', note: '2k credits/mo', color: '#94a3b8', checkColor: '#94a3b8', bg: 'rgba(255,255,255,0.03)', border: 'rgba(255,255,255,0.07)', cta: 'Start Hobby', features: ['2,000 credits/month', '3 adapters', 'Full audit (90 days)', 'Email support'] },
-  { key: 'builder', name: 'Builder', price: '$19', interval: '/mo', note: '15k credits/mo', color: '#1e6fff', checkColor: '#60a5fa', popular: true, bg: 'linear-gradient(135deg, rgba(30,111,255,0.12), rgba(124,58,237,0.12))', border: 'rgba(30,111,255,0.35)', cta: 'Upgrade to Builder', features: ['15,000 credits/month', 'All adapters', 'Policy builder', 'Decision replay', 'Full audit + CSV export', 'Drift detection', 'Priority support'] },
-  { key: 'pro', name: 'Pro', price: '$49', interval: '/mo', note: '60k credits/mo', color: '#4f46e5', checkColor: '#818cf8', bg: 'rgba(255,255,255,0.03)', border: 'rgba(79,70,229,0.28)', cta: 'Upgrade to Pro', features: ['60,000 credits/month', 'Multi-tenancy', '5 team seats', 'SSO / SAML', 'Human-in-the-loop gates', 'Priority support'] },
-  { key: 'enterprise', name: 'Enterprise', price: 'Custom', note: 'Unlimited', color: '#7c3aed', checkColor: '#c4b5fd', bg: 'linear-gradient(135deg, rgba(139,92,246,0.1), rgba(244,63,94,0.07))', border: 'rgba(139,92,246,0.28)', topBar: 'linear-gradient(90deg, #8b5cf6, #f43f5e)', cta: 'Contact sales', ctaHref: 'mailto:sales@decisionmesh.io', features: ['Unlimited credits', 'PII detection & masking', 'Model version tracking', 'Immutable signed audit log', 'GDPR data residency', 'HIPAA / PCI-DSS templates', 'BYOK', 'Dedicated SLA'] },
+  {
+    key: 'free', name: 'Free', price: 'Free', note: '500 one-time credits',
+    color: '#64748b', checkColor: '#16a34a',
+    bg: '#0d1e35', border: 'rgba(46,124,184,0.25)',
+    cta: 'Get started free',
+    features: ['500 credits (one-time)', '2 adapters', 'Budget enforcement', 'Basic audit (30 days)', 'Community support'],
+  },
+  {
+    key: 'builder', name: 'Builder', note: '15k credits/mo',
+    color: '#2563eb', checkColor: '#2563eb', popular: true,
+    bg: 'rgba(46,124,184,0.12)', border: 'rgba(46,124,184,0.40)',
+    cta: 'Upgrade to Builder',
+    features: ['15,000 credits/month', 'All adapters', 'Policy builder', 'Decision replay', 'Full audit + CSV export', 'Drift detection', 'Priority support', 'Overage: $0.002/cr'],
+  },
+  {
+    key: 'pro', name: 'Pro', note: '60k credits/mo',
+    color: '#4f46e5', checkColor: '#4f46e5',
+    bg: '#0d1e35', border: 'rgba(79,70,229,0.35)',
+    cta: 'Upgrade to Pro',
+    features: ['60,000 credits/month', 'Multi-tenancy', '5 team seats', 'SSO / SAML', 'Human-in-the-loop gates', 'Priority support', 'BYOK', 'Overage: $0.001/cr'],
+  },
+  {
+    key: 'enterprise', name: 'Enterprise', price: 'Custom', note: 'Unlimited',
+    color: '#7c3aed', checkColor: '#7c3aed',
+    bg: '#faf5ff', border: '#d8b4fe',
+    topBar: 'linear-gradient(90deg, #7c3aed, #db2777)',
+    cta: 'Contact sales', ctaHref: 'mailto:sales@decisionmesh.io',
+    features: ['Unlimited credits', 'PII detection & masking', 'Model version tracking', 'Immutable signed audit log', 'GDPR data residency', 'HIPAA / PCI-DSS templates', 'BYOK', 'Dedicated SLA'],
+  },
 ];
 
-// ── NavBar ────────────────────────────────────────────────────────────────────
+// ── NavBar — Arctic White (white bg · dark text · same structure) ────────────
 function NavBar({ onLogin, onRegister }) {
   const [open, setOpen] = useState(false);
   const [solutionsOpen, setSolutionsOpen] = useState(false);
@@ -111,87 +172,114 @@ function NavBar({ onLogin, onRegister }) {
     return () => window.removeEventListener('scroll', fn);
   }, []);
 
-  const link = { color: '#94a3b8', fontSize: 14, textDecoration: 'none', padding: '6px 10px', borderRadius: 6, cursor: 'pointer', background: 'none', border: 'none', fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: 4, transition: 'color 0.15s' };
+  const link = {
+    color: C.navText, fontSize: 14, textDecoration: 'none',
+    padding: '6px 10px', borderRadius: 6, cursor: 'pointer',
+    background: 'none', border: 'none', fontFamily: 'inherit',
+    display: 'flex', alignItems: 'center', gap: 4, transition: 'color 0.15s, background 0.15s',
+  };
+  const lHover = e => { e.currentTarget.style.color = C.navHover; e.currentTarget.style.background = C.navHoverBg; };
+  const lLeave = e => { e.currentTarget.style.color = C.navText;  e.currentTarget.style.background = 'transparent'; };
+
+  const dropStyle = {
+    position: 'absolute', top: '100%', left: 0,
+    background: '#0d1e35', border: '1px solid #0c2040',
+    borderRadius: 10, padding: 8, minWidth: 210,
+    boxShadow: '0 8px 40px rgba(0,0,0,0.50)', zIndex: 200,
+  };
+  const dItem = { display: 'block', color: '#7dd3fc', fontSize: 14, textDecoration: 'none', padding: '9px 12px', borderRadius: 7, transition: 'background 0.15s' };
+  const dHover = e => { e.target.style.background = 'rgba(14,165,233,0.12)'; e.target.style.color = '#e0f2fe'; };
+  const dLeave = e => { e.target.style.background = 'transparent'; e.target.style.color = '#7dd3fc'; };
 
   return (
-    <nav style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100, borderBottom: scrolled ? '1px solid rgba(255,255,255,0.07)' : '1px solid transparent', backdropFilter: 'blur(16px)', backgroundColor: scrolled ? 'rgba(2,8,23,0.95)' : 'rgba(2,8,23,0.5)', transition: 'all 0.3s' }}>
+    <nav style={{
+      position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100,
+      background: C.navBg,
+      borderBottom: `1px solid ${C.navBorder}`,
+      boxShadow: scrolled ? '0 1px 12px rgba(0,0,0,0.06)' : 'none',
+      transition: 'box-shadow 0.3s',
+    }}>
       <div style={{ maxWidth: 1160, margin: '0 auto', padding: '0 20px', display: 'flex', alignItems: 'center', height: 58 }}>
+        {/* Logo */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 9, flex: 1 }}>
-          <img src="/decimeshi-icon.svg" alt="DecisionMesh"
-            style={{ width: 42, height: 42, flexShrink: 0 }} />
+          <img src="/decimeshi-icon.svg" alt="DecisionMesh" style={{ width: 42, height: 42, flexShrink: 0 }} />
           <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1 }}>
             <span style={{
               fontWeight: 900, fontSize: 17, letterSpacing: '-0.5px',
-              background: 'linear-gradient(90deg, #f1f5f9 0%, #f1f5f9 54%, #3b82f6 55%, #7c3aed 100%)',
-              WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
-              backgroundClip: 'text'
+              background: 'linear-gradient(90deg, #f0f9ff 0%, #f0f9ff 48%, #38bdf8 65%, #06b6d4 100%)',
+              WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text',
             }}>DecisionMesh</span>
-            <span style={{ fontSize: 8, fontWeight: 700, color: '#475569', letterSpacing: '1.5px', textTransform: 'uppercase', marginTop: 1 }}>AI Control Plane</span>
+            <span style={{ fontSize: 8, fontWeight: 700, color: C.textSub, letterSpacing: '1.5px', textTransform: 'uppercase', marginTop: 1 }}>AI Control Plane</span>
           </div>
-          <span style={{ fontSize: 9, fontWeight: 700, color: C.blue, background: 'rgba(30,111,255,0.12)', border: '1px solid rgba(30,111,255,0.28)', borderRadius: 4, padding: '2px 6px', letterSpacing: '0.8px' }}>BETA</span>
+          <span style={{ fontSize: 9, fontWeight: 700, color: '#7eb8d4', background: 'rgba(46,124,184,0.12)', border: '1px solid rgba(46,124,184,0.30)', borderRadius: 4, padding: '2px 6px', letterSpacing: '0.8px' }}>BETA</span>
         </div>
 
+        {/* Desktop links */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 2 }} className="hidden-mobile">
-          <a href="#features" style={link} onMouseEnter={e => e.target.style.color='#e2e8f0'} onMouseLeave={e => e.target.style.color='#94a3b8'}>Product</a>
-          <a href="#platform" style={link} onMouseEnter={e => e.target.style.color='#e2e8f0'} onMouseLeave={e => e.target.style.color='#94a3b8'}>Platform</a>
+          <a href="#features" style={link} onMouseEnter={lHover} onMouseLeave={lLeave}>Product</a>
+          <a href="#platform" style={link} onMouseEnter={lHover} onMouseLeave={lLeave}>Platform</a>
 
           <div style={{ position: 'relative' }} onMouseEnter={() => setSolutionsOpen(true)} onMouseLeave={() => setSolutionsOpen(false)}>
-            <button style={link} onMouseEnter={e => e.currentTarget.style.color='#e2e8f0'} onMouseLeave={e => e.currentTarget.style.color='#94a3b8'}>Solutions <Icon.ChevronDown /></button>
+            <button style={link} onMouseEnter={lHover} onMouseLeave={lLeave}>Solutions <Icon.ChevronDown /></button>
             {solutionsOpen && (
-              <div style={{ position: 'absolute', top: '100%', left: 0, background: '#0a0e1a', border: '1px solid rgba(255,255,255,0.09)', borderRadius: 10, padding: 8, minWidth: 210, boxShadow: '0 20px 48px rgba(0,0,0,0.6)' }}>
-                {[{ label: 'For Engineers', anchor: '#engineers' }, { label: 'For Executives', anchor: '#executives' }, { label: 'For Compliance & Regulators', anchor: '#compliance' }].map(({ label, anchor }) => (
-                  <a key={label} href={anchor} style={{ display: 'block', color: '#cbd5e1', fontSize: 14, textDecoration: 'none', padding: '9px 12px', borderRadius: 7, transition: 'background 0.15s' }}
-                    onMouseEnter={e => { e.target.style.background = 'rgba(30,111,255,0.1)'; e.target.style.color = '#e2e8f0'; }}
-                    onMouseLeave={e => { e.target.style.background = 'transparent'; e.target.style.color = '#cbd5e1'; }}>{label}</a>
+              <div style={dropStyle}>
+                {[{ label: 'For Engineers', anchor: '#engineers' }, { label: 'For Executives', anchor: '#executives' }, { label: 'For Compliance & Regulators', anchor: '#compliance-tab' }].map(({ label, anchor }) => (
+                  <a key={label} href={anchor} style={dItem} onMouseEnter={dHover} onMouseLeave={dLeave}>{label}</a>
                 ))}
               </div>
             )}
           </div>
 
           <div style={{ position: 'relative' }} onMouseEnter={() => setIndustriesOpen(true)} onMouseLeave={() => setIndustriesOpen(false)}>
-            <button style={link} onMouseEnter={e => e.currentTarget.style.color='#e2e8f0'} onMouseLeave={e => e.currentTarget.style.color='#94a3b8'}>Industries <Icon.ChevronDown /></button>
+            <button style={link} onMouseEnter={lHover} onMouseLeave={lLeave}>Industries <Icon.ChevronDown /></button>
             {industriesOpen && (
-              <div style={{ position: 'absolute', top: '100%', left: 0, background: '#0a0e1a', border: '1px solid rgba(255,255,255,0.09)', borderRadius: 10, padding: 8, minWidth: 190, boxShadow: '0 20px 48px rgba(0,0,0,0.6)' }}>
-                {['🏦 Fintech & Banking', '🏥 Healthcare', '🛡️ Insurance', '⚖️ Legal Services', '🏛️ Government', '🏢 Enterprise SaaS'].map(label => (
-                  <a key={label} href="#industries" style={{ display: 'block', color: '#cbd5e1', fontSize: 14, textDecoration: 'none', padding: '9px 12px', borderRadius: 7, transition: 'background 0.15s' }}
-                    onMouseEnter={e => { e.target.style.background = 'rgba(30,111,255,0.1)'; e.target.style.color = '#e2e8f0'; }}
-                    onMouseLeave={e => { e.target.style.background = 'transparent'; e.target.style.color = '#cbd5e1'; }}>{label}</a>
+              <div style={dropStyle}>
+                {[
+                  { label: '🏦 Fintech & Banking', href: '#industries' },
+                  { label: '🏥 Healthcare',         href: '#industry-healthcare' },
+                  { label: '🛡️ Insurance',           href: '#industry-insurance' },
+                  { label: '⚖️ Legal Services',      href: '#industry-legal' },
+                  { label: '🏛️ Government',          href: '#industry-government' },
+                  { label: '🏢 Enterprise SaaS',     href: '#industry-enterprise' },
+                ].map(({ label, href }) => (
+                  <a key={label} href={href} style={dItem} onMouseEnter={dHover} onMouseLeave={dLeave}>{label}</a>
                 ))}
               </div>
             )}
           </div>
 
-          <a href="#pricing" style={link} onMouseEnter={e => e.target.style.color='#e2e8f0'} onMouseLeave={e => e.target.style.color='#94a3b8'}>Pricing</a>
-          <a href="/docs" target="_blank" style={{ ...link, display: 'flex' }} onMouseEnter={e => e.currentTarget.style.color='#e2e8f0'} onMouseLeave={e => e.currentTarget.style.color='#94a3b8'}>Docs <Icon.ExternalLink /></a>
-          <a href="/blog" style={link} onMouseEnter={e => e.target.style.color='#e2e8f0'} onMouseLeave={e => e.target.style.color='#94a3b8'}>Blog</a>
+          <a href="#pricing" style={link} onMouseEnter={lHover} onMouseLeave={lLeave}>Pricing</a>
+          <a href="/docs" style={link} onMouseEnter={lHover} onMouseLeave={lLeave}>Docs</a>
+          <a href="/blog" style={link} onMouseEnter={lHover} onMouseLeave={lLeave}>Blog</a>
 
-          <div style={{ width: 1, height: 18, background: 'rgba(255,255,255,0.2)', margin: '0 4px' }} />
-          <button onClick={onLogin} style={{ ...link, fontWeight: 500 }} onMouseEnter={e => e.target.style.color='#e2e8f0'} onMouseLeave={e => e.target.style.color='#94a3b8'}>Sign in</button>
-          <button onClick={onRegister} style={{ background: C.blue, color: '#fff', fontSize: 13, fontWeight: 700, border: 'none', borderRadius: 8, padding: '7px 16px', cursor: 'pointer', letterSpacing: '-0.2px', transition: 'background 0.15s' }}
-            onMouseEnter={e => e.target.style.background='#1557d6'} onMouseLeave={e => e.target.style.background=C.blue}>
+          <div style={{ width: 1, height: 18, background: C.border, margin: '0 4px' }} />
+          <button onClick={onLogin} style={{ ...link, fontWeight: 500 }} onMouseEnter={lHover} onMouseLeave={lLeave}>Sign in</button>
+          <button onClick={onRegister} style={{ background: C.blue, color: '#fff', fontSize: 13, fontWeight: 700, border: 'none', borderRadius: 8, padding: '7px 16px', cursor: 'pointer', letterSpacing: '-0.2px', transition: 'background 0.15s, transform 0.1s' }}
+            onMouseEnter={e => { e.target.style.background = C.blueHover; e.target.style.transform = 'translateY(-1px)'; }}
+            onMouseLeave={e => { e.target.style.background = C.blue; e.target.style.transform = 'none'; }}>
             Get started free
           </button>
         </div>
 
-        <button onClick={() => setOpen(o => !o)} style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer' }} className="show-mobile">
+        <button onClick={() => setOpen(o => !o)} style={{ background: 'none', border: 'none', color: C.textMuted, cursor: 'pointer' }} className="show-mobile">
           {open ? <Icon.X /> : <Icon.Menu />}
         </button>
       </div>
 
+      {/* Mobile menu */}
       {open && (
-        <div style={{ borderTop: '1px solid rgba(255,255,255,0.07)', padding: '16px 20px 24px', display: 'flex', flexDirection: 'column', gap: 10, background: '#020817' }}>
+        <div style={{ borderTop: '1px solid rgba(14,165,233,0.15)', padding: '16px 20px 24px', display: 'flex', flexDirection: 'column', gap: 10, background: '#0a1628' }}>
           {[['#features', 'Product'], ['#platform', 'Platform'], ['#industries', 'Industries'], ['#compliance', 'Compliance'], ['#pricing', 'Pricing'], ['/docs', 'Docs']].map(([href, label]) => (
-            <a key={href} href={href} onClick={() => setOpen(false)} style={{ color: '#cbd5e1', fontSize: 15, textDecoration: 'none', padding: '6px 0' }}>{label}</a>
+            <a key={href} href={href} onClick={() => setOpen(false)} style={{ color: C.textSecondary, fontSize: 15, textDecoration: 'none', padding: '8px 0', borderBottom: `1px solid ${C.borderSub}` }}>{label}</a>
           ))}
-          <div style={{ height: 1, background: 'rgba(255,255,255,0.07)', margin: '4px 0' }} />
-          <button onClick={onLogin} style={{ background: 'rgba(255,255,255,0.05)', color: '#e2e8f0', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 8, padding: 10, cursor: 'pointer', fontSize: 15 }}>Sign in</button>
+          <div style={{ height: 1, background: C.border, margin: '4px 0' }} />
+          <button onClick={onLogin} style={{ background: 'rgba(14,165,233,0.08)', color: '#7dd3fc', border: '1px solid rgba(14,165,233,0.2)', borderRadius: 8, padding: 10, cursor: 'pointer', fontSize: 15, fontWeight: 600 }}>Sign in</button>
           <button onClick={onRegister} style={{ background: C.blue, color: '#fff', border: 'none', borderRadius: 8, padding: 10, cursor: 'pointer', fontSize: 15, fontWeight: 700 }}>Get started free</button>
         </div>
       )}
     </nav>
   );
 }
-
 // ── Hero — "The Control Room" ──────────────────────────────────────────────────
 function Hero({ onRegister, onLogin }) {
   // Live ticker data
@@ -233,29 +321,29 @@ function Hero({ onRegister, onLogin }) {
   return (
     <section style={{
       minHeight: '100vh',
-      background: C.bg,
+      background: 'linear-gradient(160deg, #060f1e 0%, #0a1628 40%, #0c1d3a 100%)',
       position: 'relative',
       overflow: 'hidden',
       display: 'flex',
       flexDirection: 'column',
     }}>
-      {/* Blueprint grid background */}
-      <div style={{
-        position: 'absolute', inset: 0, pointerEvents: 'none',
-        backgroundImage: `
-          linear-gradient(rgba(30,111,255,0.09) 1px, transparent 1px),
-          linear-gradient(90deg, rgba(30,111,255,0.09) 1px, transparent 1px),
-          linear-gradient(rgba(30,111,255,0.04) 1px, transparent 1px),
-          linear-gradient(90deg, rgba(30,111,255,0.04) 1px, transparent 1px)
-        `,
-        backgroundSize: '80px 80px, 80px 80px, 16px 16px, 16px 16px',
-      }} />
+      {/* AI Aurora — replaces blueprint grid. Three layered radial glows */}
+      <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', overflow: 'hidden' }}>
+        {/* Primary aurora — top centre, blue */}
+        <div style={{ position: 'absolute', top: '-20%', left: '50%', transform: 'translateX(-50%)', width: '80vw', height: '60vh', background: 'radial-gradient(ellipse at center, rgba(46,124,184,0.18) 0%, rgba(14,165,233,0.06) 45%, transparent 70%)', filter: 'blur(40px)' }} />
+        {/* Secondary aurora — left, indigo */}
+        <div style={{ position: 'absolute', top: '10%', left: '-10%', width: '50vw', height: '50vh', background: 'radial-gradient(ellipse at center, rgba(79,70,229,0.12) 0%, transparent 65%)', filter: 'blur(50px)' }} />
+        {/* Tertiary aurora — right, cyan */}
+        <div style={{ position: 'absolute', top: '30%', right: '-5%', width: '40vw', height: '40vh', background: 'radial-gradient(ellipse at center, rgba(6,182,212,0.10) 0%, transparent 65%)', filter: 'blur(45px)' }} />
+        {/* Subtle noise texture — dot pattern, no data URI */}
+        <div style={{ position: 'absolute', inset: 0, opacity: 0.06, backgroundImage: 'radial-gradient(circle, rgba(255,255,255,0.15) 1px, transparent 1px)', backgroundSize: '32px 32px' }} />
+      </div>
 
       {/* Radial glow — center */}
-      <div style={{ position: 'absolute', top: '40%', left: '50%', transform: 'translate(-50%,-50%)', width: 800, height: 600, background: 'radial-gradient(ellipse at center, rgba(30,111,255,0.10) 0%, rgba(139,92,246,0.05) 40%, transparent 70%)', pointerEvents: 'none' }} />
+      <div style={{ position: 'absolute', top: '40%', left: '50%', transform: 'translate(-50%,-50%)', width: 800, height: 600, background: 'radial-gradient(ellipse at center, rgba(14,165,233,0.14) 0%, rgba(8,145,178,0.06) 40%, transparent 70%)', pointerEvents: 'none' }} />
 
       {/* Bottom gradient to next section */}
-      <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 160, background: `linear-gradient(to bottom, transparent, ${C.bg})`, pointerEvents: 'none', zIndex: 2 }} />
+      <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 160, background: 'linear-gradient(to bottom, transparent, #0a1628)', pointerEvents: 'none', zIndex: 2 }} />
 
       <style>{`
         @keyframes slideInLeft {
@@ -289,8 +377,7 @@ function Hero({ onRegister, onLogin }) {
         }
       `}</style>
 
-      {/* Scan line */}
-      <div style={{ position: 'absolute', left: 0, right: 0, height: 1, background: 'linear-gradient(90deg, transparent, rgba(30,111,255,0.35), transparent)', animation: 'scan-line 8s linear infinite', pointerEvents: 'none', zIndex: 1 }} />
+      {/* Scan line removed — aurora theme */}
 
       {/* Main content */}
       <div style={{ position: 'relative', zIndex: 3, flex: 1, display: 'flex', flexDirection: 'column', maxWidth: 1280, margin: '0 auto', padding: '100px 24px 0', width: '100%' }}>
@@ -306,8 +393,8 @@ function Hero({ onRegister, onLogin }) {
             </div>
             {problemCards.map((card, i) => (
               <div key={i} style={{
-                background: `${C.surface}cc`,
-                border: `1px solid ${card.color}55`,
+                background: '#0d1e35',
+                border: `1px solid ${card.color}45`,
                 borderLeft: `3px solid ${card.color}`,
                 borderRadius: 10,
                 padding: '14px 16px',
@@ -320,15 +407,15 @@ function Hero({ onRegister, onLogin }) {
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
                     <span style={{ fontSize: 18 }}>{card.emoji}</span>
                     <div>
-                      <div style={{ color: '#e2e8f0', fontSize: 12, fontWeight: 700 }}>{card.role}</div>
-                      <div style={{ color: C.textMuted, fontSize: 11, fontFamily: C.mono }}>{card.org}</div>
+                      <div style={{ color: C.textPrimary, fontSize: 12, fontWeight: 700 }}>{card.role}</div>
+                      <div style={{ color: C.textSub, fontSize: 11, fontFamily: C.mono }}>{card.org}</div>
                     </div>
                     <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 4 }}>
                       <span style={{ width: 5, height: 5, borderRadius: '50%', background: card.color, display: 'inline-block', animation: 'pulse-dot 2s ease infinite' }} />
                       <span style={{ fontSize: 10, color: card.color, fontFamily: C.mono, fontWeight: 700 }}>OPEN</span>
                     </div>
                   </div>
-                  <p style={{ color: '#94a3b8', fontSize: 12, lineHeight: 1.55, fontStyle: 'italic' }}>"{card.issue}"</p>
+                  <p style={{ color: C.textMuted, fontSize: 12, lineHeight: 1.55, fontStyle: 'italic' }}>"{card.issue}"</p>
                 </div>
               </div>
             ))}
@@ -350,47 +437,47 @@ function Hero({ onRegister, onLogin }) {
           {/* CENTER — Hero content + pipeline */}
           <div style={{ textAlign: 'center', animation: 'fadeUp 0.7s ease both', animationDelay: '0.1s' }}>
             {/* Badge */}
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'rgba(30,111,255,0.1)', border: '1px solid rgba(30,111,255,0.25)', borderRadius: 999, padding: '5px 14px', marginBottom: 28 }}>
-              <span style={{ width: 6, height: 6, borderRadius: '50%', background: C.blue, display: 'inline-block', animation: 'pulse-dot 2s infinite' }} />
-              <span style={{ color: '#93c5fd', fontSize: 12, fontWeight: 600 }}>Now in beta — free for early adopters</span>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: C.blueLight, border: `1px solid ${C.blueMuted}`, borderRadius: 999, padding: '5px 14px', marginBottom: 28 }}>
+              <span style={{ width: 6, height: 6, borderRadius: '50%', background: C.blue, display: 'inline-block', animation: 'pulse-dot 2s infinite', flexShrink: 0 }} />
+              <span style={{ color: C.blue, fontSize: 12, fontWeight: 600 }}>Now in beta — free for early adopters</span>
             </div>
 
             {/* Headline */}
-            <h1 style={{ fontSize: 'clamp(32px, 5vw, 58px)', fontWeight: 800, color: '#f1f5f9', lineHeight: 1.08, letterSpacing: '-2.5px', marginBottom: 18 }}>
+            <h1 style={{ fontSize: 'clamp(32px, 5vw, 58px)', fontWeight: 800, color: C.textPrimary, lineHeight: 1.08, letterSpacing: '-2.5px', marginBottom: 18 }}>
               The AI Intent{' '}
               <span style={{ background: `linear-gradient(135deg, #60a5fa, #a78bfa)`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', display: 'block' }}>
                 Control Plane
               </span>
             </h1>
 
-            <p style={{ fontSize: 'clamp(14px, 1.8vw, 17px)', color: '#94a3b8', lineHeight: 1.7, maxWidth: 480, margin: '0 auto 28px', fontWeight: 400 }}>
+            <p style={{ fontSize: 'clamp(14px, 1.8vw, 17px)', color: C.textMuted, lineHeight: 1.7, maxWidth: 480, margin: '0 auto 28px', fontWeight: 400 }}>
               Every AI decision — governed, audited, replayed, and compliant. Built for regulators, compliance teams, engineers, and executives.
             </p>
 
             {/* Compliance badges */}
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, justifyContent: 'center', marginBottom: 32 }}>
               {['SOC 2 Ready', 'GDPR', 'EU AI Act', 'HIPAA Aware'].map(tag => (
-                <span key={tag} style={{ fontSize: 11, fontWeight: 600, color: '#64748b', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 6, padding: '3px 10px', fontFamily: C.mono, letterSpacing: '0.3px' }}>{tag}</span>
+                <span key={tag} style={{ fontSize: 11, fontWeight: 600, color: '#7dd3fc', background: 'rgba(14,165,233,0.08)', border: '1px solid rgba(14,165,233,0.20)', borderRadius: 6, padding: '3px 10px', fontFamily: C.mono, letterSpacing: '0.3px' }}>{tag}</span>
               ))}
             </div>
 
             {/* CTAs */}
             <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', justifyContent: 'center', marginBottom: 44 }}>
               <button onClick={onRegister} style={{ background: C.blue, color: '#fff', fontSize: 15, fontWeight: 700, border: 'none', borderRadius: 9, padding: '13px 26px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, letterSpacing: '-0.2px', transition: 'background 0.15s, transform 0.1s' }}
-                onMouseEnter={e => { e.currentTarget.style.background = '#1557d6'; e.currentTarget.style.transform = 'translateY(-1px)'; }}
+                onMouseEnter={e => { e.currentTarget.style.background = '#245f91'; e.currentTarget.style.transform = 'translateY(-1px)'; }}
                 onMouseLeave={e => { e.currentTarget.style.background = C.blue; e.currentTarget.style.transform = 'none'; }}>
                 Start for free <Icon.ArrowRight />
               </button>
-              <button onClick={onLogin} style={{ background: 'rgba(255,255,255,0.05)', color: '#cbd5e1', fontSize: 15, fontWeight: 500, border: '1px solid rgba(255,255,255,0.09)', borderRadius: 9, padding: '13px 24px', cursor: 'pointer', transition: 'background 0.15s' }}
-                onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.08)'}
-                onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}>
+              <button onClick={onLogin} style={{ background: 'rgba(14,165,233,0.08)', color: '#7dd3fc', fontSize: 15, fontWeight: 500, border: '1px solid rgba(14,165,233,0.22)', borderRadius: 9, padding: '13px 24px', cursor: 'pointer', transition: 'background 0.15s' }}
+                onMouseEnter={e => e.currentTarget.style.background = 'rgba(14,165,233,0.14)'}
+                onMouseLeave={e => e.currentTarget.style.background = 'rgba(14,165,233,0.08)'}>
                 Sign in
               </button>
             </div>
 
             {/* Decision Pipeline */}
-            <div style={{ background: `${C.surface}dd`, border: '1px solid rgba(255,255,255,0.07)', borderRadius: 14, padding: '20px 18px', backdropFilter: 'blur(8px)' }}>
-              <div style={{ fontFamily: C.mono, fontSize: 9, color: C.textMuted, letterSpacing: '1.5px', marginBottom: 14, textAlign: 'left' }}>
+            <div style={{ background: 'rgba(14,165,233,0.05)', border: '1px solid rgba(14,165,233,0.15)', borderRadius: 14, boxShadow: '0 2px 20px rgba(14,165,233,0.08)', padding: '20px 18px', backdropFilter: 'blur(8px)' }}>
+              <div style={{ fontFamily: C.mono, fontSize: 9, color: C.textSub, letterSpacing: '1.5px', marginBottom: 14, textAlign: 'left' }}>
                 DECISION LIFECYCLE — EVERY AI REQUEST
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 0, overflowX: 'auto' }}>
@@ -436,8 +523,8 @@ function Hero({ onRegister, onLogin }) {
             </div>
             {resolvedCards.map((card, i) => (
               <div key={i} style={{
-                background: `${C.surface}cc`,
-                border: `1px solid ${card.color}55`,
+                background: '#0d1e35',
+                border: `1px solid ${card.color}45`,
                 borderLeft: `3px solid ${card.color}`,
                 borderRadius: 10,
                 padding: '14px 16px',
@@ -447,33 +534,33 @@ function Hero({ onRegister, onLogin }) {
               }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
                   <div style={{ width: 22, height: 22, borderRadius: '50%', background: `${card.color}18`, border: `1.5px solid ${card.color}50`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: card.color, fontSize: 11, fontWeight: 800, flexShrink: 0 }}>{card.emoji}</div>
-                  <div style={{ color: '#e2e8f0', fontSize: 12, fontWeight: 700 }}>{card.title}</div>
+                  <div style={{ color: C.textPrimary, fontSize: 12, fontWeight: 700 }}>{card.title}</div>
                   <div style={{ marginLeft: 'auto' }}>
                     <span style={{ fontSize: 10, color: card.color, fontFamily: C.mono, fontWeight: 700, background: `${card.color}15`, padding: '2px 7px', borderRadius: 4 }}>RESOLVED</span>
                   </div>
                 </div>
-                <p style={{ color: '#64748b', fontSize: 11, lineHeight: 1.55, fontFamily: C.mono }}>{card.detail}</p>
+                <p style={{ color: C.textMuted, fontSize: 11, lineHeight: 1.55, fontFamily: C.mono }}>{card.detail}</p>
               </div>
             ))}
           </div>
         </div>
 
         {/* Live decision ticker */}
-        <div style={{ position: 'relative', marginTop: 40, marginBottom: 0, overflow: 'hidden', borderTop: '1px solid rgba(255,255,255,0.06)', borderBottom: '1px solid rgba(255,255,255,0.06)', padding: '10px 0' }}>
-          <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 80, background: `linear-gradient(90deg, ${C.bg}, transparent)`, zIndex: 2 }} />
-          <div style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: 80, background: `linear-gradient(-90deg, ${C.bg}, transparent)`, zIndex: 2 }} />
+        <div style={{ position: 'relative', marginTop: 40, marginBottom: 0, overflow: 'hidden', borderTop: '1px solid rgba(14,165,233,0.12)', borderBottom: '1px solid rgba(14,165,233,0.12)', padding: '10px 0' }}>
+          <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 80, background: 'linear-gradient(90deg, #0a1628, transparent)', zIndex: 2 }} />
+          <div style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: 80, background: 'linear-gradient(-90deg, #0a1628, transparent)', zIndex: 2 }} />
           <div style={{ display: 'flex', gap: 32, animation: 'ticker-scroll 22s linear infinite', width: 'max-content' }}>
             {[...tickerEvents, ...tickerEvents].map((ev, i) => (
               <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
-                <span style={{ fontFamily: C.mono, fontSize: 10, color: '#4b5563' }}>{ev.time}</span>
-                <span style={{ fontFamily: C.mono, fontSize: 10, color: '#64748b', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 4, padding: '1px 6px' }}>{ev.id}</span>
-                <span style={{ fontSize: 11, color: '#94a3b8', fontWeight: 600 }}>{ev.type}</span>
-                <span style={{ fontSize: 11, color: '#64748b' }}>{ev.org}</span>
+                <span style={{ fontFamily: C.mono, fontSize: 10, color: C.textSub }}>{ev.time}</span>
+                <span style={{ fontFamily: C.mono, fontSize: 10, color: C.textMuted, background: C.surface, border: `1px solid ${C.border}`, borderRadius: 4, padding: '1px 6px' }}>{ev.id}</span>
+                <span style={{ fontSize: 11, color: C.textSecondary, fontWeight: 600 }}>{ev.type}</span>
+                <span style={{ fontSize: 11, color: C.textMuted }}>{ev.org}</span>
                 <span style={{ fontSize: 10, fontWeight: 700, fontFamily: C.mono, color: ev.status === 'BLOCKED' ? C.amber : ev.status === 'HUMAN_GATE' ? C.purple : C.green, background: ev.status === 'BLOCKED' ? 'rgba(245,158,11,0.1)' : ev.status === 'HUMAN_GATE' ? 'rgba(139,92,246,0.1)' : 'rgba(16,185,129,0.1)', borderRadius: 4, padding: '1px 7px' }}>
                   {ev.status}
                 </span>
-                <span style={{ fontFamily: C.mono, fontSize: 10, color: '#4b5563' }}>{ev.cost}</span>
-                <span style={{ width: 1, height: 14, background: 'rgba(255,255,255,0.18)', margin: '0 4px' }} />
+                <span style={{ fontFamily: C.mono, fontSize: 10, color: C.textSub }}>{ev.cost}</span>
+                <span style={{ width: 1, height: 14, background: C.border, margin: '0 4px' }} />
               </div>
             ))}
           </div>
@@ -486,18 +573,18 @@ function Hero({ onRegister, onLogin }) {
 // ── Pain Points ───────────────────────────────────────────────────────────────
 function PainSection() {
   return (
-    <section style={{ background: C.bg, padding: '80px 24px', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+    <section style={{ background: C.surface, padding: '80px 24px', borderTop: '1px solid rgba(14,165,233,0.15)' }}>
       <div style={{ maxWidth: 1060, margin: '0 auto', textAlign: 'center' }}>
-        <h2 style={{ fontSize: 'clamp(26px, 4vw, 40px)', fontWeight: 700, color: '#f1f5f9', letterSpacing: '-1px', marginBottom: 12 }}>AI without governance is a liability</h2>
-        <p style={{ color: C.textMuted, fontSize: 16, marginBottom: 48 }}>Every team shipping AI faces the same problems. Here are the most expensive ones.</p>
+        <h2 style={{ fontSize: 'clamp(26px, 4vw, 40px)', fontWeight: 700, color: C.textPrimary, letterSpacing: '-1px', marginBottom: 12 }}>AI without governance is a liability</h2>
+        <p style={{ color: C.textSecondary, fontSize: 16, marginBottom: 48 }}>Every team shipping AI faces the same problems. Here are the most expensive ones.</p>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: 16 }}>
           {PAIN_POINTS.map(({ emoji, title, desc }) => (
-            <div key={title} style={{ background: C.surface, border: '1px solid rgba(255,255,255,0.06)', borderRadius: 12, padding: '24px 20px', textAlign: 'left', transition: 'border-color 0.2s' }}
-              onMouseEnter={e => e.currentTarget.style.borderColor = 'rgba(30,111,255,0.3)'}
-              onMouseLeave={e => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.06)'}>
+            <div key={title} style={{ background: '#0d1e35', border: `1px solid ${C.border}`, borderRadius: 12, padding: '24px 20px', textAlign: 'left', transition: 'border-color 0.2s' }}
+              onMouseEnter={e => e.currentTarget.style.borderColor = C.blue}
+              onMouseLeave={e => e.currentTarget.style.borderColor = C.border}>
               <div style={{ fontSize: 28, marginBottom: 12 }}>{emoji}</div>
-              <h3 style={{ color: '#e2e8f0', fontWeight: 600, fontSize: 16, marginBottom: 7 }}>{title}</h3>
-              <p style={{ color: C.textMuted, fontSize: 13.5, lineHeight: 1.65 }}>{desc}</p>
+              <h3 style={{ color: C.textPrimary, fontWeight: 600, fontSize: 16, marginBottom: 7 }}>{title}</h3>
+              <p style={{ color: C.textSecondary, fontSize: 13.5, lineHeight: 1.65 }}>{desc}</p>
             </div>
           ))}
         </div>
@@ -509,12 +596,12 @@ function PainSection() {
 // ── Platform ──────────────────────────────────────────────────────────────────
 function Platform() {
   return (
-    <section id="platform" style={{ background: C.surface, padding: '80px 24px', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+    <section id="platform" style={{ background: '#0a1628', padding: '80px 24px', borderTop: '1px solid rgba(46,124,184,0.20)' }}>
       <div style={{ maxWidth: 1060, margin: '0 auto' }}>
         <div style={{ textAlign: 'center', marginBottom: 52 }}>
           <p style={{ color: C.blue, fontSize: 11, fontWeight: 700, letterSpacing: '2px', textTransform: 'uppercase', marginBottom: 10, fontFamily: C.mono }}>Platform Architecture</p>
-          <h2 style={{ fontSize: 'clamp(24px, 4vw, 40px)', fontWeight: 700, color: '#f1f5f9', letterSpacing: '-1px', marginBottom: 12 }}>How the control plane works</h2>
-          <p style={{ color: C.textMuted, fontSize: 15, maxWidth: 540, margin: '0 auto' }}>
+          <h2 style={{ fontSize: 'clamp(24px, 4vw, 40px)', fontWeight: 700, color: C.textPrimary, letterSpacing: '-1px', marginBottom: 12 }}>How the control plane works</h2>
+          <p style={{ color: C.textSecondary, fontSize: 15, maxWidth: 540, margin: '0 auto' }}>
             DecisionMesh separates AI governance from AI execution. The Control Plane decides what should happen. The Execution Plane carries it out.
           </p>
         </div>
@@ -524,10 +611,10 @@ function Platform() {
             { title: 'Control Plane', color: C.blue, icon: '🎯', items: ['Intent intake — receive and validate AI requests', 'Planning — determine how to fulfill the intent', 'Policy enforcement — apply governance rules', 'Decision recording — create immutable audit trail', 'Lifecycle management — track decision state'], tags: ['Deterministic', 'Replayable', 'Auditable', 'Policy-Driven'] },
             { title: 'Execution Plane', color: C.green, icon: '⚡', items: ['LLM calls — execute approved prompts', 'Adapter routing — select and fallback across models', 'Tool integration — connect to databases and APIs', 'Result aggregation — combine outputs', 'Execution reporting — report outcomes back'], tags: ['Isolated', 'Pluggable', 'Observable', 'Fault-Tolerant'] },
           ].map(({ title, color, icon, items, tags }) => (
-            <div key={title} style={{ background: C.bg, border: `1px solid ${color}20`, borderRadius: 14, padding: 26 }}>
+            <div key={title} style={{ background: '#0d1e35', border: `1px solid ${color}20`, borderRadius: 14, padding: 26 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 18 }}>
                 <span style={{ fontSize: 22 }}>{icon}</span>
-                <h3 style={{ color: '#e2e8f0', fontWeight: 700, fontSize: 18 }}>{title}</h3>
+                <h3 style={{ color: C.textPrimary, fontWeight: 700, fontSize: 18 }}>{title}</h3>
               </div>
               <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 9, marginBottom: 18 }}>
                 {items.map(item => (
@@ -535,7 +622,7 @@ function Platform() {
                     <div style={{ width: 15, height: 15, borderRadius: '50%', background: `${color}18`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 1 }}>
                       <svg width="7" height="7" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
                     </div>
-                    <span style={{ color: '#94a3b8', fontSize: 13.5, lineHeight: 1.55 }}>{item}</span>
+                    <span style={{ color: C.textSecondary, fontSize: 13.5, lineHeight: 1.55 }}>{item}</span>
                   </li>
                 ))}
               </ul>
@@ -547,9 +634,9 @@ function Platform() {
         </div>
 
         {/* 6-stage lifecycle */}
-        <div style={{ background: C.bg, border: '1px solid rgba(255,255,255,0.07)', borderRadius: 14, padding: 28 }}>
-          <h3 style={{ color: '#e2e8f0', fontWeight: 700, fontSize: 18, marginBottom: 6, textAlign: 'center' }}>Decision Lifecycle</h3>
-          <p style={{ color: C.textMuted, fontSize: 13, textAlign: 'center', marginBottom: 32, fontFamily: C.mono }}>Every AI request flows through 6 auditable stages — nothing skipped, nothing hidden</p>
+        <div style={{ background: '#0d1e35', border: `1px solid ${C.border}`, borderRadius: 14, padding: 28 }}>
+          <h3 style={{ color: C.textPrimary, fontWeight: 700, fontSize: 18, marginBottom: 6, textAlign: 'center' }}>Decision Lifecycle</h3>
+          <p style={{ color: C.textMuted, fontSize: 13, textAlign: 'center', marginBottom: 32 }}>Every AI request flows through 6 auditable stages — nothing skipped, nothing hidden</p>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 16 }}>
             {[
               { step: '01', phase: 'INTENT', desc: 'App declares a goal — not a raw prompt. Who, what, constraints, budget.', color: C.blue },
@@ -562,7 +649,7 @@ function Platform() {
               <div key={step} style={{ textAlign: 'center' }}>
                 <div style={{ width: 40, height: 40, borderRadius: 10, background: `${color}12`, border: `1.5px solid ${color}35`, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 10px', color, fontFamily: C.mono, fontWeight: 800, fontSize: 13 }}>{step}</div>
                 <div style={{ fontSize: 9, fontWeight: 700, color, letterSpacing: '1.2px', textTransform: 'uppercase', marginBottom: 6, fontFamily: C.mono }}>{phase}</div>
-                <p style={{ color: C.textMuted, fontSize: 12, lineHeight: 1.55 }}>{desc}</p>
+                <p style={{ color: C.textSecondary, fontSize: 12, lineHeight: 1.55 }}>{desc}</p>
               </div>
             ))}
           </div>
@@ -575,24 +662,24 @@ function Platform() {
 // ── Features ──────────────────────────────────────────────────────────────────
 function Features() {
   return (
-    <section id="features" style={{ background: '#f8fafc', padding: '80px 24px' }}>
+    <section id="features" style={{ background: '#091220', padding: '80px 24px', borderTop: '1px solid rgba(14,165,233,0.15)' }}>
       <div style={{ maxWidth: 1080, margin: '0 auto', textAlign: 'center' }}>
         <p style={{ color: C.blue, fontSize: 11, fontWeight: 700, letterSpacing: '2px', textTransform: 'uppercase', marginBottom: 10 }}>Features</p>
-        <h2 style={{ fontSize: 'clamp(24px, 4vw, 40px)', fontWeight: 700, color: '#0f172a', letterSpacing: '-1px', marginBottom: 12 }}>Everything your AI needs to behave</h2>
-        <p style={{ color: '#64748b', fontSize: 16, marginBottom: 48, maxWidth: 480, margin: '0 auto 48px' }}>Built for production — not prototypes.</p>
+        <h2 style={{ fontSize: 'clamp(24px, 4vw, 40px)', fontWeight: 700, color: '#e0f2fe', letterSpacing: '-1px', marginBottom: 12 }}>Everything your AI needs to behave</h2>
+        <p style={{ color: '#7dd3fc', fontSize: 16, marginBottom: 48, maxWidth: 480, margin: '0 auto 48px' }}>Built for production — not prototypes.</p>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(270px, 1fr))', gap: 16 }}>
           {FEATURES.map(({ icon, title, desc, color, badge }) => {
             const IC = Icon[icon];
             return (
-              <div key={title} style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 12, padding: 24, textAlign: 'left', transition: 'box-shadow 0.2s, transform 0.2s' }}
+              <div key={title} style={{ background: '#0d1e35', border: '1px solid rgba(46,124,184,0.20)', borderRadius: 12, padding: 24, textAlign: 'left', transition: 'box-shadow 0.2s, transform 0.2s' }}
                 onMouseEnter={e => { e.currentTarget.style.boxShadow = `0 8px 28px ${color}15`; e.currentTarget.style.transform = 'translateY(-2px)'; }}
                 onMouseLeave={e => { e.currentTarget.style.boxShadow = 'none'; e.currentTarget.style.transform = 'none'; }}>
                 <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 14 }}>
                   <div style={{ width: 40, height: 40, borderRadius: 9, background: `${color}14`, display: 'flex', alignItems: 'center', justifyContent: 'center', color }}><IC /></div>
                   {badge && <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.8px', color, background: `${color}14`, border: `1px solid ${color}35`, borderRadius: 4, padding: '2px 6px' }}>{badge}</span>}
                 </div>
-                <h3 style={{ color: '#0f172a', fontWeight: 700, fontSize: 15, marginBottom: 7 }}>{title}</h3>
-                <p style={{ color: '#64748b', fontSize: 13, lineHeight: 1.65 }}>{desc}</p>
+                <h3 style={{ color: '#e0f2fe', fontWeight: 700, fontSize: 15, marginBottom: 7 }}>{title}</h3>
+                <p style={{ color: '#7dd3fc', fontSize: 13, lineHeight: 1.65 }}>{desc}</p>
               </div>
             );
           })}
@@ -605,81 +692,104 @@ function Features() {
 // ── Audiences ─────────────────────────────────────────────────────────────────
 function Audiences() {
   const [active, setActive] = useState('engineers');
+
+  // Switch tab when URL hash changes — fixes #executives and #compliance-tab nav links
+  useEffect(() => {
+    const handleHash = () => {
+      const hash = window.location.hash.replace('#', '');
+      if (hash === 'engineers' || hash === 'executives' || hash === 'compliance-tab') {
+        setActive(hash === 'compliance-tab' ? 'compliance' : hash);
+      }
+    };
+    handleHash(); // run on mount in case page loaded with a hash
+    window.addEventListener('hashchange', handleHash);
+    return () => window.removeEventListener('hashchange', handleHash);
+  }, []);
+
   const tabs = [
-    { id: 'engineers', label: 'For Engineers', color: '#3b82f6' },
-    { id: 'executives', label: 'For Executives', color: C.green },
+    { id: 'engineers',  label: 'For Engineers',               color: '#3b82f6' },
+    { id: 'executives', label: 'For Executives',              color: C.green   },
     { id: 'compliance', label: 'For Compliance & Regulators', color: '#f43f5e' },
   ];
-  const content = {
-    engineers: { headline: 'Build AI features without worrying about governance', sub: 'Submit intents via REST API — one endpoint, full control plane. No custom guardrails to build or maintain.', color: '#3b82f6', points: [{ title: 'Deterministic behaviour', desc: 'Every decision reproducible. No hidden state. Time-travel debugging and regression testing with historical data.' }, { title: 'Observability built-in', desc: 'Distributed tracing for decisions, detailed execution logs, performance metrics, and cost attribution per request.' }, { title: 'Centralised policy', desc: 'Define governance rules once, apply everywhere. Version-controlled. Test policies before deployment.' }, { title: 'SDK-ready event stream', desc: 'Real-time execution timeline for every intent. Kafka and webhook integrations out of the box.' }] },
+  const content_ = {
+    engineers:  { headline: 'Build AI features without worrying about governance', sub: 'Submit intents via REST API — one endpoint, full control plane. No custom guardrails to build or maintain.', color: '#3b82f6', points: [{ title: 'Deterministic behaviour', desc: 'Every decision reproducible. No hidden state. Time-travel debugging and regression testing with historical data.' }, { title: 'Observability built-in', desc: 'Distributed tracing for decisions, detailed execution logs, performance metrics, and cost attribution per request.' }, { title: 'Centralised policy', desc: 'Define governance rules once, apply everywhere. Version-controlled. Test policies before deployment.' }, { title: 'SDK-ready event stream', desc: 'Real-time execution timeline for every intent. Kafka and webhook integrations out of the box.' }] },
     executives: { headline: 'Full AI spend visibility and risk control across the organisation', sub: 'Can you prove your AI behaved responsibly when a regulator, customer, or lawyer asks? DecisionMesh makes that answer instant.', color: C.green, points: [{ title: 'Real-time cost dashboard', desc: 'Know what AI is spending today, by team, by project. Budget enforcement prevents overruns before they happen.' }, { title: 'Regulatory risk mitigation', desc: 'EU AI Act fines up to €35M or 7% revenue. DecisionMesh provides documentation to defend every AI decision.' }, { title: 'Risk exposure scores', desc: 'Every AI decision carries a risk score. High-risk decisions trigger human-in-the-loop review automatically.' }, { title: 'Multi-tenant isolation', desc: 'Each team, product, or client completely separate. Budget, policies, adapters, and audit logs isolated by tenant.' }] },
     compliance: { headline: 'Every AI decision is explainable, exportable, and auditable', sub: 'Built for compliance teams and regulators who need to verify AI systems are operating within rules — not just promised they are.', color: '#f43f5e', points: [{ title: 'Immutable signed audit log', desc: 'Tamper-proof by design. Every intent, policy evaluation, adapter call, and cost permanently recorded with full context.' }, { title: 'PII detection and masking', desc: 'Sensitive data detected and masked before reaching any AI model. None leave your boundary unprotected.' }, { title: 'One-click CSV export', desc: 'Filter by user, action, entity, or date. Export audit log for compliance reviews and regulatory submissions.' }, { title: 'GDPR data residency', desc: 'Control where data is processed per tenant. Article 30 records, Article 22 explanation capabilities.' }] },
   };
-  const c = content[active];
+  const c = content_[active];
 
   return (
-    <section id="engineers" style={{ background: C.bg, padding: '80px 24px', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
-      <div style={{ maxWidth: 1060, margin: '0 auto' }}>
-        <div style={{ textAlign: 'center', marginBottom: 36 }}>
-          <p style={{ color: C.blue, fontSize: 11, fontWeight: 700, letterSpacing: '2px', textTransform: 'uppercase', marginBottom: 10, fontFamily: C.mono }}>Built for every stakeholder</p>
-          <h2 style={{ fontSize: 'clamp(24px, 4vw, 40px)', fontWeight: 700, color: '#f1f5f9', letterSpacing: '-1px' }}>One platform, every team</h2>
-        </div>
-        <div style={{ display: 'flex', gap: 8, justifyContent: 'center', marginBottom: 36, flexWrap: 'wrap' }}>
-          {tabs.map(tab => (
-            <button key={tab.id} onClick={() => setActive(tab.id)} style={{ padding: '8px 18px', borderRadius: 999, fontSize: 13, fontWeight: 600, cursor: 'pointer', border: '1px solid', transition: 'all 0.2s', background: active === tab.id ? `${tab.color}15` : 'transparent', borderColor: active === tab.id ? `${tab.color}45` : 'rgba(255,255,255,0.08)', color: active === tab.id ? tab.color : C.textMuted }}>{tab.label}</button>
-          ))}
-        </div>
-        <div style={{ background: `${c.color}07`, border: `1px solid ${c.color}18`, borderRadius: 18, padding: '36px 32px' }}>
-          <h3 style={{ color: '#f1f5f9', fontWeight: 700, fontSize: 'clamp(18px, 2.5vw, 26px)', lineHeight: 1.3, marginBottom: 10, maxWidth: 600 }}>{c.headline}</h3>
-          <p style={{ color: '#94a3b8', fontSize: 15, lineHeight: 1.65, marginBottom: 32, maxWidth: 560 }}>{c.sub}</p>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: 16 }}>
-            {c.points.map(({ title, desc }) => (
-              <div key={title} style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 10, padding: 18 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-                  <div style={{ width: 18, height: 18, borderRadius: '50%', background: `${c.color}18`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                    <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke={c.color} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
-                  </div>
-                  <h4 style={{ color: '#e2e8f0', fontWeight: 600, fontSize: 14 }}>{title}</h4>
-                </div>
-                <p style={{ color: C.textMuted, fontSize: 13, lineHeight: 1.6 }}>{desc}</p>
-              </div>
+    <div style={{ position: 'relative' }}>
+      {/* Invisible anchor spans — one per tab so each nav link scrolls here and activates correct tab */}
+      <span id="engineers"     style={{ position: 'absolute', top: -72, display: 'block' }} />
+      <span id="executives"    style={{ position: 'absolute', top: -72, display: 'block' }} />
+      <span id="compliance-tab" style={{ position: 'absolute', top: -72, display: 'block' }} />
+
+      <section style={{ background: '#0d1e35', padding: '80px 24px', borderTop: '1px solid rgba(46,124,184,0.20)' }}>
+        <div style={{ maxWidth: 1060, margin: '0 auto' }}>
+          <div style={{ textAlign: 'center', marginBottom: 36 }}>
+            <p style={{ color: C.blue, fontSize: 11, fontWeight: 700, letterSpacing: '2px', textTransform: 'uppercase', marginBottom: 10 }}>Built for every stakeholder</p>
+            <h2 style={{ fontSize: 'clamp(24px, 4vw, 40px)', fontWeight: 700, color: C.textPrimary, letterSpacing: '-1px' }}>One platform, every team</h2>
+          </div>
+          <div style={{ display: 'flex', gap: 8, justifyContent: 'center', marginBottom: 36, flexWrap: 'wrap' }}>
+            {tabs.map(tab => (
+              <button key={tab.id} onClick={() => setActive(tab.id)}
+                style={{ padding: '8px 18px', borderRadius: 999, fontSize: 13, fontWeight: 600, cursor: 'pointer', border: '1px solid', transition: 'all 0.2s', background: active === tab.id ? `${tab.color}18` : 'rgba(14,165,233,0.05)', borderColor: active === tab.id ? `${tab.color}55` : 'rgba(46,124,184,0.20)', color: active === tab.id ? tab.color : C.textMuted }}>
+                {tab.label}
+              </button>
             ))}
           </div>
+          <div style={{ background: `${c.color}08`, border: `1px solid ${c.color}22`, borderRadius: 18, padding: '36px 32px' }}>
+            <h3 style={{ color: C.textPrimary, fontWeight: 700, fontSize: 'clamp(18px, 2.5vw, 26px)', lineHeight: 1.3, marginBottom: 10, maxWidth: 600 }}>{c.headline}</h3>
+            <p style={{ color: C.textSecondary, fontSize: 15, lineHeight: 1.65, marginBottom: 32, maxWidth: 560 }}>{c.sub}</p>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: 16 }}>
+              {c.points.map(({ title, desc }) => (
+                <div key={title} style={{ background: 'rgba(14,165,233,0.04)', border: `1px solid ${c.color}18`, borderRadius: 10, padding: 18 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                    <div style={{ width: 18, height: 18, borderRadius: '50%', background: `${c.color}18`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke={c.color} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+                    </div>
+                    <h4 style={{ color: C.textPrimary, fontWeight: 600, fontSize: 14 }}>{title}</h4>
+                  </div>
+                  <p style={{ color: C.textSecondary, fontSize: 13, lineHeight: 1.6 }}>{desc}</p>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
-      </div>
-    </section>
+      </section>
+    </div>
   );
 }
-
 // ── Compliance ────────────────────────────────────────────────────────────────
 function Compliance() {
   return (
-    <section id="compliance" style={{ background: C.surface, padding: '80px 24px', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+    <section id="compliance" style={{ background: '#0a1628', padding: '80px 24px', borderTop: '1px solid rgba(46,124,184,0.20)' }}>
       <div style={{ maxWidth: 1060, margin: '0 auto' }}>
         <div style={{ textAlign: 'center', marginBottom: 48 }}>
           <p style={{ color: '#f43f5e', fontSize: 11, fontWeight: 700, letterSpacing: '2px', textTransform: 'uppercase', marginBottom: 10, fontFamily: C.mono }}>Compliance & Regulations</p>
-          <h2 style={{ fontSize: 'clamp(24px, 4vw, 40px)', fontWeight: 700, color: '#f1f5f9', letterSpacing: '-1px', marginBottom: 12 }}>Built for a regulated AI world</h2>
-          <p style={{ color: C.textMuted, fontSize: 15, maxWidth: 520, margin: '0 auto 10px' }}>The tools, documentation, and audit trails organisations need to prepare for regulatory compliance across every major framework.</p>
-          <p style={{ color: '#374151', fontSize: 12, maxWidth: 480, margin: '0 auto', fontStyle: 'italic', fontFamily: C.mono }}>Note: Certification requires consultation with qualified legal counsel and varies by jurisdiction.</p>
+          <h2 style={{ fontSize: 'clamp(24px, 4vw, 40px)', fontWeight: 700, color: C.textPrimary, letterSpacing: '-1px', marginBottom: 12 }}>Built for a regulated AI world</h2>
+          <p style={{ color: C.textSecondary, fontSize: 15, maxWidth: 520, margin: '0 auto 10px' }}>The tools, documentation, and audit trails organisations need to prepare for regulatory compliance across every major framework.</p>
+          <p style={{ color: C.textMuted, fontSize: 12, maxWidth: 480, margin: '0 auto', fontStyle: 'italic' }}>Note: Certification requires consultation with qualified legal counsel and varies by jurisdiction.</p>
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: 16, marginBottom: 48 }}>
           {COMPLIANCE_FRAMEWORKS.map(({ name, color, icon, desc, note }) => (
-            <div key={name} style={{ background: C.bg, border: `1px solid ${color}20`, borderRadius: 14, padding: 26 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}><span style={{ fontSize: 24 }}>{icon}</span><h3 style={{ color: '#e2e8f0', fontWeight: 700, fontSize: 17 }}>{name}</h3></div>
-              <p style={{ color: '#94a3b8', fontSize: 13.5, lineHeight: 1.65, marginBottom: note ? 10 : 0 }}>{desc}</p>
-              {note && <p style={{ color: C.textMuted, fontSize: 11, fontStyle: 'italic', borderTop: `1px solid ${color}18`, paddingTop: 10, fontFamily: C.mono }}>{note}</p>}
+            <div key={name} style={{ background: '#0d1e35', border: `1px solid ${color}20`, borderRadius: 14, padding: 26 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}><span style={{ fontSize: 24 }}>{icon}</span><h3 style={{ color: C.textPrimary, fontWeight: 700, fontSize: 17 }}>{name}</h3></div>
+              <p style={{ color: C.textSecondary, fontSize: 13.5, lineHeight: 1.65, marginBottom: note ? 10 : 0 }}>{desc}</p>
+              {note && <p style={{ color: C.textMuted, fontSize: 11, fontStyle: 'italic', borderTop: `1px solid ${color}18`, paddingTop: 10 }}>{note}</p>}
             </div>
           ))}
         </div>
-        <div style={{ background: 'rgba(244,63,94,0.04)', border: '1px solid rgba(244,63,94,0.14)', borderRadius: 14, padding: 28 }}>
-          <h3 style={{ color: '#e2e8f0', fontWeight: 700, fontSize: 18, marginBottom: 22, textAlign: 'center' }}>What regulators and auditors get</h3>
+        <div style={{ background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.18)', borderRadius: 14, padding: 28 }}>
+          <h3 style={{ color: C.textPrimary, fontWeight: 700, fontSize: 18, marginBottom: 22, textAlign: 'center' }}>What regulators and auditors get</h3>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12 }}>
             {['Complete decision traceability — every AI call logged', 'Immutable, signed audit logs — tamper-proof by design', 'PII detection and masking before data reaches models', 'Human oversight gates on high-risk decisions', 'One-click evidence packages for auditors', 'GDPR data residency controls per tenant', 'Policy version history — track governance changes', 'Risk scores on every AI decision — no black boxes'].map(item => (
               <div key={item} style={{ display: 'flex', alignItems: 'flex-start', gap: 9 }}>
                 <div style={{ width: 16, height: 16, borderRadius: '50%', background: 'rgba(244,63,94,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 1 }}>
                   <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="#f43f5e" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
                 </div>
-                <span style={{ color: '#94a3b8', fontSize: 13.5, lineHeight: 1.55 }}>{item}</span>
+                <span style={{ color: C.textSecondary, fontSize: 13.5, lineHeight: 1.55 }}>{item}</span>
               </div>
             ))}
           </div>
@@ -690,59 +800,87 @@ function Compliance() {
 }
 
 // ── Industries ────────────────────────────────────────────────────────────────
+// Fixed anchor IDs — one per industry for nav dropdown links
+const INDUSTRY_ANCHORS = [
+  'industries',
+  'industry-healthcare',
+  'industry-insurance',
+  'industry-legal',
+  'industry-government',
+  'industry-enterprise',
+];
+
 function Industries() {
   const [active, setActive] = useState(0);
+
+  // Switch to correct tab when URL hash changes (nav dropdown links)
+  useEffect(() => {
+    const handleHash = () => {
+      const hash = window.location.hash.replace('#', '');
+      const idx = INDUSTRY_ANCHORS.indexOf(hash);
+      if (idx >= 0) setActive(idx);
+    };
+    handleHash();
+    window.addEventListener('hashchange', handleHash);
+    return () => window.removeEventListener('hashchange', handleHash);
+  }, []);
+
   const ind = INDUSTRIES[active];
   return (
-    <section id="industries" style={{ background: C.bg, padding: '80px 24px', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
-      <div style={{ maxWidth: 1060, margin: '0 auto' }}>
-        <div style={{ textAlign: 'center', marginBottom: 40 }}>
-          <p style={{ color: C.blue, fontSize: 11, fontWeight: 700, letterSpacing: '2px', textTransform: 'uppercase', marginBottom: 10, fontFamily: C.mono }}>Industries</p>
-          <h2 style={{ fontSize: 'clamp(24px, 4vw, 40px)', fontWeight: 700, color: '#f1f5f9', letterSpacing: '-1px', marginBottom: 12 }}>Built for regulated industries</h2>
-          <p style={{ color: C.textMuted, fontSize: 15, maxWidth: 480, margin: '0 auto' }}>DecisionMesh adapts to industry-specific regulations, compliance requirements, and operational needs.</p>
-        </div>
-        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'center', marginBottom: 32 }}>
-          {INDUSTRIES.map((ind, i) => (
-            <button key={ind.name} onClick={() => setActive(i)} style={{ padding: '7px 15px', borderRadius: 999, fontSize: 12, fontWeight: 600, cursor: 'pointer', border: '1px solid', transition: 'all 0.2s', background: active === i ? 'rgba(30,111,255,0.12)' : 'transparent', borderColor: active === i ? 'rgba(30,111,255,0.38)' : 'rgba(255,255,255,0.07)', color: active === i ? '#60a5fa' : C.textMuted }}>{ind.emoji} {ind.name}</button>
-          ))}
-        </div>
-        <div style={{ background: C.surface, border: '1px solid rgba(255,255,255,0.07)', borderRadius: 18, padding: 32, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 32, alignItems: 'start' }}>
-          <div>
-            <div style={{ fontSize: 44, marginBottom: 14 }}>{ind.emoji}</div>
-            <h3 style={{ color: '#e2e8f0', fontWeight: 700, fontSize: 22, marginBottom: 10 }}>{ind.name}</h3>
-            <p style={{ color: '#94a3b8', fontSize: 15, lineHeight: 1.7, marginBottom: 20 }}>{ind.desc}</p>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-              {ind.tags.map(tag => <span key={tag} style={{ fontSize: 11, fontWeight: 700, color: '#60a5fa', background: 'rgba(30,111,255,0.1)', border: '1px solid rgba(30,111,255,0.22)', borderRadius: 999, padding: '3px 11px', fontFamily: C.mono }}>{tag}</span>)}
-            </div>
+    <div style={{ position: 'relative' }}>
+      {/* Invisible anchors — one per industry tab */}
+      {INDUSTRY_ANCHORS.map((anchor, i) => (
+        <span key={anchor} id={anchor} style={{ position: 'absolute', top: -72, display: 'block' }} />
+      ))}
+      <section style={{ background: C.surface, padding: '80px 24px', borderTop: '1px solid rgba(14,165,233,0.15)' }}>
+        <div style={{ maxWidth: 1060, margin: '0 auto' }}>
+          <div style={{ textAlign: 'center', marginBottom: 40 }}>
+            <p style={{ color: C.blue, fontSize: 11, fontWeight: 700, letterSpacing: '2px', textTransform: 'uppercase', marginBottom: 10 }}>Industries</p>
+            <h2 style={{ fontSize: 'clamp(24px, 4vw, 40px)', fontWeight: 700, color: C.textPrimary, letterSpacing: '-1px', marginBottom: 12 }}>Built for regulated industries</h2>
+            <p style={{ color: C.textSecondary, fontSize: 15, maxWidth: 480, margin: '0 auto' }}>DecisionMesh adapts to industry-specific regulations, compliance requirements, and operational needs.</p>
           </div>
-          <div>
-            <h4 style={{ color: C.textMuted, fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1.2px', marginBottom: 14, fontFamily: C.mono }}>Use Cases</h4>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {ind.usecases.map(uc => (
-                <div key={uc} style={{ display: 'flex', alignItems: 'flex-start', gap: 9 }}>
-                  <div style={{ width: 16, height: 16, borderRadius: '50%', background: 'rgba(30,111,255,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 1 }}>
-                    <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke={C.blue} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'center', marginBottom: 32 }}>
+            {INDUSTRIES.map((industry, i) => (
+              <button key={industry.name} onClick={() => setActive(i)} style={{ padding: '7px 15px', borderRadius: 999, fontSize: 12, fontWeight: 600, cursor: 'pointer', border: '1px solid', transition: 'all 0.2s', background: active === i ? 'rgba(46,124,184,0.18)' : 'rgba(14,165,233,0.05)', borderColor: active === i ? '#2e7cb8' : 'rgba(46,124,184,0.20)', color: active === i ? '#7eb8d4' : C.textMuted }}>{industry.emoji} {industry.name}</button>
+            ))}
+          </div>
+          <div style={{ background: '#0d1e35', border: '1px solid rgba(46,124,184,0.20)', borderRadius: 18, padding: 32, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 32, alignItems: 'start' }}>
+            <div>
+              <div style={{ fontSize: 44, marginBottom: 14 }}>{ind.emoji}</div>
+              <h3 style={{ color: C.textPrimary, fontWeight: 700, fontSize: 22, marginBottom: 10 }}>{ind.name}</h3>
+              <p style={{ color: C.textSecondary, fontSize: 15, lineHeight: 1.7, marginBottom: 20 }}>{ind.desc}</p>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                {ind.tags.map(tag => <span key={tag} style={{ fontSize: 11, fontWeight: 700, color: '#7eb8d4', background: 'rgba(46,124,184,0.12)', border: '1px solid rgba(46,124,184,0.30)', borderRadius: 999, padding: '3px 11px' }}>{tag}</span>)}
+              </div>
+            </div>
+            <div>
+              <h4 style={{ color: C.textSub, fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1.2px', marginBottom: 14 }}>Use Cases</h4>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {ind.usecases.map(uc => (
+                  <div key={uc} style={{ display: 'flex', alignItems: 'flex-start', gap: 9 }}>
+                    <div style={{ width: 16, height: 16, borderRadius: '50%', background: 'rgba(46,124,184,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 1 }}>
+                      <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke={C.blue} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+                    </div>
+                    <span style={{ color: C.textSecondary, fontSize: 14, lineHeight: 1.55 }}>{uc}</span>
                   </div>
-                  <span style={{ color: '#cbd5e1', fontSize: 14, lineHeight: 1.55 }}>{uc}</span>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
           </div>
+          <p style={{ color: C.textMuted, fontSize: 11, textAlign: 'center', marginTop: 16, fontStyle: 'italic' }}>Specific outcomes and compliance certifications vary by implementation. Contact us to discuss your requirements.</p>
         </div>
-        <p style={{ color: '#374151', fontSize: 11, textAlign: 'center', marginTop: 16, fontStyle: 'italic', fontFamily: C.mono }}>Specific outcomes and compliance certifications vary by implementation. Contact us to discuss your requirements.</p>
-      </div>
-    </section>
+      </section>
+    </div>
   );
 }
-
 // ── Stats ─────────────────────────────────────────────────────────────────────
 function Stats() {
   return (
-    <section style={{ background: C.surface, padding: '52px 24px', borderTop: '1px solid rgba(255,255,255,0.06)', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+    <section style={{ background: '#091220', padding: '52px 24px', borderTop: '1px solid rgba(46,124,184,0.20)', borderBottom: '1px solid rgba(46,124,184,0.20)' }}>
       <div style={{ maxWidth: 900, margin: '0 auto', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 28, textAlign: 'center' }}>
         {[{ value: '< 50ms', label: 'orchestration overhead' }, { value: '15', label: 'built-in features' }, { value: '100%', label: 'audit coverage' }, { value: '1-click', label: 'decision replay' }, { value: 'SOC 2', label: 'ready architecture' }, { value: 'GDPR', label: 'compliant by design' }].map(({ value, label }) => (
           <div key={label}>
-            <div style={{ fontSize: 28, fontWeight: 800, color: '#f1f5f9', letterSpacing: '-1px', marginBottom: 4, fontFamily: C.mono }}>{value}</div>
+            <div style={{ fontSize: 28, fontWeight: 800, color: C.textPrimary, letterSpacing: '-1px', marginBottom: 4 }}>{value}</div>
             <div style={{ color: C.textMuted, fontSize: 12 }}>{label}</div>
           </div>
         ))}
@@ -751,49 +889,119 @@ function Stats() {
   );
 }
 
-// ── Pricing ───────────────────────────────────────────────────────────────────
+// ── Pricing — Arctic White + billing interval switcher ───────────────────────
 function Pricing({ onRegister }) {
+  const [billingInterval, setBillingInterval] = useState('monthly');
+  const iv = BILLING_INTERVALS.find(b => b.id === billingInterval);
+
+  const getUsdPrice = (key) => {
+    const p = PLAN_PRICES[key];
+    return p ? p[billingInterval] : null;
+  };
+
+  const perMoPrice = (key) => {
+    const p = PLAN_PRICES[key];
+    if (!p || billingInterval === 'monthly') return null;
+    return Math.round(p[billingInterval] / iv.months);
+  };
+
+  const periodLabel = { monthly: '/mo', quarterly: '/qtr', halfyearly: '/6mo', yearly: '/yr' };
+
   return (
-    <section id="pricing" style={{ background: C.bg, padding: '80px 24px' }}>
-      <div style={{ maxWidth: 1240, margin: '0 auto', textAlign: 'center' }}>
-        <p style={{ color: C.blue, fontSize: 11, fontWeight: 700, letterSpacing: '2px', textTransform: 'uppercase', marginBottom: 10, fontFamily: C.mono }}>Pricing</p>
-        <h2 style={{ fontSize: 'clamp(24px, 4vw, 40px)', fontWeight: 700, color: '#f1f5f9', letterSpacing: '-1px', marginBottom: 10 }}>Simple, transparent pricing</h2>
-        <p style={{ color: C.textMuted, fontSize: 16, marginBottom: 48 }}>Start free. Scale when you're ready.</p>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(195px, 1fr))', gap: 12, alignItems: 'start' }}>
-          {PLANS.map(plan => (
-            <div key={plan.key} style={{ background: plan.bg, border: `1px solid ${plan.border}`, borderRadius: 14, padding: '24px 20px', textAlign: 'left', position: 'relative', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-              {plan.topBar && <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: plan.topBar }} />}
-              {plan.popular && <div style={{ position: 'absolute', top: -1, left: '50%', transform: 'translateX(-50%)', background: C.blue, color: '#fff', fontSize: 9, fontWeight: 700, padding: '3px 10px', borderRadius: '0 0 7px 7px', whiteSpace: 'nowrap', letterSpacing: '0.5px' }}>★ MOST POPULAR</div>}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4, marginTop: plan.popular ? 10 : 0 }}>
-                <div style={{ width: 6, height: 6, borderRadius: '50%', background: plan.color }} />
-                <p style={{ color: plan.color, fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px', fontFamily: C.mono }}>{plan.name}</p>
-              </div>
-              <div style={{ marginBottom: 2 }}>
-                <span style={{ fontSize: 34, fontWeight: 800, color: '#f1f5f9', letterSpacing: '-2px', lineHeight: 1 }}>{plan.price}</span>
-                {plan.interval && <span style={{ color: C.textMuted, fontSize: 13, marginLeft: 2 }}>{plan.interval}</span>}
-              </div>
-              <p style={{ color: C.textMuted, fontSize: 11, fontWeight: 600, marginBottom: 16, fontFamily: C.mono }}>{plan.note}</p>
-              <div style={{ flex: 1, marginBottom: 18 }}>
-                {plan.features.map(f => (
-                  <div key={f} style={{ display: 'flex', alignItems: 'flex-start', gap: 7, marginBottom: 7 }}>
-                    <div style={{ color: plan.checkColor, flexShrink: 0, marginTop: 1 }}><Icon.Check /></div>
-                    <span style={{ color: '#cbd5e1', fontSize: 12.5, lineHeight: 1.4 }}>{f}</span>
-                  </div>
-                ))}
-              </div>
-              {plan.ctaHref ? (
-                <a href={plan.ctaHref} style={{ display: 'block', textAlign: 'center', borderRadius: 9, padding: '10px', fontSize: 13, fontWeight: 700, textDecoration: 'none', background: `${plan.color}14`, color: plan.checkColor, border: `1px solid ${plan.color}28`, transition: 'background 0.15s' }}>{plan.cta}</a>
-              ) : (
-                <button onClick={onRegister} style={{ width: '100%', borderRadius: 9, padding: '10px', fontSize: 13, fontWeight: 700, cursor: 'pointer', background: plan.popular ? C.blue : 'rgba(255,255,255,0.06)', color: '#fff', border: plan.popular ? 'none' : '1px solid rgba(255,255,255,0.09)', transition: 'background 0.15s' }}
-                  onMouseEnter={e => e.currentTarget.style.background = plan.popular ? '#1557d6' : 'rgba(255,255,255,0.1)'}
-                  onMouseLeave={e => e.currentTarget.style.background = plan.popular ? C.blue : 'rgba(255,255,255,0.06)'}>
-                  {plan.cta}
-                </button>
+    <section id="pricing" style={{ background: '#091220', padding: '80px 24px', borderTop: '1px solid rgba(14,165,233,0.15)' }}>
+      <div style={{ maxWidth: 1160, margin: '0 auto', textAlign: 'center' }}>
+        <p style={{ color: C.blue, fontSize: 11, fontWeight: 700, letterSpacing: '2px', textTransform: 'uppercase', marginBottom: 10 }}>Pricing</p>
+        <h2 style={{ fontSize: 'clamp(24px, 4vw, 40px)', fontWeight: 800, color: C.textPrimary, letterSpacing: '-1px', marginBottom: 10 }}>Simple, transparent pricing</h2>
+        <p style={{ color: C.textMuted, fontSize: 16, marginBottom: 32 }}>Start free. Scale when you're ready.</p>
+
+        {/* Interval switcher — matches Billing.jsx style */}
+        <div style={{ display: 'inline-flex', background: 'rgba(14,165,233,0.06)', border: '1px solid rgba(14,165,233,0.18)', borderRadius: 10, padding: 4, gap: 2, marginBottom: 48 }}>
+          {BILLING_INTERVALS.map(b => (
+            <button key={b.id} onClick={() => setBillingInterval(b.id)} style={{
+              position: 'relative', padding: '7px 16px', borderRadius: 7, border: 'none',
+              fontSize: 13, fontWeight: 600, cursor: 'pointer', transition: 'all 0.15s',
+              background: billingInterval === b.id ? '#2e7cb8' : 'transparent',
+              color: billingInterval === b.id ? '#ffffff' : '#7eb8d4',
+              boxShadow: billingInterval === b.id ? '0 2px 8px rgba(46,124,184,0.25)' : 'none',
+            }}>
+              {b.label}
+              {b.badge && (
+                <span style={{
+                  position: 'absolute', top: -9, right: -6,
+                  fontSize: 9, fontWeight: 700, color: C.green,
+                  background: '#dcfce7', border: '1px solid #bbf7d0',
+                  borderRadius: 99, padding: '1px 5px', whiteSpace: 'nowrap',
+                }}>{b.badge}</span>
               )}
-            </div>
+            </button>
           ))}
         </div>
-        <p style={{ color: '#374151', fontSize: 12, marginTop: 24, fontFamily: C.mono }}>Payments processed securely by Stripe · Cancel anytime · No hidden fees</p>
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16, alignItems: 'start' }}>
+          {PLANS.map(plan => {
+            const usdPrice = getUsdPrice(plan.key);
+            const perMo = perMoPrice(plan.key);
+            return (
+              <div key={plan.key} style={{
+                background: plan.popular ? 'rgba(14,165,233,0.10)' : '#0d1e35', border: plan.popular ? '1px solid rgba(14,165,233,0.35)' : `1px solid ${C.border}`,
+                borderRadius: 14, padding: '24px 20px', textAlign: 'left',
+                position: 'relative', overflow: 'hidden', display: 'flex', flexDirection: 'column',
+                boxShadow: plan.popular ? '0 4px 28px rgba(14,165,233,0.18)' : 'none',
+              }}>
+                {plan.topBar && <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: plan.topBar }} />}
+                {plan.popular && <div style={{ position: 'absolute', top: -1, left: '50%', transform: 'translateX(-50%)', background: C.blue, color: '#fff', fontSize: 9, fontWeight: 700, padding: '3px 10px', borderRadius: '0 0 7px 7px', whiteSpace: 'nowrap', letterSpacing: '0.5px' }}>★ MOST POPULAR</div>}
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4, marginTop: plan.popular || plan.topBar ? 12 : 0 }}>
+                  <div style={{ width: 6, height: 6, borderRadius: '50%', background: plan.color }} />
+                  <p style={{ color: plan.color, fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px' }}>{plan.name}</p>
+                </div>
+
+                {/* Price — dynamic for paid, static for Free/Enterprise */}
+                <div style={{ marginBottom: 4 }}>
+                  {usdPrice != null ? (
+                    <>
+                      <span style={{ fontSize: 36, fontWeight: 900, color: '#e0f2fe', letterSpacing: '-2px', lineHeight: 1 }}>${usdPrice}</span>
+                      <span style={{ color: C.textMuted, fontSize: 13, marginLeft: 3 }}>{periodLabel[billingInterval]}</span>
+                      {perMo && <div style={{ fontSize: 11, color: C.green, fontWeight: 600, marginTop: 3 }}>≈ ${perMo}/mo</div>}
+                      {iv.discount > 0 && (
+                        <div style={{ display: 'inline-block', marginTop: 5, fontSize: 10, fontWeight: 700, color: C.green, background: '#dcfce7', border: '1px solid #bbf7d0', borderRadius: 99, padding: '2px 8px' }}>
+                          Save {Math.round(iv.discount * 100)}% vs monthly
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <span style={{ fontSize: 34, fontWeight: 900, color: '#e0f2fe', letterSpacing: '-2px', lineHeight: 1 }}>{plan.price}</span>
+                  )}
+                </div>
+
+                <p style={{ color: C.textSub, fontSize: 11, fontWeight: 600, marginBottom: 16 }}>{plan.note}</p>
+                <div style={{ flex: 1, marginBottom: 18 }}>
+                  {plan.features.map(f => (
+                    <div key={f} style={{ display: 'flex', alignItems: 'flex-start', gap: 7, marginBottom: 7 }}>
+                      <div style={{ color: plan.checkColor, flexShrink: 0, marginTop: 1 }}><Icon.Check /></div>
+                      <span style={{ color: '#7dd3fc', fontSize: 12.5, lineHeight: 1.4 }}>{f}</span>
+                    </div>
+                  ))}
+                </div>
+
+                {plan.ctaHref ? (
+                  <a href={plan.ctaHref} style={{ display: 'block', textAlign: 'center', borderRadius: 9, padding: '10px', fontSize: 13, fontWeight: 700, textDecoration: 'none', background: `${plan.color}10`, color: plan.color, border: `1px solid ${plan.color}28`, transition: 'background 0.15s' }}
+                    onMouseEnter={e => e.currentTarget.style.background = `${plan.color}18`}
+                    onMouseLeave={e => e.currentTarget.style.background = `${plan.color}10`}>
+                    {plan.cta}
+                  </a>
+                ) : (
+                  <button onClick={onRegister} style={{ width: '100%', borderRadius: 9, padding: '10px', fontSize: 13, fontWeight: 700, cursor: 'pointer', background: plan.popular ? '#2e7cb8' : 'rgba(46,124,184,0.08)', color: plan.popular ? '#fff' : '#7dd3fc', border: plan.popular ? 'none' : '1px solid rgba(14,165,233,0.22)', transition: 'background 0.15s' }}
+                    onMouseEnter={e => e.currentTarget.style.background = plan.popular ? '#245f91' : 'rgba(46,124,184,0.14)'}
+                    onMouseLeave={e => e.currentTarget.style.background = plan.popular ? '#2e7cb8' : 'rgba(46,124,184,0.08)'}>
+                    {plan.cta}
+                  </button>
+                )}
+              </div>
+            );
+          })}
+        </div>
+        <p style={{ color: C.textSub, fontSize: 12, marginTop: 24 }}>Payments processed securely by Stripe · Cancel anytime · No hidden fees</p>
       </div>
     </section>
   );
@@ -802,16 +1010,16 @@ function Pricing({ onRegister }) {
 // ── Final CTA ─────────────────────────────────────────────────────────────────
 function FinalCTA({ onRegister }) {
   return (
-    <section style={{ background: `linear-gradient(135deg, #0f1e4a 0%, #0f0a2e 50%, ${C.bg} 100%)`, padding: '80px 24px', textAlign: 'center', borderTop: '1px solid rgba(30,111,255,0.15)' }}>
+    <section style={{ background: 'linear-gradient(135deg, #060f1e 0%, #0a1628 60%, #091a30 100%)', padding: '80px 24px', textAlign: 'center', borderTop: '1px solid rgba(14,165,233,0.15)' }}>
       <div style={{ maxWidth: 560, margin: '0 auto' }}>
-        <h2 style={{ fontSize: 'clamp(24px, 4vw, 40px)', fontWeight: 800, color: '#f1f5f9', letterSpacing: '-1.5px', marginBottom: 12 }}>Ship AI you can explain</h2>
-        <p style={{ color: '#93c5fd', fontSize: 17, marginBottom: 36, lineHeight: 1.65 }}>Join teams who've stopped guessing and started governing their AI.</p>
-        <button onClick={onRegister} style={{ background: '#fff', color: '#0f172a', fontSize: 16, fontWeight: 800, border: 'none', borderRadius: 10, padding: '14px 32px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 10, letterSpacing: '-0.3px', transition: 'transform 0.1s, background 0.15s' }}
-          onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.background = '#f1f5f9'; }}
-          onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.background = '#fff'; }}>
+        <h2 style={{ fontSize: 'clamp(24px, 4vw, 40px)', fontWeight: 800, color: '#e0f2fe', letterSpacing: '-1.5px', marginBottom: 12 }}>Ship AI you can explain</h2>
+        <p style={{ color: '#7dd3fc', fontSize: 17, marginBottom: 36, lineHeight: 1.65 }}>Join teams who've stopped guessing and started governing their AI.</p>
+        <button onClick={onRegister} style={{ background: C.blue, color: '#ffffff', fontSize: 16, fontWeight: 800, border: 'none', borderRadius: 10, padding: '14px 32px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 10, letterSpacing: '-0.3px', transition: 'transform 0.1s, background 0.15s' }}
+          onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.background = C.blueHover; }}
+          onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.background = C.blue; }}>
           Create your free account <Icon.ArrowRight />
         </button>
-        <p style={{ color: '#374151', fontSize: 12, marginTop: 14, fontFamily: C.mono }}>No credit card required.</p>
+        <p style={{ color: C.textMuted, fontSize: 12, marginTop: 14 }}>No credit card required.</p>
       </div>
     </section>
   );
@@ -844,7 +1052,7 @@ function Footer() {
                   background: 'linear-gradient(90deg, #f1f5f9 0%, #f1f5f9 54%, #3b82f6 55%, #7c3aed 100%)',
                   WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text'
                 }}>DecisionMesh</div>
-                <div style={{ fontSize: 8, fontWeight: 700, color: '#475569', letterSpacing: '1.5px', textTransform: 'uppercase', marginTop: 2 }}>AI Control Plane</div>
+                <div style={{ fontSize: 8, fontWeight: 700, color: '#7eb8d4', letterSpacing: '1.5px', textTransform: 'uppercase', marginTop: 2 }}>AI Control Plane</div>
               </div>
             </div>
             <p style={{ color: C.textMuted, fontSize: 13, lineHeight: 1.65, marginBottom: 12 }}>The AI Intent Control Plane. Every decision governed, audited, and compliant by design.</p>
@@ -853,12 +1061,26 @@ function Footer() {
           {col('Product', [{ label: 'Features', href: '#features' }, { label: 'Platform', href: '#platform' }, { label: 'Pricing', href: '#pricing' }, { label: 'Changelog', href: '#' }])}
           {col('Solutions', [{ label: 'For Engineers', href: '#engineers' }, { label: 'For Executives', href: '#executives' }, { label: 'For Compliance', href: '#compliance' }])}
           {col('Industries', [{ label: 'Fintech & Banking', href: '#industries' }, { label: 'Healthcare', href: '#industries' }, { label: 'Insurance', href: '#industries' }, { label: 'Legal Services', href: '#industries' }])}
-          {col('Resources', [{ label: 'API Docs', href: '/docs', ext: true }, { label: 'Blog', href: '/blog' }, { label: 'Status', href: '#' }, { label: 'Support', href: 'mailto:support@decisionmesh.io' }])}
+          {col('Resources', [{ label: 'API Docs', href: '/docs', ext: false }, { label: 'Blog', href: '/blog' }, { label: 'Status', href: '#' }, { label: 'Support', href: 'mailto:support@decisionmesh.io' }])}
           {col('Legal', [{ label: 'Privacy Policy', href: '#' }, { label: 'Terms of Service', href: '#' }, { label: 'Security', href: '#' }, { label: 'Contact Sales', href: 'mailto:sales@decisionmesh.io' }])}
         </div>
+        {/* Social links */}
+        <div style={{ display: 'flex', gap: 12, marginBottom: 24 }}>
+          {[
+            { label: 'X (Twitter)', href: 'https://x.com/decisionmesh',       icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.746l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg> },
+            { label: 'LinkedIn',    href: 'https://linkedin.com/company/decisionmesh', icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg> },
+            { label: 'Facebook',    href: 'https://facebook.com/decisionmesh',  icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg> },
+          ].map(({ label, href, icon }) => (
+            <a key={label} href={href} target="_blank" rel="noopener noreferrer" title={label}
+              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 34, height: 34, borderRadius: 8, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', color: '#64748b', textDecoration: 'none', transition: 'all 0.15s' }}
+              onMouseEnter={e => { e.currentTarget.style.background = 'rgba(46,124,184,0.15)'; e.currentTarget.style.color = '#7eb8d4'; e.currentTarget.style.borderColor = 'rgba(46,124,184,0.3)'; }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; e.currentTarget.style.color = '#64748b'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'; }}
+            >{icon}</a>
+          ))}
+        </div>
         <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: 22, display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center', justifyContent: 'space-between' }}>
-          <p style={{ color: '#374151', fontSize: 12, fontFamily: C.mono }}>© 2025 DecisionMesh. All rights reserved.</p>
-          <p style={{ color: '#1f2937', fontSize: 11, fontFamily: C.mono }}>SOC 2 READY · GDPR · EU AI ACT · HIPAA AWARE</p>
+          <p style={{ color: '#94a3b8', fontSize: 12 }}>© 2026 DecisionMesh. All rights reserved.</p>
+          <p style={{ color: '#4b5563', fontSize: 11 }}>SOC 2 READY · GDPR · EU AI ACT · HIPAA AWARE</p>
         </div>
       </div>
     </footer>
@@ -891,7 +1113,7 @@ export default function LandingPage() {
           .show-mobile { display: none !important; }
         }
       `}</style>
-      <div style={{ minHeight: '100vh', background: C.bg }}>
+      <div style={{ minHeight: '100vh', background: '#0a1628' }}>
         <NavBar onLogin={handleLogin} onRegister={handleRegister} />
         <Hero onRegister={handleRegister} onLogin={handleLogin} />
         <PainSection />
