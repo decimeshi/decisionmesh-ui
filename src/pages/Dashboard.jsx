@@ -149,7 +149,7 @@ function ComplianceHealth() {
 // ── Main dashboard ─────────────────────────────────────────────────────────────
 export default function Dashboard({ keycloak }) {
   const navigate = useNavigate();
-  const { balance, allocated, pct, statusColor, isLow, isEmpty } = useCredits();
+  const { balance, allocated, pct, statusColor, isLow, isEmpty, plan } = useCredits();
   const [intents,      setIntents]      = useState(null);
   const [costData,     setCostData]     = useState(null);
   const [loading,      setLoading]      = useState(true);
@@ -213,7 +213,7 @@ export default function Dashboard({ keycloak }) {
               <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, backgroundColor: statusColor }} />
             </div>
             <p className="text-xs text-slate-400 mt-1.5">
-              {isEmpty ? 'Top up now' : isLow ? 'Running low' : `of ${allocated?.toLocaleString()} mo`}
+              {isEmpty ? 'Top up now' : isLow ? 'Running low' : `of ${allocated?.toLocaleString()}${plan === 'free' ? '' : '/mo'}`}
             </p>
           </div>
         </div>
