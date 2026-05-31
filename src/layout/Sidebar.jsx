@@ -77,42 +77,67 @@ const ADMIN_ITEMS = [
 // ── Credit footer ─────────────────────────────────────────────────────────────
 function CreditFooter() {
   const navigate = useNavigate();
-  const { balance, allocated, statusColor, isEmpty, isLow } = useCredits();
+  const { balance, allocated, isEmpty, isLow } = useCredits();
   if (balance === null) return null;
 
   const pct = allocated ? Math.min(100, (balance / allocated) * 100) : 100;
+
+  // Tiered colour system — gives visual feedback as credits deplete
+  // >60% green, 30-60% blue, 10-30% amber, <10% red
+  const barColor  = isEmpty  ? '#dc2626'
+                  : pct < 10 ? '#dc2626'   // red   — critical
+                  : pct < 30 ? '#f59e0b'   // amber — low
+                  : pct < 60 ? '#3b82f6'   // blue  — moderate
+                  :            '#16a34a';  // green — healthy
+
+  const labelColor = isEmpty  ? '#dc2626'
+                   : pct < 10 ? '#dc2626'
+                   : pct < 30 ? '#f59e0b'
+                   :            '#16a34a';
+
+  const bgColor     = isEmpty || pct < 10 ? 'rgba(239,68,68,0.08)'
+                    : pct < 30            ? 'rgba(245,158,11,0.08)'
+                    :                      'rgba(255,255,255,0.04)';
+
+  const borderColor = isEmpty || pct < 10 ? 'rgba(239,68,68,0.2)'
+                    : pct < 30            ? 'rgba(245,158,11,0.2)'
+                    :                      'rgba(255,255,255,0.07)';
+
   const isWarning = isEmpty || isLow;
 
   return (
     <div
       onClick={() => navigate('/billing?tab=credits')}
       className="mx-3 mb-3 mt-1 cursor-pointer rounded-lg border transition-all"
-      style={{
-        background: isWarning ? 'rgba(239,68,68,0.08)' : 'rgba(255,255,255,0.04)',
-        borderColor: isWarning ? 'rgba(239,68,68,0.2)' : 'rgba(255,255,255,0.07)',
-        padding: '10px 12px',
-      }}
+      style={{ background: bgColor, borderColor, padding: '10px 12px' }}
     >
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-1.5">
-          <Zap size={11} style={{ color: statusColor }} />
+          <Zap size={11} style={{ color: labelColor }} />
           <span className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: 'var(--sidebar-label)' }}>
             Credits
           </span>
         </div>
-        <span className="text-xs font-bold tabular-nums" style={{ color: statusColor }}>
+        <span className="text-xs font-bold tabular-nums" style={{ color: labelColor }}>
           {balance?.toLocaleString()}
         </span>
       </div>
-      <div className="h-1 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.08)' }}>
+      {/* Segmented progress bar — shows exact credit level at a glance */}
+      <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.08)' }}>
         <div className="h-full rounded-full transition-all duration-500"
-          style={{ width: `${pct}%`, background: isWarning ? statusColor : 'var(--brand-gradient)' }} />
+          style={{ width: `${pct}%`, background: barColor }} />
       </div>
-      {isWarning && (
-        <p className="text-[10px] mt-1.5 font-medium" style={{ color: statusColor }}>
-          {isEmpty ? '⚠ No credits — top up now' : '⚠ Running low'}
+      <div className="flex justify-between mt-1.5">
+        <p className="text-[10px] font-medium" style={{ color: labelColor }}>
+          {isEmpty        ? '⚠ No credits — top up now'
+           : pct < 10    ? '⚠ Critical — top up now'
+           : pct < 30    ? '⚠ Running low'
+           :               ''}
         </p>
-      )}
+        <p className="text-[10px]" style={{ color: 'var(--sidebar-label)' }}>
+          {Math.round(pct)}%
+        </p>
+      </div>
     </div>
   );
 }
