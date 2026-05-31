@@ -49,10 +49,18 @@ const PLANS = [
     id: 'free', name: 'Free', color: '#64748b',
     usdPrice: { monthly: 0, quarterly: 0, halfyearly: 0, yearly: 0 },
     inrPrice: { monthly: 0, quarterly: 0, halfyearly: 0, yearly: 0 },
-    credits: 500, creditsNote: '500 credits one-time',
+    credits: 100, creditsNote: '100 credits one-time',
     cta: 'Current free tier', priceId: null,
-    features: ['500 credits (one-time gift)', '2 adapters', 'Budget enforcement',
-      'Basic audit log (30 days)', 'Community support'],
+    features: [
+      '100 credits (one-time) — full product access',
+      'All adapters (OpenAI, Anthropic, Google, Azure)',
+      'Policy builder — cost, latency & safety rules',
+      'Decision replay — re-run any past intent',
+      'Full audit log — permanent, tamper-proof',
+      'Drift detection',
+      'Budget enforcement',
+      'Community support',
+    ],
   },
   {
     id: 'builder', name: 'Builder', color: '#2563eb', popular: true,
@@ -76,9 +84,13 @@ const PLANS = [
         yearly:     'plan_SdR92osLF8JvPx',
       },
     },
-    features: ['15,000 credits/month', 'All adapters', 'Policy builder',
-      'Decision replay', 'Full audit + CSV export', 'Drift detection',
-      'Priority support', 'Overage: $0.002/cr'],
+    features: [
+      '15,000 credits/month',
+      'Everything in Free',
+      'Full audit log + CSV export',
+      'Priority support',
+      'Overage: $0.002/cr',
+    ],
     badge: 'Most popular',
   },
   {
@@ -103,10 +115,16 @@ const PLANS = [
         yearly:     'plan_SdRAPgVKuMooyq',
       },
     },
-    features: ['60,000 credits/month', 'Multi-tenancy', '5 team seats',
-      'SSO / SAML', 'Human-in-the-loop gates', 'Priority support',
+    features: [
+      '60,000 credits/month',
+      'Everything in Builder',
+      'Multi-tenancy — full tenant isolation',
+      '5 team seats',
+      'SSO / SAML',
+      'Human-in-the-loop gates',
       'BYOK — bring your own API key (1 cr/exec)',
-      'Overage: $0.001/cr'],
+      'Overage: $0.001/cr',
+    ],
   },
   {
     id: 'enterprise', name: 'Enterprise', color: '#7c3aed',
@@ -114,11 +132,11 @@ const PLANS = [
     credits: null, creditsNote: 'Unlimited',
     cta: 'Contact sales', priceId: null,
     features: ['Unlimited credits', 'PII detection & masking',
-      'Model version tracking', 'Immutable signed audit log',
-      'GDPR data residency', 'HIPAA / PCI-DSS templates',
-      'BYOK — bring your own API key (1 cr/exec)',
-      'BYOM — bring your own model, zero data egress',
-      'Dedicated SLA'],
+               'Model version tracking', 'Immutable signed audit log',
+               'GDPR data residency', 'HIPAA / PCI-DSS templates',
+               'BYOK — bring your own API key (1 cr/exec)',
+               'BYOM — bring your own model, zero data egress',
+               'Dedicated SLA'],
   },
 ];
 
@@ -257,8 +275,8 @@ async function openRazorpay(order, userEmail) {
   return new Promise((resolve, reject) => {
     // Subscriptions use subscription_id; one-time payments use order_id + amount
     const checkoutParams = order.subscriptionId
-        ? { subscription_id: order.subscriptionId }
-        : { order_id: order.orderId, amount: order.amount, currency: order.currency || 'INR' };
+      ? { subscription_id: order.subscriptionId }
+      : { order_id: order.orderId, amount: order.amount, currency: order.currency || 'INR' };
 
     const rzp = new window.Razorpay({
       key:         order.keyId,
@@ -313,83 +331,83 @@ function PlanCard({ plan, currentPlanId, onSelect, selecting, gateway, interval 
   const col = plan.color;
 
   return (
-      <div className={`relative flex flex-col rounded-2xl border-2 p-5 transition-all h-full ${
-          plan.popular   ? 'border-blue-500 shadow-lg shadow-blue-100'
-              : isCurrent    ? 'border-slate-300 bg-slate-50'
-                  : 'border-slate-200 hover:border-slate-300'
-      }`}>
-        {plan.popular && (
-            <div className="absolute -top-3 left-1/2 -translate-x-1/2 whitespace-nowrap">
+    <div className={`relative flex flex-col rounded-2xl border-2 p-5 transition-all h-full ${
+      plan.popular   ? 'border-blue-500 shadow-lg shadow-blue-100'
+      : isCurrent    ? 'border-slate-300 bg-slate-50'
+                     : 'border-slate-200 hover:border-slate-300'
+    }`}>
+      {plan.popular && (
+        <div className="absolute -top-3 left-1/2 -translate-x-1/2 whitespace-nowrap">
           <span className="flex items-center gap-1 bg-blue-600 text-white text-[10px] font-bold px-3 py-1 rounded-full">
             <Star size={9} fill="white" /> Most popular
           </span>
-            </div>
-        )}
-        {isCurrent && (
-            <span className="absolute top-3 right-3 text-[10px] font-medium text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">
+        </div>
+      )}
+      {isCurrent && (
+        <span className="absolute top-3 right-3 text-[10px] font-medium text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">
           Current
         </span>
-        )}
+      )}
 
-        {/* Header */}
-        <div className="mb-3">
-          <div className="flex items-center gap-1.5 mb-2">
-            <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: col }} />
-            <h3 className="text-sm font-bold text-slate-900">{plan.name}</h3>
-          </div>
-          <div className="flex items-end gap-0.5 mb-0.5">
-            <span className="text-2xl font-extrabold text-slate-900">{main}</span>
-            {sub && <span className="text-slate-400 text-xs mb-0.5 ml-0.5">{sub}</span>}
-          </div>
-          {/* Effective monthly rate for multi-month intervals */}
-          {monthly && (
-              <p className="text-[11px] text-slate-400 mb-0.5">≈ {monthly} effective</p>
-          )}
-          {/* Savings badge */}
-          {savings && (
-              <span className="inline-block text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded-full mb-1">
+      {/* Header */}
+      <div className="mb-3">
+        <div className="flex items-center gap-1.5 mb-2">
+          <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: col }} />
+          <h3 className="text-sm font-bold text-slate-900">{plan.name}</h3>
+        </div>
+        <div className="flex items-end gap-0.5 mb-0.5">
+          <span className="text-2xl font-extrabold text-slate-900">{main}</span>
+          {sub && <span className="text-slate-400 text-xs mb-0.5 ml-0.5">{sub}</span>}
+        </div>
+        {/* Effective monthly rate for multi-month intervals */}
+        {monthly && (
+          <p className="text-[11px] text-slate-400 mb-0.5">≈ {monthly} effective</p>
+        )}
+        {/* Savings badge */}
+        {savings && (
+          <span className="inline-block text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded-full mb-1">
             {savings}
           </span>
-          )}
-          <p className="text-xs font-semibold" style={{ color: col }}>{plan.creditsNote}</p>
-        </div>
-
-        {/* Features */}
-        <ul className="flex-1 space-y-1.5 mb-4">
-          {plan.features.map(f => (
-              <li key={f} className="flex items-start gap-1.5 text-xs text-slate-600">
-                <Check size={11} className="shrink-0 mt-0.5" style={{ color: col }} />
-                {f}
-              </li>
-          ))}
-        </ul>
-
-        {/* CTA */}
-        {plan.id === 'enterprise' ? (
-            <a href="mailto:sales@decisionmesh.io"
-               className="flex items-center justify-center gap-1.5 py-2.5 px-4 rounded-xl text-xs font-semibold border-2 transition-colors hover:opacity-80"
-               style={{ borderColor: col, color: col }}>
-              Contact sales <ArrowRight size={11} />
-            </a>
-        ) : isCurrent ? (
-            <div className="flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-semibold bg-slate-100 text-slate-400">
-              <Check size={11} /> Current plan
-            </div>
-        ) : !plan.priceId ? (
-            <div className="py-2.5 rounded-xl text-xs font-semibold bg-slate-50 text-slate-400 text-center">
-              {plan.cta}
-            </div>
-        ) : (
-            <button
-                onClick={() => onSelect(plan)}
-                disabled={!!selecting}
-                className="flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-semibold text-white transition-opacity disabled:opacity-60"
-                style={{ backgroundColor: col }}
-            >
-              {selecting === plan.id ? <Spinner className="w-4 h-4" /> : <>{plan.cta} <ArrowRight size={11} /></>}
-            </button>
         )}
+        <p className="text-xs font-semibold" style={{ color: col }}>{plan.creditsNote}</p>
       </div>
+
+      {/* Features */}
+      <ul className="flex-1 space-y-1.5 mb-4">
+        {plan.features.map(f => (
+          <li key={f} className="flex items-start gap-1.5 text-xs text-slate-600">
+            <Check size={11} className="shrink-0 mt-0.5" style={{ color: col }} />
+            {f}
+          </li>
+        ))}
+      </ul>
+
+      {/* CTA */}
+      {plan.id === 'enterprise' ? (
+        <a href="mailto:sales@decisionmesh.io"
+          className="flex items-center justify-center gap-1.5 py-2.5 px-4 rounded-xl text-xs font-semibold border-2 transition-colors hover:opacity-80"
+          style={{ borderColor: col, color: col }}>
+          Contact sales <ArrowRight size={11} />
+        </a>
+      ) : isCurrent ? (
+        <div className="flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-semibold bg-slate-100 text-slate-400">
+          <Check size={11} /> Current plan
+        </div>
+      ) : !plan.priceId ? (
+        <div className="py-2.5 rounded-xl text-xs font-semibold bg-slate-50 text-slate-400 text-center">
+          {plan.cta}
+        </div>
+      ) : (
+        <button
+          onClick={() => onSelect(plan)}
+          disabled={!!selecting}
+          className="flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-semibold text-white transition-opacity disabled:opacity-60"
+          style={{ backgroundColor: col }}
+        >
+          {selecting === plan.id ? <Spinner className="w-4 h-4" /> : <>{plan.cta} <ArrowRight size={11} /></>}
+        </button>
+      )}
+    </div>
   );
 }
 
@@ -402,46 +420,46 @@ function PackCard({ pack, onBuy, selecting, gateway }) {
   const isLoading = selecting === pack.id;
 
   return (
-      <div className={`relative rounded-2xl border-2 p-5 transition-all ${
-          pack.popular ? 'border-blue-500 shadow-md shadow-blue-100' : 'border-slate-200 hover:border-slate-300'
-      }`}>
-        {pack.popular && (
-            <div className="absolute -top-3 left-1/2 -translate-x-1/2 whitespace-nowrap">
-              <span className="bg-blue-600 text-white text-[10px] font-bold px-3 py-1 rounded-full">Best value</span>
-            </div>
-        )}
-
-        <div className="flex items-start justify-between mb-3">
-          <div>
-            <p className="text-sm font-bold text-slate-900">{pack.name}</p>
-            <p className="text-xs text-slate-500">{pack.credits.toLocaleString()} credits</p>
-            <p className="text-[10px] text-slate-400 mt-0.5">{perCr}/cr</p>
-          </div>
-          <div className="text-right">
-            <p className="text-2xl font-extrabold text-slate-900">{sym}{price.toLocaleString()}</p>
-            <p className="text-[10px] text-slate-400">one-time</p>
-          </div>
+    <div className={`relative rounded-2xl border-2 p-5 transition-all ${
+      pack.popular ? 'border-blue-500 shadow-md shadow-blue-100' : 'border-slate-200 hover:border-slate-300'
+    }`}>
+      {pack.popular && (
+        <div className="absolute -top-3 left-1/2 -translate-x-1/2 whitespace-nowrap">
+          <span className="bg-blue-600 text-white text-[10px] font-bold px-3 py-1 rounded-full">Best value</span>
         </div>
+      )}
 
-        {/* Intent estimates */}
-        <div className="flex gap-2 mb-4">
-          {Object.entries(MODEL_TIERS).map(([k, t]) => (
-              <div key={k} className="flex-1 rounded-lg p-2 text-center text-[10px]"
-                   style={{ backgroundColor: t.bg, color: t.color }}>
-                <div className="font-bold">~{Math.floor(pack.credits / t.credits).toLocaleString()}</div>
-                <div className="opacity-70">{t.label}</div>
-              </div>
-          ))}
+      <div className="flex items-start justify-between mb-3">
+        <div>
+          <p className="text-sm font-bold text-slate-900">{pack.name}</p>
+          <p className="text-xs text-slate-500">{pack.credits.toLocaleString()} credits</p>
+          <p className="text-[10px] text-slate-400 mt-0.5">{perCr}/cr</p>
         </div>
-
-        <button
-            onClick={() => onBuy(pack)}
-            disabled={!!selecting}
-            className="w-full flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-semibold bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-60 transition-colors"
-        >
-          {isLoading ? <Spinner className="w-4 h-4" /> : <><ShoppingCart size={12} /> Buy {pack.name}</>}
-        </button>
+        <div className="text-right">
+          <p className="text-2xl font-extrabold text-slate-900">{sym}{price.toLocaleString()}</p>
+          <p className="text-[10px] text-slate-400">one-time</p>
+        </div>
       </div>
+
+      {/* Intent estimates */}
+      <div className="flex gap-2 mb-4">
+        {Object.entries(MODEL_TIERS).map(([k, t]) => (
+          <div key={k} className="flex-1 rounded-lg p-2 text-center text-[10px]"
+            style={{ backgroundColor: t.bg, color: t.color }}>
+            <div className="font-bold">~{Math.floor(pack.credits / t.credits).toLocaleString()}</div>
+            <div className="opacity-70">{t.label}</div>
+          </div>
+        ))}
+      </div>
+
+      <button
+        onClick={() => onBuy(pack)}
+        disabled={!!selecting}
+        className="w-full flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-semibold bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-60 transition-colors"
+      >
+        {isLoading ? <Spinner className="w-4 h-4" /> : <><ShoppingCart size={12} /> Buy {pack.name}</>}
+      </button>
+    </div>
   );
 }
 
@@ -450,55 +468,55 @@ function UsageBar({ label, used = 0, limit = 0, color = '#2563eb' }) {
   const pct = limit ? Math.min(100, (used / limit) * 100) : 0;
   const barColor = pct > 85 ? '#dc2626' : pct > 60 ? '#d97706' : color;
   return (
-      <div>
-        <div className="flex justify-between text-xs mb-1">
-          <span className="text-slate-600 font-medium">{label}</span>
-          <span className="text-slate-500">{used.toLocaleString()} / {limit.toLocaleString()}</span>
-        </div>
-        <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
-          <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, backgroundColor: barColor }} />
-        </div>
+    <div>
+      <div className="flex justify-between text-xs mb-1">
+        <span className="text-slate-600 font-medium">{label}</span>
+        <span className="text-slate-500">{used.toLocaleString()} / {limit.toLocaleString()}</span>
       </div>
+      <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
+        <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, backgroundColor: barColor }} />
+      </div>
+    </div>
   );
 }
 
 // ── Gateway badge ─────────────────────────────────────────────────────────────
 function GatewayToggle({ gateway, onSwitch, autoDetected }) {
   return (
-      <div className="flex flex-wrap items-center gap-3">
-        <div className="flex items-center gap-1.5 text-xs text-slate-500">
-          <Globe size={13} />
-          <span>Payment via:</span>
-          {autoDetected && (
-              <span className="bg-green-50 text-green-700 border border-green-200 text-[10px] px-1.5 py-0.5 rounded-full">
+    <div className="flex flex-wrap items-center gap-3">
+      <div className="flex items-center gap-1.5 text-xs text-slate-500">
+        <Globe size={13} />
+        <span>Payment via:</span>
+        {autoDetected && (
+          <span className="bg-green-50 text-green-700 border border-green-200 text-[10px] px-1.5 py-0.5 rounded-full">
             auto-detected
           </span>
-          )}
-        </div>
-
-        <div className="flex rounded-lg border border-slate-200 overflow-hidden text-xs">
-          {[
-            { id: 'stripe',   flag: '💳', label: 'International (USD)', sub: 'Cards · PayPal' },
-            { id: 'razorpay', flag: '🇮🇳', label: 'India (INR / UPI)',  sub: 'UPI · Cards · Netbanking' },
-          ].map(g => (
-              <button key={g.id}
-                      onClick={() => onSwitch(g.id)}
-                      title={g.sub}
-                      className={`flex items-center gap-1.5 px-3 py-2 font-medium transition-colors ${
-                          gateway === g.id ? 'bg-blue-600 text-white' : 'bg-white text-slate-600 hover:bg-slate-50'
-                      }`}>
-                <span>{g.flag}</span>
-                <span>{g.label}</span>
-              </button>
-          ))}
-        </div>
-
-        {gateway === 'razorpay' && (
-            <span className="text-xs text-emerald-600 font-medium">
-          ✓ UPI • Debit/Credit Cards • Netbanking • Wallets
-        </span>
         )}
       </div>
+
+      <div className="flex rounded-lg border border-slate-200 overflow-hidden text-xs">
+        {[
+          { id: 'stripe',   flag: '💳', label: 'International (USD)', sub: 'Cards · PayPal' },
+          { id: 'razorpay', flag: '🇮🇳', label: 'India (INR / UPI)',  sub: 'UPI · Cards · Netbanking' },
+        ].map(g => (
+          <button key={g.id}
+            onClick={() => onSwitch(g.id)}
+            title={g.sub}
+            className={`flex items-center gap-1.5 px-3 py-2 font-medium transition-colors ${
+              gateway === g.id ? 'bg-blue-600 text-white' : 'bg-white text-slate-600 hover:bg-slate-50'
+            }`}>
+            <span>{g.flag}</span>
+            <span>{g.label}</span>
+          </button>
+        ))}
+      </div>
+
+      {gateway === 'razorpay' && (
+        <span className="text-xs text-emerald-600 font-medium">
+          ✓ UPI • Debit/Credit Cards • Netbanking • Wallets
+        </span>
+      )}
+    </div>
   );
 }
 
@@ -560,8 +578,8 @@ export default function Billing({ keycloak }) {
     if (searchParams.get('success') === '1') {
       const credits = searchParams.get('credits');
       showToast('success', credits
-          ? `${parseInt(credits).toLocaleString()} credits added to your account!`
-          : 'Plan activated! All features are now available.');
+        ? `${parseInt(credits).toLocaleString()} credits added to your account!`
+        : 'Plan activated! All features are now available.');
       reload();
     }
     if (searchParams.get('cancelled') === '1') {
@@ -741,646 +759,646 @@ export default function Billing({ keycloak }) {
     }
   }
 
-  const creditsUsed = (allocated ?? 500) - (balance ?? 0);
+  const creditsUsed = (allocated ?? 100) - (balance ?? 0);
 
   return (
-      <Page title="Billing & plans" subtitle="Manage your subscription, credits and payment method">
+    <Page title="Billing & plans" subtitle="Manage your subscription, credits and payment method">
 
-        {/* Toast */}
-        {toast && (
-            <div className={`flex items-start gap-3 px-4 py-3 rounded-xl text-sm font-medium border ${
-                toast.type === 'success' ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
-                    : toast.type === 'error' ? 'bg-red-50 border-red-200 text-red-800'
-                        : 'bg-blue-50 border-blue-200 text-blue-800'
-            }`}>
-              {toast.type === 'success' ? <Check size={15} className="shrink-0 mt-0.5" />
-                  : toast.type === 'error' ? <AlertCircle size={15} className="shrink-0 mt-0.5" />
-                      : <Info size={15} className="shrink-0 mt-0.5" />}
-              <span className="flex-1">{toast.text}</span>
-              <button onClick={() => setToast(null)} className="opacity-50 hover:opacity-100">✕</button>
-            </div>
-        )}
+      {/* Toast */}
+      {toast && (
+        <div className={`flex items-start gap-3 px-4 py-3 rounded-xl text-sm font-medium border ${
+          toast.type === 'success' ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
+          : toast.type === 'error' ? 'bg-red-50 border-red-200 text-red-800'
+          : 'bg-blue-50 border-blue-200 text-blue-800'
+        }`}>
+          {toast.type === 'success' ? <Check size={15} className="shrink-0 mt-0.5" />
+           : toast.type === 'error' ? <AlertCircle size={15} className="shrink-0 mt-0.5" />
+           : <Info size={15} className="shrink-0 mt-0.5" />}
+          <span className="flex-1">{toast.text}</span>
+          <button onClick={() => setToast(null)} className="opacity-50 hover:opacity-100">✕</button>
+        </div>
+      )}
 
-        {dataLoading ? (
-            <div className="flex justify-center py-20"><Spinner className="w-8 h-8" /></div>
-        ) : (
-            <>
-              {/* Balance + usage summary */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <Card className="p-5">
-                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">Credit balance</p>
-                  <div className="flex items-end gap-2 mb-2">
+      {dataLoading ? (
+        <div className="flex justify-center py-20"><Spinner className="w-8 h-8" /></div>
+      ) : (
+        <>
+          {/* Balance + usage summary */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Card className="p-5">
+              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">Credit balance</p>
+              <div className="flex items-end gap-2 mb-2">
                 <span className="text-4xl font-extrabold"
-                      style={{ color: balance <= 0 ? '#dc2626' : balance < 100 ? '#d97706' : '#16a34a' }}>
+                  style={{ color: balance <= 0 ? '#dc2626' : balance < 100 ? '#d97706' : '#16a34a' }}>
                   {balance?.toLocaleString() ?? '—'}
                 </span>
-                    <span className="text-slate-400 text-sm mb-1">/ {allocated?.toLocaleString()}</span>
-                  </div>
-                  <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden mb-3">
-                    <div className="h-full rounded-full transition-all"
-                         style={{
-                           width: `${allocated ? Math.min(100, (balance / allocated) * 100) : 0}%`,
-                           backgroundColor: balance <= 0 ? '#dc2626' : balance < 100 ? '#d97706' : '#16a34a',
-                         }} />
-                  </div>
-                  <div className="flex items-center gap-2 text-xs text-slate-500">
-                    <span>Plan:</span>
-                    <span className="font-semibold capitalize text-slate-700 bg-slate-100 px-2 py-0.5 rounded-full">
+                <span className="text-slate-400 text-sm mb-1">/ {allocated?.toLocaleString()}</span>
+              </div>
+              <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden mb-3">
+                <div className="h-full rounded-full transition-all"
+                  style={{
+                    width: `${allocated ? Math.min(100, (balance / allocated) * 100) : 0}%`,
+                    backgroundColor: balance <= 0 ? '#dc2626' : balance < 100 ? '#d97706' : '#16a34a',
+                  }} />
+              </div>
+              <div className="flex items-center gap-2 text-xs text-slate-500">
+                <span>Plan:</span>
+                <span className="font-semibold capitalize text-slate-700 bg-slate-100 px-2 py-0.5 rounded-full">
                   {currentPlan}
                 </span>
-                    {subscription?.nextBilling && (
-                        <span>· Renews {subscription.nextBilling}</span>
-                    )}
-                  </div>
-                </Card>
-
-                <Card className="md:col-span-2 p-5">
-                  <div className="flex items-center justify-between mb-4">
-                    <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Usage this period</p>
-                    {subscription?.portalUrl && (
-                        <a href={subscription.portalUrl} target="_blank" rel="noreferrer"
-                           className="text-xs text-blue-600 flex items-center gap-1 hover:underline">
-                          Manage billing <ExternalLink size={10} />
-                        </a>
-                    )}
-                  </div>
-                  <div className="space-y-3">
-                    <UsageBar label="Credits used" used={creditsUsed} limit={allocated ?? 500} />
-                    {usage && <>
-                      <UsageBar label="Intents executed" used={usage.intentsUsed ?? 0} limit={usage.intentsLimit ?? 100} color="#4f46e5" />
-                      <UsageBar label="API calls"        used={usage.apiCallsUsed ?? 0} limit={usage.apiCallsLimit ?? 1000} color="#0d9488" />
-                    </>}
-                  </div>
-                </Card>
+                {subscription?.nextBilling && (
+                  <span>· Renews {subscription.nextBilling}</span>
+                )}
               </div>
+            </Card>
 
-              {/* Gateway toggle */}
-              <GatewayToggle gateway={gateway} onSwitch={handleGatewaySwitch} autoDetected={autoDetected} />
+            <Card className="md:col-span-2 p-5">
+              <div className="flex items-center justify-between mb-4">
+                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Usage this period</p>
+                {subscription?.portalUrl && (
+                  <a href={subscription.portalUrl} target="_blank" rel="noreferrer"
+                    className="text-xs text-blue-600 flex items-center gap-1 hover:underline">
+                    Manage billing <ExternalLink size={10} />
+                  </a>
+                )}
+              </div>
+              <div className="space-y-3">
+                <UsageBar label="Credits used" used={creditsUsed} limit={allocated ?? 100} />
+                {usage && <>
+                  <UsageBar label="Intents executed" used={usage.intentsUsed ?? 0} limit={usage.intentsLimit ?? 100} color="#4f46e5" />
+                  <UsageBar label="API calls"        used={usage.apiCallsUsed ?? 0} limit={usage.apiCallsLimit ?? 1000} color="#0d9488" />
+                </>}
+              </div>
+            </Card>
+          </div>
 
-              {/* Tab bar */}
-              <div className="flex gap-1 border-b border-slate-200">
-                {[
-                  { id: 'plans',   label: 'Plans' },
-                  { id: 'credits', label: 'Credit packs' },
-                  { id: 'byok',    label: 'BYOK / BYOM' },
-                  { id: 'usage',   label: 'Usage details' },
-                ].map(t => (
-                    <button key={t.id} onClick={() => setTab(t.id)}
-                            className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${
-                                tab === t.id
-                                    ? 'border-blue-600 text-blue-700'
-                                    : 'border-transparent text-slate-500 hover:text-slate-700'
-                            }`}>
-                      {t.label}
-                    </button>
+          {/* Gateway toggle */}
+          <GatewayToggle gateway={gateway} onSwitch={handleGatewaySwitch} autoDetected={autoDetected} />
+
+          {/* Tab bar */}
+          <div className="flex gap-1 border-b border-slate-200">
+            {[
+              { id: 'plans',   label: 'Plans' },
+              { id: 'credits', label: 'Credit packs' },
+              { id: 'byok',    label: 'BYOK / BYOM' },
+              { id: 'usage',   label: 'Usage details' },
+            ].map(t => (
+              <button key={t.id} onClick={() => setTab(t.id)}
+                className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${
+                  tab === t.id
+                    ? 'border-blue-600 text-blue-700'
+                    : 'border-transparent text-slate-500 hover:text-slate-700'
+                }`}>
+                {t.label}
+              </button>
+            ))}
+          </div>
+
+          {/* ── Plans tab ───────────────────────────────────────────────────── */}
+          {tab === 'plans' && (
+            <div className="space-y-6">
+
+              {/* ── Interval selector ─────────────────────────────────────── */}
+              <div className="flex items-center justify-center gap-2 flex-wrap">
+                {BILLING_INTERVALS.map(iv => (
+                  <button key={iv.id} onClick={() => setInterval(iv.id)}
+                    className={`relative px-4 py-2 rounded-xl text-sm font-medium border-2 transition-all ${
+                      interval === iv.id
+                        ? 'border-blue-600 bg-blue-600 text-white shadow-sm'
+                        : 'border-slate-200 text-slate-600 hover:border-slate-300 bg-white'
+                    }`}>
+                    {iv.label}
+                    {iv.badge && (
+                      <span className="absolute -top-2.5 -right-2 bg-emerald-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full whitespace-nowrap">
+                        {iv.badge}
+                      </span>
+                    )}
+                  </button>
                 ))}
               </div>
 
-              {/* ── Plans tab ───────────────────────────────────────────────────── */}
-              {tab === 'plans' && (
-                  <div className="space-y-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-5">
+                {PLANS.map(plan => (
+                  <PlanCard key={plan.id} plan={plan}
+                    currentPlanId={currentPlan}
+                    onSelect={handleSelectPlan}
+                    selecting={selecting}
+                    gateway={gateway}
+                    interval={interval} />
+                ))}
+              </div>
 
-                    {/* ── Interval selector ─────────────────────────────────────── */}
-                    <div className="flex items-center justify-center gap-2 flex-wrap">
-                      {BILLING_INTERVALS.map(iv => (
-                          <button key={iv.id} onClick={() => setInterval(iv.id)}
-                                  className={`relative px-4 py-2 rounded-xl text-sm font-medium border-2 transition-all ${
-                                      interval === iv.id
-                                          ? 'border-blue-600 bg-blue-600 text-white shadow-sm'
-                                          : 'border-slate-200 text-slate-600 hover:border-slate-300 bg-white'
-                                  }`}>
-                            {iv.label}
-                            {iv.badge && (
-                                <span className="absolute -top-2.5 -right-2 bg-emerald-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full whitespace-nowrap">
-                        {iv.badge}
-                      </span>
-                            )}
-                          </button>
-                      ))}
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-5">
-                      {PLANS.map(plan => (
-                          <PlanCard key={plan.id} plan={plan}
-                                    currentPlanId={currentPlan}
-                                    onSelect={handleSelectPlan}
-                                    selecting={selecting}
-                                    gateway={gateway}
-                                    interval={interval} />
-                      ))}
-                    </div>
-
-                    {/* Model tier guide */}
-                    <Card>
-                      <CardHeader><CardTitle>Credit cost by AI model tier</CardTitle></CardHeader>
-                      <CardContent>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                          {Object.entries(MODEL_TIERS).map(([k, t]) => (
-                              <div key={k} className="p-4 rounded-xl border-2"
-                                   style={{ borderColor: t.color + '44', backgroundColor: t.bg }}>
-                                <div className="flex items-center justify-between mb-2">
-                                  <span className="text-sm font-bold" style={{ color: t.color }}>{t.label}</span>
-                                  <span className="text-lg font-extrabold" style={{ color: t.color }}>{t.credits} cr</span>
-                                </div>
-                                <p className="text-xs text-slate-600 mb-1">{t.models}</p>
-                                <p className="text-xs text-slate-400">
-                                  {gateway === 'razorpay'
-                                      ? `≈ ₹${(t.credits * 0.064).toFixed(2)}/intent`
-                                      : `≈ $${(t.credits * 0.008).toFixed(3)}/intent`}
-                                </p>
-                              </div>
-                          ))}
+              {/* Model tier guide */}
+              <Card>
+                <CardHeader><CardTitle>Credit cost by AI model tier</CardTitle></CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {Object.entries(MODEL_TIERS).map(([k, t]) => (
+                      <div key={k} className="p-4 rounded-xl border-2"
+                        style={{ borderColor: t.color + '44', backgroundColor: t.bg }}>
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-sm font-bold" style={{ color: t.color }}>{t.label}</span>
+                          <span className="text-lg font-extrabold" style={{ color: t.color }}>{t.credits} cr</span>
                         </div>
-                        <p className="text-xs text-slate-400 text-center mt-3">
-                          Each execution attempt costs credits · Retries charge per attempt · 1 credit ≈ $0.008
+                        <p className="text-xs text-slate-600 mb-1">{t.models}</p>
+                        <p className="text-xs text-slate-400">
+                          {gateway === 'razorpay'
+                            ? `≈ ₹${(t.credits * 0.064).toFixed(2)}/intent`
+                            : `≈ $${(t.credits * 0.008).toFixed(3)}/intent`}
                         </p>
-                      </CardContent>
-                    </Card>
+                      </div>
+                    ))}
+                  </div>
+                  <p className="text-xs text-slate-400 text-center mt-3">
+                    Each execution attempt costs credits · Retries charge per attempt · 1 credit ≈ $0.008
+                  </p>
+                </CardContent>
+              </Card>
 
-                    <p className="text-xs text-slate-400 text-center">
-                      {gateway === 'stripe'
-                          ? <>Payments processed by <a href="https://stripe.com" target="_blank" rel="noreferrer" className="text-blue-500 underline">Stripe</a>. Cancel anytime.</>
-                          : <>Payments processed by <a href="https://razorpay.com" target="_blank" rel="noreferrer" className="text-blue-500 underline">Razorpay</a>. Prices in INR + taxes.</>
-                      }
+              <p className="text-xs text-slate-400 text-center">
+                {gateway === 'stripe'
+                  ? <>Payments processed by <a href="https://stripe.com" target="_blank" rel="noreferrer" className="text-blue-500 underline">Stripe</a>. Cancel anytime.</>
+                  : <>Payments processed by <a href="https://razorpay.com" target="_blank" rel="noreferrer" className="text-blue-500 underline">Razorpay</a>. Prices in INR + taxes.</>
+                }
+              </p>
+            </div>
+          )}
+
+          {/* ── Credit packs tab ────────────────────────────────────────────── */}
+          {tab === 'credits' && (
+            <div className="space-y-6">
+              <p className="text-sm text-slate-600">
+                One-time credit top-ups — stack on your plan, never expire.
+                {gateway === 'razorpay' ? ' Prices in INR, charged via Razorpay.' : ''}
+              </p>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {CREDIT_PACKS.map(pack => (
+                  <PackCard key={pack.id} pack={pack}
+                    onBuy={handleBuyPack}
+                    selecting={selecting}
+                    gateway={gateway} />
+                ))}
+              </div>
+
+              <Card className="bg-blue-50 border-blue-200 shadow-none">
+                <CardContent className="py-4 flex items-start gap-3">
+                  <Zap size={16} className="text-blue-600 shrink-0 mt-0.5" />
+                  <div className="text-xs text-blue-800">
+                    <p className="font-semibold mb-1">Credits vs subscription — what's the difference?</p>
+                    <p>
+                      Your plan gives you a monthly credit allocation that resets each billing cycle.
+                      Credit packs are one-time top-ups that stack on top of your monthly allocation
+                      and <strong>never expire</strong>. Use packs for project spikes or to avoid overage charges.
                     </p>
                   </div>
-              )}
+                </CardContent>
+              </Card>
 
-              {/* ── Credit packs tab ────────────────────────────────────────────── */}
-              {tab === 'credits' && (
-                  <div className="space-y-6">
-                    <p className="text-sm text-slate-600">
-                      One-time credit top-ups — stack on your plan, never expire.
-                      {gateway === 'razorpay' ? ' Prices in INR, charged via Razorpay.' : ''}
-                    </p>
+              <p className="text-xs text-slate-400 text-center">
+                {gateway === 'stripe'
+                  ? <>Credits appear instantly after Stripe payment · Refunds within 24h if unused</>
+                  : <>Credits appear after Razorpay payment confirms · UPI typically instant</>
+                }
+              </p>
+            </div>
+          )}
 
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                      {CREDIT_PACKS.map(pack => (
-                          <PackCard key={pack.id} pack={pack}
-                                    onBuy={handleBuyPack}
-                                    selecting={selecting}
-                                    gateway={gateway} />
-                      ))}
+          {/* ── BYOK / BYOM tab ─────────────────────────────────────────────── */}
+          {tab === 'byok' && (
+            <div className="space-y-8">
+
+              {/* ── Cost comparison banner ─────────────────────────────────── */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {[
+                  { label: 'Standard tier cost',  value: '5 credits',  sub: 'GPT-4o · Claude Sonnet', color: '#2563eb', icon: <Zap size={15} /> },
+                  { label: 'BYOK / BYOM cost',    value: '1 credit',   sub: 'Orchestration only',      color: '#16a34a', icon: <TrendingDown size={15} /> },
+                  { label: 'Your savings',        value: '4 credits',  sub: '80% cost reduction',      color: '#7c3aed', icon: <Star size={15} /> },
+                ].map(({ label, value, sub, color, icon }) => (
+                  <div key={label} className="flex items-center gap-3 p-4 rounded-xl border border-slate-200 bg-white">
+                    <div className="p-2.5 rounded-lg" style={{ background: color + '15', color }}>
+                      {icon}
                     </div>
-
-                    <Card className="bg-blue-50 border-blue-200 shadow-none">
-                      <CardContent className="py-4 flex items-start gap-3">
-                        <Zap size={16} className="text-blue-600 shrink-0 mt-0.5" />
-                        <div className="text-xs text-blue-800">
-                          <p className="font-semibold mb-1">Credits vs subscription — what's the difference?</p>
-                          <p>
-                            Your plan gives you a monthly credit allocation that resets each billing cycle.
-                            Credit packs are one-time top-ups that stack on top of your monthly allocation
-                            and <strong>never expire</strong>. Use packs for project spikes or to avoid overage charges.
-                          </p>
-                        </div>
-                      </CardContent>
-                    </Card>
-
-                    <p className="text-xs text-slate-400 text-center">
-                      {gateway === 'stripe'
-                          ? <>Credits appear instantly after Stripe payment · Refunds within 24h if unused</>
-                          : <>Credits appear after Razorpay payment confirms · UPI typically instant</>
-                      }
-                    </p>
-                  </div>
-              )}
-
-              {/* ── BYOK / BYOM tab ─────────────────────────────────────────────── */}
-              {tab === 'byok' && (
-                  <div className="space-y-8">
-
-                    {/* ── Cost comparison banner ─────────────────────────────────── */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      {[
-                        { label: 'Standard tier cost',  value: '5 credits',  sub: 'GPT-4o · Claude Sonnet', color: '#2563eb', icon: <Zap size={15} /> },
-                        { label: 'BYOK / BYOM cost',    value: '1 credit',   sub: 'Orchestration only',      color: '#16a34a', icon: <TrendingDown size={15} /> },
-                        { label: 'Your savings',        value: '4 credits',  sub: '80% cost reduction',      color: '#7c3aed', icon: <Star size={15} /> },
-                      ].map(({ label, value, sub, color, icon }) => (
-                          <div key={label} className="flex items-center gap-3 p-4 rounded-xl border border-slate-200 bg-white">
-                            <div className="p-2.5 rounded-lg" style={{ background: color + '15', color }}>
-                              {icon}
-                            </div>
-                            <div>
-                              <p className="text-xs text-slate-500 mb-0.5">{label}</p>
-                              <p className="text-lg font-extrabold" style={{ color }}>{value}</p>
-                              <p className="text-[10px] text-slate-400">{sub}</p>
-                            </div>
-                          </div>
-                      ))}
-                    </div>
-
-                    {/* ── BYOK section ──────────────────────────────────────────── */}
                     <div>
-                      <div className="flex items-center gap-2 mb-1">
-                        <Key size={16} className="text-slate-700" />
-                        <h3 className="text-sm font-bold text-slate-900">BYOK — Bring Your Own Key</h3>
-                        <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200">
+                      <p className="text-xs text-slate-500 mb-0.5">{label}</p>
+                      <p className="text-lg font-extrabold" style={{ color }}>{value}</p>
+                      <p className="text-[10px] text-slate-400">{sub}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* ── BYOK section ──────────────────────────────────────────── */}
+              <div>
+                <div className="flex items-center gap-2 mb-1">
+                  <Key size={16} className="text-slate-700" />
+                  <h3 className="text-sm font-bold text-slate-900">BYOK — Bring Your Own Key</h3>
+                  <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200">
                     Pro + Enterprise
                   </span>
-                      </div>
-                      <p className="text-xs text-slate-500 mb-4 ml-6">
-                        Connect your existing AI provider contracts. DecisionMesh charges 1 credit per execution
-                        for orchestration, policy enforcement, and audit — you pay your provider directly.
-                      </p>
+                </div>
+                <p className="text-xs text-slate-500 mb-4 ml-6">
+                  Connect your existing AI provider contracts. DecisionMesh charges 1 credit per execution
+                  for orchestration, policy enforcement, and audit — you pay your provider directly.
+                </p>
 
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {BYOK_PROVIDERS.map(provider => {
-                          const keyVal   = byokKeys[provider.id]   ?? '';
-                          const isVisible = byokVisible[provider.id] ?? false;
-                          const isSaved   = byokSaved[provider.id]  ?? false;
-                          const isSaving  = byokSaving === provider.id;
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {BYOK_PROVIDERS.map(provider => {
+                    const keyVal   = byokKeys[provider.id]   ?? '';
+                    const isVisible = byokVisible[provider.id] ?? false;
+                    const isSaved   = byokSaved[provider.id]  ?? false;
+                    const isSaving  = byokSaving === provider.id;
 
-                          return (
-                              <div key={provider.id}
-                                   className="rounded-xl border-2 p-4 transition-all"
-                                   style={{ borderColor: isSaved ? provider.color + '55' : '#e2e8f0',
-                                     backgroundColor: isSaved ? provider.bg : 'white' }}>
+                    return (
+                      <div key={provider.id}
+                        className="rounded-xl border-2 p-4 transition-all"
+                        style={{ borderColor: isSaved ? provider.color + '55' : '#e2e8f0',
+                                 backgroundColor: isSaved ? provider.bg : 'white' }}>
 
-                                {/* Header */}
-                                <div className="flex items-center justify-between mb-3">
-                                  <div className="flex items-center gap-2">
-                                    <span className="text-lg">{provider.logo}</span>
-                                    <div>
-                                      <p className="text-sm font-bold text-slate-900">{provider.name}</p>
-                                      <p className="text-[10px] text-slate-400">{provider.models}</p>
-                                    </div>
-                                  </div>
-                                  <div className="flex items-center gap-2">
-                                    {isSaved && (
-                                        <span className="flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full"
-                                              style={{ background: provider.color + '20', color: provider.color }}>
+                        {/* Header */}
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="flex items-center gap-2">
+                            <span className="text-lg">{provider.logo}</span>
+                            <div>
+                              <p className="text-sm font-bold text-slate-900">{provider.name}</p>
+                              <p className="text-[10px] text-slate-400">{provider.models}</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {isSaved && (
+                              <span className="flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full"
+                                style={{ background: provider.color + '20', color: provider.color }}>
                                 <Check size={9} /> Connected
                               </span>
-                                    )}
-                                    <a href={provider.docsUrl} target="_blank" rel="noreferrer"
-                                       className="text-[10px] text-slate-400 hover:text-slate-600 flex items-center gap-0.5">
-                                      Get key <ExternalLink size={9} />
-                                    </a>
-                                  </div>
-                                </div>
+                            )}
+                            <a href={provider.docsUrl} target="_blank" rel="noreferrer"
+                              className="text-[10px] text-slate-400 hover:text-slate-600 flex items-center gap-0.5">
+                              Get key <ExternalLink size={9} />
+                            </a>
+                          </div>
+                        </div>
 
-                                {/* Key input */}
-                                <div className="relative mb-3">
-                                  <input
-                                      type={isVisible ? 'text' : 'password'}
-                                      value={keyVal}
-                                      onChange={e => setByokKeys(k => ({ ...k, [provider.id]: e.target.value }))}
-                                      placeholder={isSaved ? '••••••••••••••••••••••••' : provider.placeholder}
-                                      className="w-full text-xs font-mono border border-slate-200 rounded-lg px-3 py-2.5 pr-9 bg-slate-50 focus:outline-none focus:border-blue-400 focus:bg-white transition-colors"
-                                      style={{ fontFamily: "'JetBrains Mono', monospace" }}
-                                  />
-                                  <button
-                                      onClick={() => setByokVisible(v => ({ ...v, [provider.id]: !isVisible }))}
-                                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
-                                    {isVisible ? <EyeOff size={13} /> : <Eye size={13} />}
-                                  </button>
-                                </div>
+                        {/* Key input */}
+                        <div className="relative mb-3">
+                          <input
+                            type={isVisible ? 'text' : 'password'}
+                            value={keyVal}
+                            onChange={e => setByokKeys(k => ({ ...k, [provider.id]: e.target.value }))}
+                            placeholder={isSaved ? '••••••••••••••••••••••••' : provider.placeholder}
+                            className="w-full text-xs font-mono border border-slate-200 rounded-lg px-3 py-2.5 pr-9 bg-slate-50 focus:outline-none focus:border-blue-400 focus:bg-white transition-colors"
+                            style={{ fontFamily: "'JetBrains Mono', monospace" }}
+                          />
+                          <button
+                            onClick={() => setByokVisible(v => ({ ...v, [provider.id]: !isVisible }))}
+                            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                            {isVisible ? <EyeOff size={13} /> : <Eye size={13} />}
+                          </button>
+                        </div>
 
-                                {/* Cost note */}
-                                <div className="flex items-center gap-1.5 mb-3 text-[10px] text-slate-500">
-                                  <Zap size={10} style={{ color: provider.color }} />
-                                  <span>1 credit per execution · you pay {provider.name} directly at your contract rate</span>
-                                </div>
+                        {/* Cost note */}
+                        <div className="flex items-center gap-1.5 mb-3 text-[10px] text-slate-500">
+                          <Zap size={10} style={{ color: provider.color }} />
+                          <span>1 credit per execution · you pay {provider.name} directly at your contract rate</span>
+                        </div>
 
-                                {/* Actions */}
-                                <div className="flex gap-2">
-                                  <button
-                                      onClick={() => handleSaveByokKey(provider.id)}
-                                      disabled={!keyVal.trim() || isSaving}
-                                      className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-semibold text-white transition-opacity disabled:opacity-40"
-                                      style={{ backgroundColor: provider.color }}>
-                                    {isSaving
-                                        ? <span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                                        : <><Check size={11} /> {isSaved ? 'Update key' : 'Save key'}</>
-                                    }
-                                  </button>
-                                  {isSaved && (
-                                      <button
-                                          onClick={() => handleDeleteByokKey(provider.id)}
-                                          className="px-3 py-2 rounded-lg text-xs font-medium border border-red-200 text-red-500 hover:bg-red-50 transition-colors">
-                                        <Trash2 size={11} />
-                                      </button>
-                                  )}
-                                </div>
-                              </div>
-                          );
-                        })}
-                      </div>
-
-                      {/* BYOK info card */}
-                      <div className="mt-4 p-4 rounded-xl bg-amber-50 border border-amber-200 flex items-start gap-3">
-                        <Shield size={15} className="text-amber-600 shrink-0 mt-0.5" />
-                        <div className="text-xs text-amber-800 space-y-1">
-                          <p className="font-semibold">How your keys are stored</p>
-                          <p>Keys are encrypted at rest using AES-256 and never logged or exposed in audit trails.
-                            DecisionMesh uses your key only when executing intents you submit.
-                            You can revoke access at any time by deleting the key above.</p>
+                        {/* Actions */}
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => handleSaveByokKey(provider.id)}
+                            disabled={!keyVal.trim() || isSaving}
+                            className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-semibold text-white transition-opacity disabled:opacity-40"
+                            style={{ backgroundColor: provider.color }}>
+                            {isSaving
+                              ? <span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                              : <><Check size={11} /> {isSaved ? 'Update key' : 'Save key'}</>
+                            }
+                          </button>
+                          {isSaved && (
+                            <button
+                              onClick={() => handleDeleteByokKey(provider.id)}
+                              className="px-3 py-2 rounded-lg text-xs font-medium border border-red-200 text-red-500 hover:bg-red-50 transition-colors">
+                              <Trash2 size={11} />
+                            </button>
+                          )}
                         </div>
                       </div>
-                    </div>
+                    );
+                  })}
+                </div>
 
-                    {/* ── Divider ────────────────────────────────────────────────── */}
-                    <div className="border-t border-slate-200" />
+                {/* BYOK info card */}
+                <div className="mt-4 p-4 rounded-xl bg-amber-50 border border-amber-200 flex items-start gap-3">
+                  <Shield size={15} className="text-amber-600 shrink-0 mt-0.5" />
+                  <div className="text-xs text-amber-800 space-y-1">
+                    <p className="font-semibold">How your keys are stored</p>
+                    <p>Keys are encrypted at rest using AES-256 and never logged or exposed in audit trails.
+                       DecisionMesh uses your key only when executing intents you submit.
+                       You can revoke access at any time by deleting the key above.</p>
+                  </div>
+                </div>
+              </div>
 
-                    {/* ── BYOM section ──────────────────────────────────────────── */}
-                    <div>
-                      <div className="flex items-center gap-2 mb-1">
-                        <Cpu size={16} className="text-slate-700" />
-                        <h3 className="text-sm font-bold text-slate-900">BYOM — Bring Your Own Model</h3>
-                        <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-purple-50 text-purple-700 border border-purple-200">
+              {/* ── Divider ────────────────────────────────────────────────── */}
+              <div className="border-t border-slate-200" />
+
+              {/* ── BYOM section ──────────────────────────────────────────── */}
+              <div>
+                <div className="flex items-center gap-2 mb-1">
+                  <Cpu size={16} className="text-slate-700" />
+                  <h3 className="text-sm font-bold text-slate-900">BYOM — Bring Your Own Model</h3>
+                  <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-purple-50 text-purple-700 border border-purple-200">
                     Enterprise
                   </span>
-                      </div>
-                      <p className="text-xs text-slate-500 mb-4 ml-6">
-                        Run your own model on your own infrastructure — LayoutLMv3, Ollama, or any REST endpoint.
-                        DecisionMesh wraps it with budget enforcement, policy governance, and full audit.
-                        Zero data leaves your premises. 1 credit per execution.
-                      </p>
+                </div>
+                <p className="text-xs text-slate-500 mb-4 ml-6">
+                  Run your own model on your own infrastructure — LayoutLMv3, Ollama, or any REST endpoint.
+                  DecisionMesh wraps it with budget enforcement, policy governance, and full audit.
+                  Zero data leaves your premises. 1 credit per execution.
+                </p>
 
-                      {/* Existing endpoints */}
-                      {byomEndpoints.length > 0 && (
-                          <div className="space-y-3 mb-4">
-                            {byomEndpoints.map(ep => {
-                              const modelType = BYOM_TYPES.find(t => t.id === ep.type) ?? BYOM_TYPES[3];
-                              return (
-                                  <div key={ep.id}
-                                       className="flex items-center gap-3 p-3.5 rounded-xl border border-slate-200 bg-white">
-                                    <div className="p-2 rounded-lg"
-                                         style={{ background: modelType.color + '15', color: modelType.color }}>
-                                      <Server size={14} />
-                                    </div>
-                                    <div className="flex-1 min-w-0">
-                                      <div className="flex items-center gap-2">
-                                        <p className="text-sm font-semibold text-slate-800 truncate">{ep.name}</p>
-                                        <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full flex-shrink-0"
-                                              style={{ background: modelType.color + '15', color: modelType.color }}>
+                {/* Existing endpoints */}
+                {byomEndpoints.length > 0 && (
+                  <div className="space-y-3 mb-4">
+                    {byomEndpoints.map(ep => {
+                      const modelType = BYOM_TYPES.find(t => t.id === ep.type) ?? BYOM_TYPES[3];
+                      return (
+                        <div key={ep.id}
+                          className="flex items-center gap-3 p-3.5 rounded-xl border border-slate-200 bg-white">
+                          <div className="p-2 rounded-lg"
+                            style={{ background: modelType.color + '15', color: modelType.color }}>
+                            <Server size={14} />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <p className="text-sm font-semibold text-slate-800 truncate">{ep.name}</p>
+                              <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full flex-shrink-0"
+                                style={{ background: modelType.color + '15', color: modelType.color }}>
                                 {modelType.label}
                               </span>
-                                        {ep.active && (
-                                            <span className="flex items-center gap-1 text-[10px] text-green-700 bg-green-50 px-1.5 py-0.5 rounded-full flex-shrink-0">
+                              {ep.active && (
+                                <span className="flex items-center gap-1 text-[10px] text-green-700 bg-green-50 px-1.5 py-0.5 rounded-full flex-shrink-0">
                                   <Wifi size={8} /> Live
                                 </span>
-                                        )}
-                                      </div>
-                                      <p className="text-[10px] font-mono text-slate-400 truncate mt-0.5">{ep.url}</p>
-                                    </div>
-                                    <div className="flex items-center gap-2 flex-shrink-0">
+                              )}
+                            </div>
+                            <p className="text-[10px] font-mono text-slate-400 truncate mt-0.5">{ep.url}</p>
+                          </div>
+                          <div className="flex items-center gap-2 flex-shrink-0">
                             <span className="text-[10px] text-slate-500 flex items-center gap-1">
                               <Zap size={9} className="text-purple-500" /> 1 cr/call
                             </span>
-                                      <button
-                                          onClick={() => handleDeleteByomEndpoint(ep.id)}
-                                          className="p-1.5 rounded-lg border border-red-200 text-red-400 hover:bg-red-50 transition-colors">
-                                        <Trash2 size={11} />
-                                      </button>
-                                    </div>
-                                  </div>
-                              );
-                            })}
+                            <button
+                              onClick={() => handleDeleteByomEndpoint(ep.id)}
+                              className="p-1.5 rounded-lg border border-red-200 text-red-400 hover:bg-red-50 transition-colors">
+                              <Trash2 size={11} />
+                            </button>
                           </div>
-                      )}
-
-                      {/* Add endpoint form */}
-                      {byomAdding ? (
-                          <div className="rounded-xl border-2 border-purple-200 bg-purple-50 p-5 space-y-3">
-                            <p className="text-xs font-semibold text-purple-900">Register model endpoint</p>
-
-                            {/* Model type selector */}
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                              {BYOM_TYPES.map(t => (
-                                  <button key={t.id} type="button"
-                                          onClick={() => setByomForm(f => ({ ...f, type: t.id }))}
-                                          className="text-left p-2.5 rounded-lg border-2 transition-all text-xs"
-                                          style={{
-                                            borderColor:     byomForm.type === t.id ? t.color : '#e2e8f0',
-                                            backgroundColor: byomForm.type === t.id ? t.color + '12' : 'white',
-                                          }}>
-                                    <div className="font-semibold mb-0.5" style={{ color: byomForm.type === t.id ? t.color : '#475569' }}>
-                                      {t.label}
-                                    </div>
-                                    <div className="text-slate-400 text-[10px] leading-tight">{t.sub}</div>
-                                  </button>
-                              ))}
-                            </div>
-
-                            {/* Name + URL */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                              <div>
-                                <label className="text-[10px] font-medium text-slate-600 mb-1 block">Display name</label>
-                                <input
-                                    type="text"
-                                    value={byomForm.name}
-                                    onChange={e => setByomForm(f => ({ ...f, name: e.target.value }))}
-                                    placeholder="e.g. Invoice Extractor (LayoutLMv3)"
-                                    className="w-full text-xs border border-slate-200 rounded-lg px-3 py-2 bg-white focus:outline-none focus:border-purple-400 transition-colors"
-                                />
-                              </div>
-                              <div>
-                                <label className="text-[10px] font-medium text-slate-600 mb-1 block">Endpoint URL</label>
-                                <input
-                                    type="url"
-                                    value={byomForm.url}
-                                    onChange={e => setByomForm(f => ({ ...f, url: e.target.value }))}
-                                    placeholder="http://your-server:8001/classify"
-                                    className="w-full text-xs font-mono border border-slate-200 rounded-lg px-3 py-2 bg-white focus:outline-none focus:border-purple-400 transition-colors"
-                                    style={{ fontFamily: "'JetBrains Mono', monospace" }}
-                                />
-                              </div>
-                            </div>
-
-                            {/* Auth header */}
-                            <div>
-                              <label className="text-[10px] font-medium text-slate-600 mb-1 block">
-                                Auth header <span className="text-slate-400 font-normal">(optional — e.g. Bearer your-token)</span>
-                              </label>
-                              <input
-                                  type="text"
-                                  value={byomForm.authHeader}
-                                  onChange={e => setByomForm(f => ({ ...f, authHeader: e.target.value }))}
-                                  placeholder="Bearer sk-..."
-                                  className="w-full text-xs font-mono border border-slate-200 rounded-lg px-3 py-2 bg-white focus:outline-none focus:border-purple-400 transition-colors"
-                                  style={{ fontFamily: "'JetBrains Mono', monospace" }}
-                              />
-                            </div>
-
-                            {/* Cost note */}
-                            <div className="flex items-center gap-1.5 text-[10px] text-purple-700">
-                              <Zap size={10} />
-                              <span>1 credit per execution · DecisionMesh enforces your budget + policy on every call to this endpoint</span>
-                            </div>
-
-                            {/* Actions */}
-                            <div className="flex gap-2">
-                              <button
-                                  onClick={handleAddByomEndpoint}
-                                  disabled={!byomForm.name.trim() || !byomForm.url.trim() || byomSaving}
-                                  className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold text-white bg-purple-600 hover:bg-purple-700 disabled:opacity-40 transition-colors">
-                                {byomSaving
-                                    ? <span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                                    : <><Link2 size={11} /> Register endpoint</>
-                                }
-                              </button>
-                              <button
-                                  onClick={() => { setByomAdding(false); setByomForm({ name: '', url: '', type: 'ollama', authHeader: '' }); }}
-                                  className="px-4 py-2 rounded-lg text-xs font-medium border border-slate-200 text-slate-600 hover:bg-slate-50 transition-colors">
-                                Cancel
-                              </button>
-                            </div>
-                          </div>
-                      ) : (
-                          <button
-                              onClick={() => setByomAdding(true)}
-                              className="flex items-center gap-2 px-4 py-3 w-full rounded-xl border-2 border-dashed border-slate-200 hover:border-purple-300 hover:bg-purple-50 text-slate-500 hover:text-purple-700 text-xs font-medium transition-all">
-                            <Plus size={14} /> Register a model endpoint
-                          </button>
-                      )}
-
-                      {/* BYOM info card */}
-                      <div className="mt-4 p-4 rounded-xl bg-purple-50 border border-purple-200 flex items-start gap-3">
-                        <Server size={15} className="text-purple-600 shrink-0 mt-0.5" />
-                        <div className="text-xs text-purple-900 space-y-1">
-                          <p className="font-semibold">How BYOM works</p>
-                          <p>DecisionMesh sends your intent payload to your model endpoint and wraps the call
-                            with budget ceiling enforcement, retry policy, quality scoring, drift detection,
-                            and a full immutable audit trail — exactly the same governance as any other adapter.
-                            Your document and model output never touch DecisionMesh servers.</p>
-                          <p className="pt-1">
-                            <strong>Compatible models:</strong> LayoutLMv3 (ONNX or REST), Ollama (any model),
-                            HuggingFace Inference Endpoints, spaCy serving, custom FastAPI services.
-                          </p>
                         </div>
-                      </div>
-
-                      {/* BYOM vs BYOK comparison */}
-                      <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-3">
-                        {[
-                          {
-                            title: 'BYOK',
-                            icon: <Key size={13} />,
-                            color: '#D97706',
-                            bg: '#FFFBEB',
-                            items: [
-                              'Your API key, provider\'s infrastructure',
-                              'Data sent to Anthropic / OpenAI / etc.',
-                              'Best for: cost reduction on existing contracts',
-                              'Privacy: same as using provider directly',
-                              '1 credit · orchestration charge only',
-                            ],
-                          },
-                          {
-                            title: 'BYOM',
-                            icon: <Cpu size={13} />,
-                            color: '#7C3AED',
-                            bg: '#F5F3FF',
-                            items: [
-                              'Your model, your infrastructure',
-                              'Data never leaves your servers',
-                              'Best for: HIPAA, legal, sensitive docs',
-                              'Privacy: complete — zero external calls',
-                              '1 credit · governance charge only',
-                            ],
-                          },
-                        ].map(({ title, icon, color, bg, items }) => (
-                            <div key={title} className="rounded-xl border p-4" style={{ borderColor: color + '33', background: bg }}>
-                              <div className="flex items-center gap-1.5 mb-3" style={{ color }}>
-                                {icon}
-                                <span className="text-xs font-bold">{title}</span>
-                              </div>
-                              <ul className="space-y-1.5">
-                                {items.map(item => (
-                                    <li key={item} className="flex items-start gap-1.5 text-[11px] text-slate-600">
-                                      <Check size={10} className="shrink-0 mt-0.5" style={{ color }} />
-                                      {item}
-                                    </li>
-                                ))}
-                              </ul>
-                            </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* ── Plan eligibility note ──────────────────────────────────── */}
-                    <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 flex items-start gap-3">
-                      <Info size={14} className="text-slate-500 shrink-0 mt-0.5" />
-                      <div className="text-xs text-slate-600">
-                        <span className="font-semibold">Plan requirements: </span>
-                        BYOK is available on <strong>Pro and Enterprise</strong> plans.
-                        BYOM is available on <strong>Enterprise</strong> plans only.
-                        {currentPlan === 'free' || currentPlan === 'builder' ? (
-                            <> Your current plan is <strong className="capitalize">{currentPlan}</strong>.{' '}
-                              <button onClick={() => setTab('plans')} className="text-blue-600 underline">
-                                Upgrade to unlock →
-                              </button>
-                            </>
-                        ) : (
-                            <> Your current plan is <strong className="capitalize">{currentPlan}</strong> — you\'re eligible.</>
-                        )}
-                      </div>
-                    </div>
-
+                      );
+                    })}
                   </div>
-              )}
+                )}
 
-              {/* ── Usage details tab ───────────────────────────────────────────── */}
-              {tab === 'usage' && (
-                  <div className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {[
-                        { label: 'Credits used',    used: creditsUsed,          limit: allocated ?? 500,   color: '#16a34a' },
-                        { label: 'Intents executed', used: usage?.intentsUsed  ?? 0, limit: usage?.intentsLimit  ?? 100,  color: '#2563eb' },
-                        { label: 'API calls',        used: usage?.apiCallsUsed ?? 0, limit: usage?.apiCallsLimit ?? 1000, color: '#0d9488' },
-                      ].map(({ label, used, limit, color }) => (
-                          <Card key={label} className="p-5">
-                            <div className="flex justify-between mb-2">
-                              <p className="text-sm font-medium text-slate-700">{label}</p>
-                              <p className="text-sm font-bold text-slate-900">
-                                {used.toLocaleString()} / {limit.toLocaleString()}
-                              </p>
-                            </div>
-                            <div className="h-2 bg-slate-100 rounded-full overflow-hidden mb-2">
-                              <div className="h-full rounded-full" style={{
-                                width:           `${Math.min(100, (used / limit) * 100)}%`,
-                                backgroundColor: color,
-                              }} />
-                            </div>
-                            <p className="text-xs text-slate-400">
-                              {(limit - used).toLocaleString()} remaining
-                              {usage?.periodEnd ? ` · resets ${usage.periodEnd}` : ''}
-                            </p>
-                          </Card>
+                {/* Add endpoint form */}
+                {byomAdding ? (
+                  <div className="rounded-xl border-2 border-purple-200 bg-purple-50 p-5 space-y-3">
+                    <p className="text-xs font-semibold text-purple-900">Register model endpoint</p>
+
+                    {/* Model type selector */}
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                      {BYOM_TYPES.map(t => (
+                        <button key={t.id} type="button"
+                          onClick={() => setByomForm(f => ({ ...f, type: t.id }))}
+                          className="text-left p-2.5 rounded-lg border-2 transition-all text-xs"
+                          style={{
+                            borderColor:     byomForm.type === t.id ? t.color : '#e2e8f0',
+                            backgroundColor: byomForm.type === t.id ? t.color + '12' : 'white',
+                          }}>
+                          <div className="font-semibold mb-0.5" style={{ color: byomForm.type === t.id ? t.color : '#475569' }}>
+                            {t.label}
+                          </div>
+                          <div className="text-slate-400 text-[10px] leading-tight">{t.sub}</div>
+                        </button>
                       ))}
                     </div>
 
-                    <Card className="p-5">
-                      <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">Period</p>
-                      <div className="flex gap-8 text-sm">
-                        <div>
-                          <p className="text-slate-400 text-xs mb-0.5">Start</p>
-                          <p className="font-medium text-slate-700">{usage?.periodStart ?? '—'}</p>
-                        </div>
-                        <div>
-                          <p className="text-slate-400 text-xs mb-0.5">End</p>
-                          <p className="font-medium text-slate-700">{usage?.periodEnd ?? '—'}</p>
-                        </div>
-                        <div>
-                          <p className="text-slate-400 text-xs mb-0.5">Credits remaining</p>
-                          <p className="font-bold text-slate-900">{balance?.toLocaleString() ?? '—'}</p>
-                        </div>
+                    {/* Name + URL */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-[10px] font-medium text-slate-600 mb-1 block">Display name</label>
+                        <input
+                          type="text"
+                          value={byomForm.name}
+                          onChange={e => setByomForm(f => ({ ...f, name: e.target.value }))}
+                          placeholder="e.g. Invoice Extractor (LayoutLMv3)"
+                          className="w-full text-xs border border-slate-200 rounded-lg px-3 py-2 bg-white focus:outline-none focus:border-purple-400 transition-colors"
+                        />
                       </div>
-                    </Card>
+                      <div>
+                        <label className="text-[10px] font-medium text-slate-600 mb-1 block">Endpoint URL</label>
+                        <input
+                          type="url"
+                          value={byomForm.url}
+                          onChange={e => setByomForm(f => ({ ...f, url: e.target.value }))}
+                          placeholder="http://your-server:8001/classify"
+                          className="w-full text-xs font-mono border border-slate-200 rounded-lg px-3 py-2 bg-white focus:outline-none focus:border-purple-400 transition-colors"
+                          style={{ fontFamily: "'JetBrains Mono', monospace" }}
+                        />
+                      </div>
+                    </div>
 
-                    <div className="flex justify-center">
+                    {/* Auth header */}
+                    <div>
+                      <label className="text-[10px] font-medium text-slate-600 mb-1 block">
+                        Auth header <span className="text-slate-400 font-normal">(optional — e.g. Bearer your-token)</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={byomForm.authHeader}
+                        onChange={e => setByomForm(f => ({ ...f, authHeader: e.target.value }))}
+                        placeholder="Bearer sk-..."
+                        className="w-full text-xs font-mono border border-slate-200 rounded-lg px-3 py-2 bg-white focus:outline-none focus:border-purple-400 transition-colors"
+                        style={{ fontFamily: "'JetBrains Mono', monospace" }}
+                      />
+                    </div>
+
+                    {/* Cost note */}
+                    <div className="flex items-center gap-1.5 text-[10px] text-purple-700">
+                      <Zap size={10} />
+                      <span>1 credit per execution · DecisionMesh enforces your budget + policy on every call to this endpoint</span>
+                    </div>
+
+                    {/* Actions */}
+                    <div className="flex gap-2">
                       <button
-                          onClick={() => setTab('credits')}
-                          className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white text-sm font-medium rounded-xl hover:bg-blue-700 transition-colors">
-                        <ShoppingCart size={14} /> Buy more credits
+                        onClick={handleAddByomEndpoint}
+                        disabled={!byomForm.name.trim() || !byomForm.url.trim() || byomSaving}
+                        className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold text-white bg-purple-600 hover:bg-purple-700 disabled:opacity-40 transition-colors">
+                        {byomSaving
+                          ? <span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                          : <><Link2 size={11} /> Register endpoint</>
+                        }
+                      </button>
+                      <button
+                        onClick={() => { setByomAdding(false); setByomForm({ name: '', url: '', type: 'ollama', authHeader: '' }); }}
+                        className="px-4 py-2 rounded-lg text-xs font-medium border border-slate-200 text-slate-600 hover:bg-slate-50 transition-colors">
+                        Cancel
                       </button>
                     </div>
                   </div>
-              )}
-            </>
-        )}
-      </Page>
+                ) : (
+                  <button
+                    onClick={() => setByomAdding(true)}
+                    className="flex items-center gap-2 px-4 py-3 w-full rounded-xl border-2 border-dashed border-slate-200 hover:border-purple-300 hover:bg-purple-50 text-slate-500 hover:text-purple-700 text-xs font-medium transition-all">
+                    <Plus size={14} /> Register a model endpoint
+                  </button>
+                )}
+
+                {/* BYOM info card */}
+                <div className="mt-4 p-4 rounded-xl bg-purple-50 border border-purple-200 flex items-start gap-3">
+                  <Server size={15} className="text-purple-600 shrink-0 mt-0.5" />
+                  <div className="text-xs text-purple-900 space-y-1">
+                    <p className="font-semibold">How BYOM works</p>
+                    <p>DecisionMesh sends your intent payload to your model endpoint and wraps the call
+                       with budget ceiling enforcement, retry policy, quality scoring, drift detection,
+                       and a full immutable audit trail — exactly the same governance as any other adapter.
+                       Your document and model output never touch DecisionMesh servers.</p>
+                    <p className="pt-1">
+                      <strong>Compatible models:</strong> LayoutLMv3 (ONNX or REST), Ollama (any model),
+                       HuggingFace Inference Endpoints, spaCy serving, custom FastAPI services.
+                    </p>
+                  </div>
+                </div>
+
+                {/* BYOM vs BYOK comparison */}
+                <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {[
+                    {
+                      title: 'BYOK',
+                      icon: <Key size={13} />,
+                      color: '#D97706',
+                      bg: '#FFFBEB',
+                      items: [
+                        'Your API key, provider\'s infrastructure',
+                        'Data sent to Anthropic / OpenAI / etc.',
+                        'Best for: cost reduction on existing contracts',
+                        'Privacy: same as using provider directly',
+                        '1 credit · orchestration charge only',
+                      ],
+                    },
+                    {
+                      title: 'BYOM',
+                      icon: <Cpu size={13} />,
+                      color: '#7C3AED',
+                      bg: '#F5F3FF',
+                      items: [
+                        'Your model, your infrastructure',
+                        'Data never leaves your servers',
+                        'Best for: HIPAA, legal, sensitive docs',
+                        'Privacy: complete — zero external calls',
+                        '1 credit · governance charge only',
+                      ],
+                    },
+                  ].map(({ title, icon, color, bg, items }) => (
+                    <div key={title} className="rounded-xl border p-4" style={{ borderColor: color + '33', background: bg }}>
+                      <div className="flex items-center gap-1.5 mb-3" style={{ color }}>
+                        {icon}
+                        <span className="text-xs font-bold">{title}</span>
+                      </div>
+                      <ul className="space-y-1.5">
+                        {items.map(item => (
+                          <li key={item} className="flex items-start gap-1.5 text-[11px] text-slate-600">
+                            <Check size={10} className="shrink-0 mt-0.5" style={{ color }} />
+                            {item}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* ── Plan eligibility note ──────────────────────────────────── */}
+              <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 flex items-start gap-3">
+                <Info size={14} className="text-slate-500 shrink-0 mt-0.5" />
+                <div className="text-xs text-slate-600">
+                  <span className="font-semibold">Plan requirements: </span>
+                  BYOK is available on <strong>Pro and Enterprise</strong> plans.
+                  BYOM is available on <strong>Enterprise</strong> plans only.
+                  {currentPlan === 'free' || currentPlan === 'builder' ? (
+                    <> Your current plan is <strong className="capitalize">{currentPlan}</strong>.{' '}
+                      <button onClick={() => setTab('plans')} className="text-blue-600 underline">
+                        Upgrade to unlock →
+                      </button>
+                    </>
+                  ) : (
+                    <> Your current plan is <strong className="capitalize">{currentPlan}</strong> — you\'re eligible.</>
+                  )}
+                </div>
+              </div>
+
+            </div>
+          )}
+
+          {/* ── Usage details tab ───────────────────────────────────────────── */}
+          {tab === 'usage' && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {[
+                  { label: 'Credits used',    used: creditsUsed,          limit: allocated ?? 100,   color: '#16a34a' },
+                  { label: 'Intents executed', used: usage?.intentsUsed  ?? 0, limit: usage?.intentsLimit  ?? 100,  color: '#2563eb' },
+                  { label: 'API calls',        used: usage?.apiCallsUsed ?? 0, limit: usage?.apiCallsLimit ?? 1000, color: '#0d9488' },
+                ].map(({ label, used, limit, color }) => (
+                  <Card key={label} className="p-5">
+                    <div className="flex justify-between mb-2">
+                      <p className="text-sm font-medium text-slate-700">{label}</p>
+                      <p className="text-sm font-bold text-slate-900">
+                        {used.toLocaleString()} / {limit.toLocaleString()}
+                      </p>
+                    </div>
+                    <div className="h-2 bg-slate-100 rounded-full overflow-hidden mb-2">
+                      <div className="h-full rounded-full" style={{
+                        width:           `${Math.min(100, (used / limit) * 100)}%`,
+                        backgroundColor: color,
+                      }} />
+                    </div>
+                    <p className="text-xs text-slate-400">
+                      {(limit - used).toLocaleString()} remaining
+                      {usage?.periodEnd ? ` · resets ${usage.periodEnd}` : ''}
+                    </p>
+                  </Card>
+                ))}
+              </div>
+
+              <Card className="p-5">
+                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">Period</p>
+                <div className="flex gap-8 text-sm">
+                  <div>
+                    <p className="text-slate-400 text-xs mb-0.5">Start</p>
+                    <p className="font-medium text-slate-700">{usage?.periodStart ?? '—'}</p>
+                  </div>
+                  <div>
+                    <p className="text-slate-400 text-xs mb-0.5">End</p>
+                    <p className="font-medium text-slate-700">{usage?.periodEnd ?? '—'}</p>
+                  </div>
+                  <div>
+                    <p className="text-slate-400 text-xs mb-0.5">Credits remaining</p>
+                    <p className="font-bold text-slate-900">{balance?.toLocaleString() ?? '—'}</p>
+                  </div>
+                </div>
+              </Card>
+
+              <div className="flex justify-center">
+                <button
+                  onClick={() => setTab('credits')}
+                  className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white text-sm font-medium rounded-xl hover:bg-blue-700 transition-colors">
+                  <ShoppingCart size={14} /> Buy more credits
+                </button>
+              </div>
+            </div>
+          )}
+        </>
+      )}
+    </Page>
   );
 }

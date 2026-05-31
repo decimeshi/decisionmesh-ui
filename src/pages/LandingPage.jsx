@@ -129,18 +129,27 @@ const PLAN_PRICES = {
 // Arctic White — all plan cards use white/light bg, strong borders, dark text
 const PLANS = [
   {
-    key: 'free', name: 'Free', price: 'Free', note: '500 one-time credits',
+    key: 'free', name: 'Free', price: 'Free', note: '100 credits · full access',
     color: '#64748b', checkColor: '#16a34a',
     bg: '#0d1e35', border: 'rgba(46,124,184,0.25)',
     cta: 'Get started free',
-    features: ['500 credits (one-time)', '2 adapters', 'Budget enforcement', 'Basic audit (30 days)', 'Community support'],
+    features: [
+      '100 credits — full product access',
+      'All adapters (OpenAI, Anthropic, Google, Azure)',
+      'Policy builder',
+      'Decision replay',
+      'Full audit log — permanent',
+      'Drift detection',
+      'Budget enforcement',
+      'Community support',
+    ],
   },
   {
     key: 'builder', name: 'Builder', note: '15k credits/mo',
     color: '#2563eb', checkColor: '#2563eb', popular: true,
     bg: 'rgba(46,124,184,0.12)', border: 'rgba(46,124,184,0.40)',
     cta: 'Upgrade to Builder',
-    features: ['15,000 credits/month', 'All adapters', 'Policy builder', 'Decision replay', 'Full audit + CSV export', 'Drift detection', 'Priority support', 'Overage: $0.002/cr'],
+    features: ['15,000 credits/month', 'Everything in Free', 'Full audit + CSV export', 'Priority support', 'Overage: $0.002/cr'],
   },
   {
     key: 'pro', name: 'Pro', note: '60k credits/mo',

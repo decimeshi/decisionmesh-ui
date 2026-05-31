@@ -645,11 +645,11 @@ function Credits() {
   return (
     <div>
       <SectionHeading id="credits" icon={Zap} title="Credits & Billing" subtitle="Check your credit balance and view the full ledger of credit transactions." />
-      <Callout type="info">Free tier includes 500 one-time credits. Each intent execution consumes credits based on the adapter and model used. 1 credit ≈ $0.001 USD.</Callout>
+      <Callout type="info">Free tier includes 100 one-time credits — full product access. Each intent execution consumes credits based on the adapter and model used. 1 credit ≈ $0.001 USD.</Callout>
       <Endpoint method="GET" path="/api/credits/balance" desc="Get current credit balance" auth
         response={`{
   "balance": 497,
-  "allocated": 500,
+  "allocated": 100,
   "plan": "free",
   "renewsAt": "2026-06-01T00:00:00Z"
 }`} />

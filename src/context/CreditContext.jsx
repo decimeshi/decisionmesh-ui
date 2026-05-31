@@ -59,15 +59,19 @@ export function CreditProvider({ keycloak, children }) {
       // instead of a duplicate fetch with a hardcoded URL.
       const data = await getCreditBalance(keycloak);
       if (data) {
-        setBalance(data.balance ?? 500);
-        setAllocated(data.monthlyAllocation ?? 500);
-        setPlan(data.plan ?? 'free');
+        const resolvedPlan = data.plan ?? 'free';
+        const rawAllocated = data.allocated ?? data.monthlyAllocation ?? 100;
+        // Cap free plan at 100 — existing users may have 500 from old registration gift
+        const cappedAllocated = resolvedPlan === 'free' ? Math.min(rawAllocated, 100) : rawAllocated;
+        setBalance(data.balance ?? 100);
+        setAllocated(cappedAllocated);
+        setPlan(resolvedPlan);
       } else {
         // API not ready — default to registration gift
-        setBalance(500); setAllocated(500); setPlan('free');
+        setBalance(100); setAllocated(100); setPlan('free');
       }
     } catch {
-      setBalance(500); setAllocated(500); setPlan('free');
+      setBalance(100); setAllocated(100); setPlan('free');
     } finally {
       setLoading(false);
     }
@@ -87,7 +91,7 @@ export function CreditProvider({ keycloak, children }) {
   }
 
   const pct         = allocated ? Math.min(100, ((balance ?? 0) / allocated) * 100) : 100;
-  const isLow       = pct < 20 && pct > 0;
+  const isLow       = pct < 30 && pct > 0;   // warn at <30% (~30 credits for free plan)
   const isEmpty     = (balance ?? 1) <= 0;
   const statusColor = isEmpty ? '#dc2626' : isLow ? '#d97706' : '#16a34a';
 

@@ -10,7 +10,7 @@ import { useCredits } from '../../context/CreditContext';
 const DISMISS_KEY = 'dm_credit_banner_dismissed';
 
 export default function LowCreditBanner() {
-  const { balance, isLow, isEmpty, allocated, pct } = useCredits();
+  const { balance, isLow, isEmpty, allocated, pct, plan } = useCredits();
   const [dismissed, setDismissed] = useState(
     () => sessionStorage.getItem(DISMISS_KEY) === '1'
   );
@@ -39,7 +39,7 @@ export default function LowCreditBanner() {
           </span>
         ) : (
           <span>
-            <strong>{balance} credits remaining</strong> ({Math.round(pct)}% of {allocated?.toLocaleString()} monthly allocation).
+            <strong>{balance} credits remaining</strong> ({Math.round(pct)}% of {allocated?.toLocaleString()} {plan === 'free' ? 'one-time credits' : 'monthly allocation'}).
             Buy more to avoid interruption.
           </span>
         )}
