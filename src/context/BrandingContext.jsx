@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect } from 'react';
-import { getOrgBranding } from '../utils/api';
+import { getOrgBranding, API_BASE } from '../utils/api';
+
 
 const DEFAULT_BRANDING = {
   orgName:      'DecisionMesh',
@@ -92,7 +93,7 @@ export function BrandingProvider({ keycloak, children }) {
 
         console.log('[Branding] fetching branding with token:', token.substring(0, 20) + '...');
 
-        const res = await fetch('http://localhost:8080/api/org/branding', {
+        const res = await fetch(`${API_BASE}/org/branding`, {
           headers: {
             'Authorization': `Bearer ${token}`,
             'Content-Type':  'application/json',
