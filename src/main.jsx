@@ -181,7 +181,8 @@ function AppWrapper() {
 
   // ── Render ─────────────────────────────────────────────────
 
-  // Public routes — no auth required
+  // Public routes — checked FIRST, before any auth state, so they work
+  // regardless of whether the user is logged in or not.
   const { pathname } = useLocation();
 
   // Security — public route
@@ -193,7 +194,7 @@ function AppWrapper() {
     );
   }
 
-  // Docs — public route, same pattern as /blog
+  // Docs — public route
   if (pathname === '/docs') {
     return (
       <Routes>
@@ -202,7 +203,7 @@ function AppWrapper() {
     );
   }
 
-  // Blog routes
+  // Blog routes — public
   if (pathname === '/blog' || pathname.startsWith('/blog/')) {
     return (
       <Routes>
@@ -221,6 +222,7 @@ function AppWrapper() {
     );
   }
 
+  // ── Auth-gated routes below this line ──────────────────────
   if (auth.isLoading)        return <FullScreenSpinner />;
   if (auth.error)            return <LandingPage />;
   if (!auth.isAuthenticated) return <LandingPage />;

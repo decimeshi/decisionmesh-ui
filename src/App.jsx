@@ -8,6 +8,7 @@ import FeedbackWidget from './components/FeedbackWidget';
 import SysAdminRoute from './components/SysAdminRoute';
 import AIGovernanceInfrastructure from "./pages/blog/AIGovernanceInfrastructure.jsx";
 import IntentBasedAIControlPlane from "./pages/blog/IntentBasedAIControlPlane.jsx";
+import SecurityPage from "./pages/SecurityPage.jsx";
 import BlogIndex from "./pages/blog/BlogIndex.jsx";
 import AuditOpenAiCalls from "./pages/blog/AuditOpenAiCalls.jsx";
 import ShadowAiRisk from "./pages/blog/ShadowAiRisk.jsx";
@@ -182,7 +183,8 @@ export default function App({ keycloak }) {
                   </SysAdminRoute>
                 } />
 
-                <Route path="/docs" element={<DocsPage />} />
+                <Route path="/docs"     element={<DocsPage />} />
+                <Route path="/security" element={<SecurityPage />} />
 
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>
