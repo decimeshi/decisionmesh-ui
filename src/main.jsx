@@ -20,6 +20,7 @@ import { CreditProvider }   from './context/CreditContext';
 import App          from './App';
 import LandingPage  from './pages/LandingPage';
 import DocsPage     from './pages/DocsPage';
+import SecurityPage  from './pages/SecurityPage';
 import Onboarding   from './pages/Onboarding';
 import { getMe }    from './utils/api';
 import { oidcConfig, createKeycloakShim, debugToken } from './auth/zitadel';
@@ -182,6 +183,15 @@ function AppWrapper() {
 
   // Public routes — no auth required
   const { pathname } = useLocation();
+
+  // Security — public route
+  if (pathname === '/security') {
+    return (
+      <Routes>
+        <Route path="/security" element={<SecurityPage />} />
+      </Routes>
+    );
+  }
 
   // Docs — public route, same pattern as /blog
   if (pathname === '/docs') {
