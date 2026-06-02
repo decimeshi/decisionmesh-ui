@@ -798,7 +798,7 @@ export default function Billing({ keycloak }) {
                 <div className="h-full rounded-full transition-all"
                   style={{
                     width: `${allocated ? Math.min(100, (balance / allocated) * 100) : 0}%`,
-                    backgroundColor: balance <= 0 ? '#dc2626' : balance < 100 ? '#d97706' : '#16a34a',
+                    backgroundColor: balance <= 0 ? '#dc2626' : (allocated && balance / allocated < 0.30) ? '#d97706' : '#16a34a',
                   }} />
               </div>
               <div className="flex items-center gap-2 text-xs text-slate-500">
@@ -806,8 +806,11 @@ export default function Billing({ keycloak }) {
                 <span className="font-semibold capitalize text-slate-700 bg-slate-100 px-2 py-0.5 rounded-full">
                   {currentPlan}
                 </span>
-                {subscription?.nextBilling && (
+                {subscription?.nextBilling && currentPlan !== 'free' && (
                   <span>· Renews {subscription.nextBilling}</span>
+                )}
+                {currentPlan === 'free' && (
+                  <span className="text-slate-400">· One-time credits · Never expire</span>
                 )}
               </div>
             </Card>
@@ -824,10 +827,13 @@ export default function Billing({ keycloak }) {
               </div>
               <div className="space-y-3">
                 <UsageBar label="Credits used" used={creditsUsed} limit={allocated ?? 100} />
-                {usage && <>
+                {usage && currentPlan !== 'free' && <>
                   <UsageBar label="Intents executed" used={usage.intentsUsed ?? 0} limit={usage.intentsLimit ?? 100} color="#4f46e5" />
                   <UsageBar label="API calls"        used={usage.apiCallsUsed ?? 0} limit={usage.apiCallsLimit ?? 1000} color="#0d9488" />
                 </>}
+                {currentPlan === 'free' && (
+                  <p className="text-xs text-slate-400 mt-2">Free plan — unlimited intents until credits run out</p>
+                )}
               </div>
             </Card>
           </div>
@@ -1346,8 +1352,10 @@ export default function Billing({ keycloak }) {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {[
                   { label: 'Credits used',    used: creditsUsed,          limit: allocated ?? 100,   color: '#16a34a' },
-                  { label: 'Intents executed', used: usage?.intentsUsed  ?? 0, limit: usage?.intentsLimit  ?? 100,  color: '#2563eb' },
-                  { label: 'API calls',        used: usage?.apiCallsUsed ?? 0, limit: usage?.apiCallsLimit ?? 1000, color: '#0d9488' },
+                  ...(currentPlan !== 'free' ? [
+                    { label: 'Intents executed', used: usage?.intentsUsed  ?? 0, limit: usage?.intentsLimit  ?? 100,  color: '#2563eb' },
+                    { label: 'API calls',        used: usage?.apiCallsUsed ?? 0, limit: usage?.apiCallsLimit ?? 1000, color: '#0d9488' },
+                  ] : []),
                 ].map(({ label, used, limit, color }) => (
                   <Card key={label} className="p-5">
                     <div className="flex justify-between mb-2">

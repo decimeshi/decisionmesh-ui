@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { User, Mail, Lock, Bell, Check, Eye, EyeOff, Shield } from 'lucide-react';
 import Page from '../components/shared/Page';
 import { Card, CardHeader, CardTitle, CardContent, Button } from '../components/shared';
+import DeleteAccountSection from '../components/shared/DeleteAccountSection';
 
 const TABS = [
   { id: 'profile',       label: 'Profile',       icon: User },
@@ -103,6 +104,7 @@ function ProfileTab({ keycloak }) {
           ))}
         </CardContent>
       </Card>
+      <DeleteAccountSection keycloak={keycloak} />
     </div>
   );
 }

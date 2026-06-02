@@ -901,6 +901,7 @@ function Stats() {
 // ── Pricing — Arctic White + billing interval switcher ───────────────────────
 function Pricing({ onRegister }) {
   const [billingInterval, setBillingInterval] = useState('monthly');
+  const [pricingTab, setPricingTab] = useState('plans');
   const iv = BILLING_INTERVALS.find(b => b.id === billingInterval);
 
   const getUsdPrice = (key) => {
@@ -923,6 +924,25 @@ function Pricing({ onRegister }) {
         <h2 style={{ fontSize: 'clamp(24px, 4vw, 40px)', fontWeight: 800, color: C.textPrimary, letterSpacing: '-1px', marginBottom: 10 }}>Simple, transparent pricing</h2>
         <p style={{ color: C.textMuted, fontSize: 16, marginBottom: 32 }}>Start free. Scale when you're ready.</p>
 
+        {/* Pricing section tabs */}
+        <div style={{ display: 'inline-flex', background: 'rgba(14,165,233,0.06)', border: '1px solid rgba(14,165,233,0.18)', borderRadius: 10, padding: 4, gap: 2, marginBottom: 32 }}>
+          {[
+            { id: 'plans',   label: 'Plans' },
+            { id: 'credits', label: 'Credit Packs' },
+            { id: 'byok',    label: 'BYOK / BYOM' },
+          ].map(t => (
+            <button key={t.id} onClick={() => setPricingTab(t.id)} style={{
+              padding: '7px 18px', borderRadius: 7, border: 'none',
+              fontSize: 13, fontWeight: 600, cursor: 'pointer', transition: 'all 0.15s',
+              background: pricingTab === t.id ? '#2e7cb8' : 'transparent',
+              color: pricingTab === t.id ? '#ffffff' : '#7eb8d4',
+              boxShadow: pricingTab === t.id ? '0 2px 8px rgba(46,124,184,0.25)' : 'none',
+            }}>{t.label}</button>
+          ))}
+        </div>
+
+        {/* ── PLANS TAB ─────────────────────────────────────────────────────── */}
+        {pricingTab === 'plans' && <>
         {/* Interval switcher — matches Billing.jsx style */}
         <div style={{ display: 'inline-flex', background: 'rgba(14,165,233,0.06)', border: '1px solid rgba(14,165,233,0.18)', borderRadius: 10, padding: 4, gap: 2, marginBottom: 48 }}>
           {BILLING_INTERVALS.map(b => (
@@ -1011,6 +1031,108 @@ function Pricing({ onRegister }) {
           })}
         </div>
         <p style={{ color: C.textSub, fontSize: 12, marginTop: 24 }}>Payments processed securely by Stripe · Cancel anytime · No hidden fees</p>
+        </>}
+
+        {/* ── CREDIT PACKS TAB ──────────────────────────────────────────────── */}
+        {pricingTab === 'credits' && <>
+        {/* ── Credit packs ─────────────────────────────────────────────────── */}
+        <div style={{ marginTop: 64, textAlign: 'left' }}>
+          <div style={{ textAlign: 'center', marginBottom: 32 }}>
+            <p style={{ color: C.blue, fontSize: 11, fontWeight: 700, letterSpacing: '2px', textTransform: 'uppercase', marginBottom: 8 }}>Credit Packs</p>
+            <h3 style={{ fontSize: 'clamp(20px, 3vw, 28px)', fontWeight: 800, color: C.textPrimary, letterSpacing: '-0.5px', marginBottom: 8 }}>Need more credits? Top up anytime</h3>
+            <p style={{ color: C.textMuted, fontSize: 14 }}>One-time top-ups that stack on your plan and never expire.</p>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16 }}>
+            {[
+              { name: 'Starter', credits: '12,000', price: '$10', perCr: '$0.00083/cr', popular: false,
+                breakdown: [{ label: 'Economy', val: '~12,000' }, { label: 'Standard', val: '~2,400' }, { label: 'Premium', val: '~480' }] },
+              { name: 'Growth', credits: '32,000', price: '$25', perCr: '$0.00078/cr', popular: true,
+                breakdown: [{ label: 'Economy', val: '~32,000' }, { label: 'Standard', val: '~6,400' }, { label: 'Premium', val: '~1,280' }] },
+              { name: 'Scale', credits: '100,000', price: '$75', perCr: '$0.00075/cr', popular: false,
+                breakdown: [{ label: 'Economy', val: '~100,000' }, { label: 'Standard', val: '~20,000' }, { label: 'Premium', val: '~4,000' }] },
+            ].map(pack => (
+              <div key={pack.name} style={{
+                background: pack.popular ? 'rgba(14,165,233,0.10)' : '#0d1e35',
+                border: pack.popular ? '1px solid rgba(14,165,233,0.35)' : `1px solid ${C.border}`,
+                borderRadius: 14, padding: '22px 20px', position: 'relative',
+                boxShadow: pack.popular ? '0 4px 28px rgba(14,165,233,0.18)' : 'none',
+              }}>
+                {pack.popular && (
+                  <div style={{ position: 'absolute', top: -1, left: '50%', transform: 'translateX(-50%)', background: C.blue, color: '#fff', fontSize: 9, fontWeight: 700, padding: '3px 10px', borderRadius: '0 0 7px 7px', whiteSpace: 'nowrap' }}>
+                    Best value
+                  </div>
+                )}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8, marginTop: pack.popular ? 10 : 0 }}>
+                  <div>
+                    <p style={{ color: C.textPrimary, fontSize: 16, fontWeight: 700, marginBottom: 2 }}>{pack.name}</p>
+                    <p style={{ color: C.textSub, fontSize: 12 }}>{pack.credits} credits</p>
+                    <p style={{ color: C.textMuted, fontSize: 10, marginTop: 2 }}>{pack.perCr}</p>
+                  </div>
+                  <div style={{ textAlign: 'right' }}>
+                    <span style={{ fontSize: 28, fontWeight: 900, color: '#e0f2fe', letterSpacing: '-1px' }}>{pack.price}</span>
+                    <p style={{ color: C.textMuted, fontSize: 10 }}>one-time</p>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: 12, marginTop: 14, flexWrap: 'wrap' }}>
+                  {pack.breakdown.map(b => (
+                    <div key={b.label} style={{ textAlign: 'center' }}>
+                      <p style={{ color: '#4ade80', fontSize: 11, fontWeight: 700 }}>{b.val}</p>
+                      <p style={{ color: C.textMuted, fontSize: 10 }}>{b.label}</p>
+                    </div>
+                  ))}
+                </div>
+                <button onClick={onRegister} style={{ marginTop: 16, width: '100%', borderRadius: 9, padding: '9px', fontSize: 13, fontWeight: 700, cursor: 'pointer', background: pack.popular ? '#2e7cb8' : 'rgba(46,124,184,0.08)', color: pack.popular ? '#fff' : '#7dd3fc', border: pack.popular ? 'none' : '1px solid rgba(14,165,233,0.22)', transition: 'background 0.15s' }}
+                  onMouseEnter={e => e.currentTarget.style.background = pack.popular ? '#245f91' : 'rgba(46,124,184,0.14)'}
+                  onMouseLeave={e => e.currentTarget.style.background = pack.popular ? '#2e7cb8' : 'rgba(46,124,184,0.08)'}>
+                  Buy {pack.name}
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        </>}
+
+        {/* ── BYOK TAB ──────────────────────────────────────────────────────── */}
+        {pricingTab === 'byok' && <>
+        <div style={{ marginTop: 0 }}>
+          <div style={{ textAlign: 'center', marginBottom: 32 }}>
+            <p style={{ color: C.blue, fontSize: 11, fontWeight: 700, letterSpacing: '2px', textTransform: 'uppercase', marginBottom: 8 }}>BYOK / BYOM</p>
+            <h3 style={{ fontSize: 'clamp(20px, 3vw, 28px)', fontWeight: 800, color: C.textPrimary, letterSpacing: '-0.5px', marginBottom: 8 }}>Bring your own key or model</h3>
+            <p style={{ color: C.textMuted, fontSize: 14 }}>Use your existing AI provider contracts. Pay only 1 credit for orchestration, policy enforcement, and audit.</p>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16 }}>
+            {[
+              { name: 'BYOK', title: 'Bring Your Own Key', desc: 'Connect your Anthropic, OpenAI, or Azure key. DecisionMesh adds governance — you pay your provider directly.', cost: '1 credit / execution', saving: '80% cost reduction', badge: 'Pro + Enterprise', icon: '🔑' },
+              { name: 'BYOM', title: 'Bring Your Own Model', desc: 'Connect your own model endpoint — on-prem, fine-tuned, or custom. Zero data egress, full governance.', cost: '1 credit / execution', saving: 'Zero data egress', badge: 'Pro + Enterprise', icon: '🧩' },
+            ].map(item => (
+              <div key={item.name} style={{ background: '#0d1e35', border: `1px solid ${C.border}`, borderRadius: 14, padding: '24px 22px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <span style={{ fontSize: 24 }}>{item.icon}</span>
+                  <div>
+                    <p style={{ color: C.textPrimary, fontSize: 15, fontWeight: 700 }}>{item.title}</p>
+                    <span style={{ fontSize: 9, fontWeight: 700, background: 'rgba(14,165,233,0.15)', color: C.blue, border: '1px solid rgba(14,165,233,0.25)', borderRadius: 99, padding: '2px 7px' }}>{item.badge}</span>
+                  </div>
+                </div>
+                <p style={{ color: C.textMuted, fontSize: 13, lineHeight: 1.55 }}>{item.desc}</p>
+                <div style={{ display: 'flex', gap: 16 }}>
+                  <div style={{ background: 'rgba(14,165,233,0.06)', border: `1px solid ${C.border}`, borderRadius: 8, padding: '8px 12px', flex: 1 }}>
+                    <p style={{ color: C.textMuted, fontSize: 10, marginBottom: 2 }}>Cost</p>
+                    <p style={{ color: '#4ade80', fontSize: 13, fontWeight: 700 }}>{item.cost}</p>
+                  </div>
+                  <div style={{ background: 'rgba(14,165,233,0.06)', border: `1px solid ${C.border}`, borderRadius: 8, padding: '8px 12px', flex: 1 }}>
+                    <p style={{ color: C.textMuted, fontSize: 10, marginBottom: 2 }}>Benefit</p>
+                    <p style={{ color: C.blue, fontSize: 13, fontWeight: 700 }}>{item.saving}</p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <p style={{ color: C.textSub, fontSize: 12, marginTop: 48 }}>Payments processed securely by Stripe · Cancel anytime · No hidden fees</p>
+        </>}
+
       </div>
     </section>
   );
