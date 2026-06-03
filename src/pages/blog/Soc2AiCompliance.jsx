@@ -5,6 +5,12 @@ export default function Soc2AiCompliance() {
   return (
     <div style={{ background: '#f8fafc', minHeight: '100vh' }}>
 
+      <BlogSeo
+        title="SOC 2 + AI: What Auditors Are Asking in 2026"
+        description="SOC 2 auditors are now asking detailed questions about AI usage and LLM data flows. Here's exactly what they want to see and how to build the evidence package."
+        slug="soc2-ai-compliance-what-auditors-ask"
+      />
+
       {<div style={{ background: 'linear-gradient(135deg, #0a1045 0%, #1e3a8a 100%)', padding: '64px 24px 48px' }}>
       <div style={{ maxWidth: 780, margin: '0 auto' }}>
         <a href="/blog" style={{ color: '#93c5fd', fontSize: 13, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 6, marginBottom: 24 }}>
@@ -16,7 +22,7 @@ export default function Soc2AiCompliance() {
           </span>
         </div>
         <h1 style={{ fontSize: 'clamp(22px, 4vw, 34px)', fontWeight: 900, color: '#f1f5f9', lineHeight: 1.25, marginBottom: 16, letterSpacing: '-0.5px' }}>
-          SOC 2 + AI: What Auditors Are Asking in 2025
+          SOC 2 + AI: What Auditors Are Asking in 2026
         </h1>
         <p style={{ color: '#94a3b8', fontSize: 15, lineHeight: 1.7, marginBottom: 24, maxWidth: 640 }}>
           SOC 2 auditors are now asking detailed questions about AI usage and LLM data flows. Here\'s exactly what they want to see and how to build the evidence package.
@@ -26,7 +32,7 @@ export default function Soc2AiCompliance() {
             <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'linear-gradient(135deg, #2563eb, #7c3aed)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 800, color: 'white' }}>T</div>
             <span style={{ color: '#cbd5e1', fontSize: 13, fontWeight: 600 }}>Thiru · DecisionMesh</span>
           </div>
-          <span style={{ color: '#64748b', fontSize: 13 }}>June 2025</span>
+          <span style={{ color: '#64748b', fontSize: 13 }}>June 2026</span>
           <span style={{ color: '#64748b', fontSize: 13 }}>· 10 min read</span>
           <span style={{ color: '#64748b', fontSize: 13 }}>· For GRC Teams</span>
         </div>
