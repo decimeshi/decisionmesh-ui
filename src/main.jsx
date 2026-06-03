@@ -14,6 +14,9 @@ import EuActVsUsEo       from './pages/blog/EuActVsUsEo.jsx';
 import AIGovernanceInfrastructure  from './pages/blog/AIGovernanceInfrastructure.jsx';
 import IntentBasedAIControlPlane   from './pages/blog/IntentBasedAIControlPlane.jsx';
 import EuAiActChecklist            from './pages/blog/EuAiActChecklist.jsx';
+import DpdpaCompliance             from './pages/blog/DpdpaCompliance.jsx';
+import AiGovernanceFintech         from './pages/blog/AiGovernanceFintech.jsx';
+import RbacLlmApi                  from './pages/blog/RbacLlmApi.jsx';
 import { ProjectProvider }  from './context/ProjectContext';
 import { BrandingProvider } from './context/BrandingContext';
 import { CreditProvider }   from './context/CreditContext';
@@ -218,6 +221,9 @@ function AppWrapper() {
         <Route path="/blog/ai-governance-enterprise-infrastructure"        element={<AIGovernanceInfrastructure />} />
         <Route path="/blog/intent-based-ai-control-plane"                  element={<IntentBasedAIControlPlane />} />
         <Route path="/blog/eu-ai-act-compliance-checklist-llm"             element={<EuAiActChecklist />} />
+        <Route path="/blog/dpdpa-2023-ai-compliance-checklist"             element={<DpdpaCompliance />} />
+        <Route path="/blog/ai-governance-fintech-rbi-sebi-guidelines"      element={<AiGovernanceFintech />} />
+        <Route path="/blog/rbac-llm-api-access-control"                    element={<RbacLlmApi />} />
       </Routes>
     );
   }
