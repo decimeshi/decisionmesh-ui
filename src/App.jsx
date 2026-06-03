@@ -17,6 +17,9 @@ import Soc2AiCompliance from "./pages/blog/Soc2AiCompliance.jsx";
 import PromptInjection from "./pages/blog/PromptInjection.jsx";
 import CisoVendorChecklist from "./pages/blog/CisoVendorChecklist.jsx";
 import EuActVsUsEo from "./pages/blog/EuActVsUsEo.jsx";
+import DpdpaCompliance from "./pages/blog/DpdpaCompliance.jsx";
+import AiGovernanceFintech from "./pages/blog/AiGovernanceFintech.jsx";
+import RbacLlmApi from "./pages/blog/RbacLlmApi.jsx";
 
 
 const Dashboard        = lazy(() => import('./pages/Dashboard'));
@@ -150,6 +153,9 @@ export default function App({ keycloak }) {
                 <Route path="/blog/prompt-injection-detection-llm" element={<PromptInjection />}/>
                 <Route path="/blog/ciso-ai-vendor-security-assessment-checklist" element={<CisoVendorChecklist />}/>
                 <Route path="/blog/eu-ai-act-vs-us-ai-executive-order-comparison" element={<EuActVsUsEo />}/>
+                <Route path="/blog/dpdpa-2023-ai-compliance-checklist"            element={<DpdpaCompliance />}/>
+                <Route path="/blog/ai-governance-fintech-rbi-sebi-guidelines"     element={<AiGovernanceFintech />}/>
+                <Route path="/blog/rbac-llm-api-access-control"                   element={<RbacLlmApi />}/>
 
                 {/* ── sys_admin only routes ──────────────────────────────── */}
                 <Route path="/admin/payments" element={
