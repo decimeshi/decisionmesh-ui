@@ -103,6 +103,36 @@ const ARTICLES = [
     readTime: 9,
     color: '#2563eb',
   },
+  {
+    slug: 'dpdpa-2023-ai-compliance-checklist',
+    title: 'DPDPA 2023 Compliance Checklist for AI Systems',
+    description: "India's Digital Personal Data Protection Act 2023 is in force. Practical checklist for AI systems — covering consent, data minimisation, erasure, and breach notification obligations.",
+    category: 'Compliance',
+    audience: 'GRC & Legal Teams',
+    date: 'June 2026',
+    readTime: 10,
+    color: '#7c3aed',
+  },
+  {
+    slug: 'ai-governance-fintech-rbi-sebi-guidelines',
+    title: 'AI Governance for Fintech: Meeting RBI and SEBI AI Guidelines',
+    description: 'RBI and SEBI are issuing guidance on AI in financial services. What fintech companies need to implement — model risk management, audit trails, explainability, and bias testing.',
+    category: 'Finance',
+    audience: 'Fintech CTOs & Compliance',
+    date: 'June 2026',
+    readTime: 11,
+    color: '#10b981',
+  },
+  {
+    slug: 'rbac-llm-api-access-control',
+    title: 'How to Implement Role-Based Access Control for LLM APIs',
+    description: 'LLM APIs are powerful — and dangerous without access controls. Intent-based policies, model restrictions, cost limits, and audit trails. With code examples.',
+    category: 'Engineering',
+    audience: 'Security Engineers',
+    date: 'June 2026',
+    readTime: 12,
+    color: '#2563eb',
+  },
 ];
 
 const CATEGORY_COLORS = {
