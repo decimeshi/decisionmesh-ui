@@ -8,7 +8,7 @@
  * Users who want extraction connect their own adapter (BYOK/BYOM)
  * and submit via the standard intent pipeline.
  */
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   Send, RefreshCw, Copy, ExternalLink, Zap,
   Shield, Clock, RotateCcw, BookOpen, Key, Cpu,
@@ -19,8 +19,164 @@ import { v4 as uuidv4 } from 'uuid';
 import Page from '../components/shared/Page';
 import { Card, CardHeader, CardTitle, CardContent, Button } from '../components/shared';
 import ExecutionTimeline from '../components/timeline/ExecutionTimeline';
-import { submitIntent } from '../utils/api';
+import { submitIntent, getIntent, getExecutionsByIntent } from '../utils/api';
 import { useCredits, MODEL_TIERS } from '../context/CreditContext';
+
+// ── Shared SmartResponseRenderer helpers ──────────────────────────────────────
+function tryParseJson(text) {
+  if (!text) return null;
+  const cleaned = text.replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/```\s*$/i, '').trim();
+  try { return JSON.parse(cleaned); } catch { return null; }
+}
+
+function RiskGauge({ score }) {
+  const pct = Math.round((score ?? 0) * 100);
+  const color = score >= 0.8 ? '#dc2626' : score >= 0.6 ? '#d97706' : score >= 0.3 ? '#f59e0b' : '#16a34a';
+  const label = score >= 0.8 ? 'CRITICAL' : score >= 0.6 ? 'HIGH' : score >= 0.3 ? 'MEDIUM' : 'LOW';
+  return (
+    <div style={{ textAlign: 'center', padding: '12px 0' }}>
+      <div style={{ position: 'relative', width: 80, height: 80, margin: '0 auto 8px' }}>
+        <svg viewBox="0 0 36 36" style={{ transform: 'rotate(-90deg)', width: 80, height: 80 }}>
+          <circle cx="18" cy="18" r="15.9" fill="none" stroke="#e2e8f0" strokeWidth="3" />
+          <circle cx="18" cy="18" r="15.9" fill="none" stroke={color} strokeWidth="3"
+            strokeDasharray={`${pct} ${100 - pct}`} strokeLinecap="round" />
+        </svg>
+        <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column' }}>
+          <span style={{ fontSize: 16, fontWeight: 800, color, lineHeight: 1 }}>{pct}</span>
+          <span style={{ fontSize: 9, color: '#94a3b8' }}>/ 100</span>
+        </div>
+      </div>
+      <div style={{ fontSize: 11, fontWeight: 700, color, letterSpacing: '0.5px' }}>{label} RISK</div>
+    </div>
+  );
+}
+
+function RecommendationBadge({ value }) {
+  const styles = {
+    APPROVE: { bg: '#f0fdf4', color: '#16a34a', border: '#bbf7d0', icon: '✓' },
+    REVIEW:  { bg: '#fffbeb', color: '#d97706', border: '#fde68a', icon: '!' },
+    DECLINE: { bg: '#fef2f2', color: '#dc2626', border: '#fecaca', icon: '✗' },
+  };
+  const s = styles[value?.toUpperCase()] ?? styles.REVIEW;
+  return (
+    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 14px', borderRadius: 8, background: s.bg, border: `1.5px solid ${s.border}` }}>
+      <span style={{ fontSize: 14, fontWeight: 800, color: s.color }}>{s.icon}</span>
+      <span style={{ fontSize: 13, fontWeight: 700, color: s.color, letterSpacing: '0.5px' }}>{value?.toUpperCase()}</span>
+    </div>
+  );
+}
+
+function FraudDetectionView({ data }) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+        <div style={{ background: '#f8fafc', borderRadius: 10, border: '1px solid #e2e8f0', padding: 16, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          <p style={{ fontSize: 10, color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: 4 }}>Risk Score</p>
+          <RiskGauge score={data.riskScore} />
+        </div>
+        <div style={{ background: '#f8fafc', borderRadius: 10, border: '1px solid #e2e8f0', padding: 16, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+          <p style={{ fontSize: 10, color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.8px' }}>Recommendation</p>
+          <RecommendationBadge value={data.recommendation} />
+        </div>
+      </div>
+      {data.riskFactors?.length > 0 && (
+        <div>
+          <p style={{ fontSize: 11, fontWeight: 600, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: 8 }}>Risk Factors ({data.riskFactors.length})</p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            {data.riskFactors.map((f, i) => (
+              <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, padding: '7px 10px', background: '#fef2f2', borderRadius: 7, border: '1px solid #fecaca' }}>
+                <span style={{ fontSize: 11, color: '#dc2626', fontWeight: 700, flexShrink: 0, marginTop: 1 }}>⚠</span>
+                <span style={{ fontSize: 13, color: '#374151', lineHeight: 1.5 }}>{f}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+      {data.reasoning && (
+        <div style={{ background: '#f8fafc', borderRadius: 8, border: '1px solid #e2e8f0', padding: 12 }}>
+          <p style={{ fontSize: 10, fontWeight: 600, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: 6 }}>AI Reasoning</p>
+          <p style={{ fontSize: 13, color: '#374151', lineHeight: 1.6 }}>{data.reasoning}</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function GenericJsonView({ data }) {
+  function renderValue(v, depth = 0) {
+    if (v === null || v === undefined) return <span style={{ color: '#94a3b8' }}>—</span>;
+    if (typeof v === 'boolean') return <span style={{ color: v ? '#16a34a' : '#dc2626', fontWeight: 600 }}>{v ? 'Yes' : 'No'}</span>;
+    if (typeof v === 'number') return <span style={{ color: '#2563eb', fontWeight: 600 }}>{v}</span>;
+    if (Array.isArray(v)) return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 4 }}>
+        {v.map((item, i) => (
+          <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+            <span style={{ color: '#94a3b8', fontSize: 11, marginTop: 2, flexShrink: 0 }}>•</span>
+            <span style={{ fontSize: 12, color: '#374151' }}>{typeof item === 'object' ? JSON.stringify(item) : String(item)}</span>
+          </div>
+        ))}
+      </div>
+    );
+    if (typeof v === 'object' && depth < 2) return (
+      <div style={{ marginTop: 4, paddingLeft: 8, borderLeft: '2px solid #e2e8f0' }}>
+        {Object.entries(v).map(([k2, v2]) => (
+          <div key={k2} style={{ display: 'flex', gap: 8, marginBottom: 4 }}>
+            <span style={{ fontSize: 11, color: '#64748b', fontWeight: 600, minWidth: 80 }}>{k2.replace(/_/g, ' ')}</span>
+            <span style={{ fontSize: 12, color: '#374151' }}>{typeof v2 === 'object' ? JSON.stringify(v2) : String(v2)}</span>
+          </div>
+        ))}
+      </div>
+    );
+    return <span style={{ fontSize: 12, color: '#374151' }}>{String(v)}</span>;
+  }
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+      {Object.entries(data).map(([k, v]) => (
+        <div key={k} style={{ padding: '8px 12px', background: '#f8fafc', borderRadius: 8, border: '1px solid #e2e8f0' }}>
+          <p style={{ fontSize: 10, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.6px', marginBottom: 4 }}>
+            {k.replace(/_/g, ' ').replace(/([A-Z])/g, ' $1').trim()}
+          </p>
+          {renderValue(v)}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function SmartResponseRenderer({ responseText, intentType }) {
+  const [showRaw, setShowRaw] = useState(false);
+  if (!responseText) return (
+    <div className="text-center py-3">
+      <p className="text-sm text-slate-400">Response text not available</p>
+    </div>
+  );
+  const parsed = tryParseJson(responseText);
+  const isJson = parsed !== null && typeof parsed === 'object';
+  const type = (intentType ?? '').toLowerCase();
+  const isFraud = type.includes('fraud') || (parsed?.riskScore !== undefined && parsed?.recommendation !== undefined);
+  return (
+    <div>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+        <p style={{ fontSize: 10, fontWeight: 600, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.8px' }}>
+          {isJson ? (isFraud ? 'Fraud Risk Assessment' : 'Structured Response') : 'Adapter Response'}
+        </p>
+        {isJson && (
+          <span onClick={(e) => { e.stopPropagation(); setShowRaw(v => !v); }}
+            style={{ fontSize: 11, color: '#64748b', background: '#f1f5f9', border: '1px solid #e2e8f0', borderRadius: 6, padding: '3px 8px', cursor: 'pointer', userSelect: 'none' }}>
+            {showRaw ? '← Smart view' : 'Raw JSON →'}
+          </span>
+        )}
+      </div>
+      {showRaw || !isJson ? (
+        <div style={{ fontFamily: isJson ? "'JetBrains Mono', monospace" : 'inherit', fontSize: 13, color: '#374151', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 8, padding: 12, lineHeight: 1.6, whiteSpace: isJson ? 'pre-wrap' : 'pre-line', wordBreak: 'break-word', maxHeight: 300, overflowY: 'auto' }}>
+          {isJson ? JSON.stringify(parsed, null, 2) : responseText}
+        </div>
+      ) : (
+        isFraud ? <FraudDetectionView data={parsed} /> : <GenericJsonView data={parsed} />
+      )}
+    </div>
+  );
+}
 
 // ── Intent type suggestions ───────────────────────────────────────────────────
 // intentType is a free-form string in the backend — no enum validation.
@@ -43,11 +199,12 @@ const DEFAULT = JSON.stringify({
   intentType: 'chat',
   objective: {
     description: 'Answer the user question accurately and concisely',
+    userMessage: 'What is the EU AI Act and how does it affect enterprise AI deployments?',
   },
   constraints: {
     maxRetries:    3,
     timeoutSeconds: 30,
-    maxLatencyMs:  2000,
+    maxLatencyMs:  10000,
   },
   budget: {
     ceilingUsd: 0.05,
@@ -69,6 +226,7 @@ const EXAMPLE_SATISFIED = {
   intentType: 'fraud_detection',
   objective: {
     description:     'Analyse this payment transaction for fraud signals and return a risk score with reasoning',
+    userMessage:     'Transaction TXN-20260420-084521: $4,832 wire transfer to an overseas account, initiated at 02:14 AM, from a device not seen before. Analyse fraud risk.',
     fintechCategory: 'FRAUD',
     riskLevel:       'HIGH',
     sourceSystem:    'payment-gateway-v3',
@@ -165,7 +323,7 @@ const TEMPLATES = {
         fintechCategory: 'FRAUD',
         riskLevel:       'HIGH',
       },
-      constraints:{ maxRetries: 1, timeoutSeconds: 6, maxLatencyMs: 400 },
+      constraints:{ maxRetries: 1, timeoutSeconds: 6, maxLatencyMs: 10000 },
       budget:     { ceilingUsd: 0.20, currency: 'USD' },
       policy: {
         requireHumanReview: true,
@@ -216,7 +374,7 @@ const TEMPLATES = {
     payload: {
       intentType: 'classification',
       objective:  { description: 'Classify document using on-prem model' },
-      constraints:{ maxRetries: 2, timeoutSeconds: 15, maxLatencyMs: 500 },
+      constraints:{ maxRetries: 2, timeoutSeconds: 15, maxLatencyMs: 10000 },
       budget:     { ceilingUsd: 0.01, currency: 'USD' },
       adapter: {
         type:         'byom',
@@ -551,6 +709,9 @@ export default function Playground({ keycloak }) {
   const [copied,     setCopied]     = useState(false);
   const [creditCost, setCreditCost] = useState(null);
   const [showRaw,    setShowRaw]    = useState(false);
+  const [execResult, setExecResult] = useState(null);   // execution record after completion
+  const [intentData, setIntentData] = useState(null);   // intent detail after completion
+  const pollRef = useRef(null);
 
   // ── Helpers ─────────────────────────────────────────────────────────────
 
@@ -602,15 +763,62 @@ export default function Playground({ keycloak }) {
 
     try {
       const id = await submitIntent(keycloak, body);
-      setResult(String(id));
+      const intentId = String(id);
+      setResult(intentId);
       setCreditCost(MODEL_TIERS[tier].credits);
-      // Reload after 8 s — covers typical LLM round-trip latency.
-      // The ledger write happens when the intent reaches SATISFIED or
-      // VIOLATED, not at submission time, so we wait for completion.
-      setTimeout(reload, 8000);
+      setExecResult(null);
+      setIntentData(null);
+
+      // Poll for execution result every 2s until terminal
+      let attempts = 0;
+      pollRef.current = setInterval(async () => {
+        attempts++;
+        if (attempts > 30) { clearInterval(pollRef.current); return; } // 60s max
+        try {
+          const [intentDetail, execs] = await Promise.all([
+            getIntent(keycloak, intentId),
+            getExecutionsByIntent(keycloak, intentId),
+          ]);
+          if (intentDetail) setIntentData(intentDetail);
+          const completed = (execs ?? []).find(e =>
+            e.status === 'COMPLETED' || e.status === 'SUCCESS' || e.phase === 'COMPLETED'
+          ) ?? execs?.[0];
+          if (completed?.responseText) {
+            setExecResult(completed);
+            clearInterval(pollRef.current);
+            reload();
+          } else if (intentDetail?.terminal) {
+            // Intent terminated — could be VIOLATED (SLA/budget breach)
+            const sat = intentDetail.satisfactionState;
+            if (sat === 'VIOLATED') {
+              const reason = intentDetail.violationReason ?? intentDetail.violatedConstraint ?? 'Constraint violated';
+              setError(`Intent violated: ${reason}. Check your maxLatencyMs and budget constraints.`);
+              refundCredits(tier);
+            }
+            setExecResult(completed ?? null);
+            clearInterval(pollRef.current);
+            reload();
+          }
+        } catch { /* ignore poll errors */ }
+      }, 2000);
     } catch (e) {
       refundCredits(tier);
-      setError(e.message);
+      // Parse SLA / constraint violation errors into friendly messages
+      const msg = e.message ?? '';
+      if (msg.includes('SLAException') || msg.includes('Latency constraint violated')) {
+        const match = msg.match(/actual=(\d+)ms.*limit=(\d+)ms/);
+        if (match) {
+          setError(`Latency constraint violated — LLM took ${match[1]}ms but maxLatencyMs is ${match[2]}ms. Increase maxLatencyMs (e.g. 10000) to allow more time.`);
+        } else {
+          setError('Latency constraint violated — the LLM response exceeded your maxLatencyMs limit. Increase it to 10000ms or higher.');
+        }
+      } else if (msg.includes('BudgetExceeded') || msg.includes('budget')) {
+        setError('Budget exceeded — increase ceilingUsd in the intent payload.');
+      } else if (msg.includes('500') || msg.includes('Internal Server Error')) {
+        setError('Intent submission failed — check your constraints (maxLatencyMs, budget ceiling). Try increasing maxLatencyMs to 10000.');
+      } else {
+        setError(msg || 'Intent submission failed. Please try again.');
+      }
     } finally {
       setLoading(false);
     }
@@ -790,17 +998,73 @@ export default function Playground({ keycloak }) {
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="mb-4 p-3 rounded-lg bg-green-50 border border-green-200">
-                  <p className="text-xs text-green-700 font-medium mb-1">Intent ID</p>
-                  <p className="font-mono text-sm text-green-800 break-all"
-                    style={{ fontFamily: "'JetBrains Mono', monospace" }}>
-                    {result}
-                  </p>
+                <div className="mb-4 p-3 rounded-lg bg-green-50 border border-green-200 flex items-center justify-between">
+                  <div>
+                    <p className="text-xs text-green-700 font-medium mb-1">Intent ID</p>
+                    <p className="font-mono text-sm text-green-800 break-all"
+                      style={{ fontFamily: "'JetBrains Mono', monospace" }}>
+                      {result}
+                    </p>
+                  </div>
+                  {intentData && (
+                    <div className="flex items-center gap-1.5 ml-3">
+                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
+                        intentData.satisfactionState === 'SATISFIED'
+                          ? 'bg-green-100 text-green-700'
+                          : intentData.satisfactionState === 'VIOLATED'
+                          ? 'bg-red-100 text-red-700'
+                          : 'bg-blue-100 text-blue-700'
+                      }`}>
+                        {intentData.satisfactionState ?? intentData.phase ?? 'RUNNING'}
+                      </span>
+                    </div>
+                  )}
                 </div>
-                <p className="text-sm font-medium text-slate-700 mb-4">Execution timeline</p>
+
+                {/* Model response — shown as soon as available */}
+                {execResult ? (
+                  <div className="mb-4 space-y-3">
+                    {/* Metrics row */}
+                    <div className="grid grid-cols-4 gap-2">
+                      {[
+                        { label: 'Quality', value: execResult.qualityScore != null ? (execResult.qualityScore * 100).toFixed(0) + '%' : '—', color: execResult.qualityScore >= 0.8 ? '#16a34a' : execResult.qualityScore >= 0.6 ? '#d97706' : '#94a3b8', bg: '#f8fafc' },
+                        { label: 'Halluc. risk', value: execResult.hallucinationRisk != null ? (execResult.hallucinationRisk * 100).toFixed(0) + '%' : '—', color: execResult.hallucinationRisk <= 0.2 ? '#16a34a' : execResult.hallucinationRisk <= 0.5 ? '#d97706' : '#dc2626', bg: '#f8fafc' },
+                        { label: 'Latency', value: execResult.latencyMs > 1 ? `${(execResult.latencyMs/1000).toFixed(2)}s` : execResult.latencyMs === 1 ? '< 1ms (cached)' : '—', color: '#2563eb', bg: '#eff6ff' },
+                        { label: 'Cost', value: (() => { const c = execResult.costUsd ?? execResult.cost; if (c == null) return '—'; const n = Number(c); return n === 0 ? (execResult.latencyMs === 1 ? '$0 (cached)' : '$0.000000') : `$${n.toFixed(6)}`; })(), color: '#475569', bg: '#f8fafc' },
+                      ].map(({ label, value, color, bg }) => (
+                        <div key={label} className="rounded-lg p-2 text-center border border-slate-100" style={{ backgroundColor: bg }}>
+                          <p className="text-[10px] text-slate-400 mb-0.5">{label}</p>
+                          <p className="text-sm font-bold" style={{ color }}>{value}</p>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Response — smart renderer */}
+                    <SmartResponseRenderer
+                      responseText={execResult.responseText}
+                      intentType={(() => { try { return JSON.parse(json)?.intentType; } catch { return null; } })()}
+                    />
+
+                    {/* Model used */}
+                    {(execResult.adapterId || execResult.adapterName) && (
+                      <p className="text-[10px] text-slate-400 text-right">
+                        Model: {execResult.adapterId ?? execResult.adapterName}
+                      </p>
+                    )}
+                  </div>
+                ) : (
+                  <div className="mb-4 flex items-center gap-2 text-xs text-blue-600">
+                    <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
+                    Executing — response will appear here…
+                  </div>
+                )}
+
+                <p className="text-sm font-medium text-slate-700 mb-3">Execution timeline</p>
                 <ExecutionTimeline
                   keycloak={keycloak} intentId={result}
-                  currentPhase="CREATED" terminal={false} satisfied={false}
+                  currentPhase={intentData?.phase ?? 'CREATED'}
+                  terminal={intentData?.terminal ?? false}
+                  satisfied={intentData?.satisfactionState === 'SATISFIED'}
                 />
               </CardContent>
             </Card>

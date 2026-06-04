@@ -359,6 +359,276 @@ function AdapterCard({ events, adapters, executions }) {
 }
 
 // ── Decision output card ──────────────────────────────────────────────────────
+
+// ── Smart Response Renderer ───────────────────────────────────────────────────
+// Detects JSON in the adapter response and renders a human-readable view.
+// Falls back to plain text for non-JSON responses.
+//
+// Supported intent types with rich rendering:
+//   fraud_detection  — risk score gauge, risk factors, recommendation badge
+//   chat             — plain formatted text
+//   classification   — label + confidence
+//   summarization    — formatted summary
+//   compliance_check — pass/fail + findings
+//   sentiment_analysis — sentiment + score
+//   (all others)     — key-value pairs from JSON
+
+function tryParseJson(text) {
+  if (!text) return null;
+  // Strip markdown code fences if present
+  const cleaned = text.replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/```\s*$/i, '').trim();
+  try { return JSON.parse(cleaned); } catch { return null; }
+}
+
+function RiskGauge({ score }) {
+  const pct = Math.round((score ?? 0) * 100);
+  const color = score >= 0.8 ? '#dc2626' : score >= 0.6 ? '#d97706' : score >= 0.3 ? '#f59e0b' : '#16a34a';
+  const label = score >= 0.8 ? 'CRITICAL' : score >= 0.6 ? 'HIGH' : score >= 0.3 ? 'MEDIUM' : 'LOW';
+  return (
+    <div style={{ textAlign: 'center', padding: '12px 0' }}>
+      <div style={{ position: 'relative', width: 80, height: 80, margin: '0 auto 8px' }}>
+        <svg viewBox="0 0 36 36" style={{ transform: 'rotate(-90deg)', width: 80, height: 80 }}>
+          <circle cx="18" cy="18" r="15.9" fill="none" stroke="#e2e8f0" strokeWidth="3" />
+          <circle cx="18" cy="18" r="15.9" fill="none" stroke={color} strokeWidth="3"
+            strokeDasharray={`${pct} ${100 - pct}`} strokeLinecap="round" />
+        </svg>
+        <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column' }}>
+          <span style={{ fontSize: 16, fontWeight: 800, color, lineHeight: 1 }}>{pct}</span>
+          <span style={{ fontSize: 9, color: '#94a3b8' }}>/ 100</span>
+        </div>
+      </div>
+      <div style={{ fontSize: 11, fontWeight: 700, color, letterSpacing: '0.5px' }}>{label} RISK</div>
+    </div>
+  );
+}
+
+function RecommendationBadge({ value }) {
+  const styles = {
+    APPROVE: { bg: '#f0fdf4', color: '#16a34a', border: '#bbf7d0', icon: '✓' },
+    REVIEW:  { bg: '#fffbeb', color: '#d97706', border: '#fde68a', icon: '!' },
+    DECLINE: { bg: '#fef2f2', color: '#dc2626', border: '#fecaca', icon: '✗' },
+  };
+  const s = styles[value?.toUpperCase()] ?? styles.REVIEW;
+  return (
+    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 14px', borderRadius: 8, background: s.bg, border: `1.5px solid ${s.border}` }}>
+      <span style={{ fontSize: 14, fontWeight: 800, color: s.color }}>{s.icon}</span>
+      <span style={{ fontSize: 13, fontWeight: 700, color: s.color, letterSpacing: '0.5px' }}>{value?.toUpperCase()}</span>
+    </div>
+  );
+}
+
+function FraudDetectionView({ data }) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      {/* Score + recommendation row */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+        <div style={{ background: '#f8fafc', borderRadius: 10, border: '1px solid #e2e8f0', padding: 16, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          <p style={{ fontSize: 10, color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: 4 }}>Risk Score</p>
+          <RiskGauge score={data.riskScore} />
+        </div>
+        <div style={{ background: '#f8fafc', borderRadius: 10, border: '1px solid #e2e8f0', padding: 16, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+          <p style={{ fontSize: 10, color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.8px' }}>Recommendation</p>
+          <RecommendationBadge value={data.recommendation} />
+        </div>
+      </div>
+
+      {/* Risk factors */}
+      {data.riskFactors?.length > 0 && (
+        <div>
+          <p style={{ fontSize: 11, fontWeight: 600, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: 8 }}>Risk Factors ({data.riskFactors.length})</p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            {data.riskFactors.map((f, i) => (
+              <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, padding: '7px 10px', background: '#fef2f2', borderRadius: 7, border: '1px solid #fecaca' }}>
+                <span style={{ fontSize: 11, color: '#dc2626', fontWeight: 700, flexShrink: 0, marginTop: 1 }}>⚠</span>
+                <span style={{ fontSize: 13, color: '#374151', lineHeight: 1.5 }}>{f}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Reasoning */}
+      {data.reasoning && (
+        <div style={{ background: '#f8fafc', borderRadius: 8, border: '1px solid #e2e8f0', padding: 12 }}>
+          <p style={{ fontSize: 10, fontWeight: 600, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: 6 }}>AI Reasoning</p>
+          <p style={{ fontSize: 13, color: '#374151', lineHeight: 1.6 }}>{data.reasoning}</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SentimentView({ data }) {
+  const sentiment = data.sentiment ?? data.label ?? data.result ?? 'Unknown';
+  const score = data.score ?? data.confidence ?? data.probability ?? null;
+  const color = sentiment.toLowerCase().includes('pos') ? '#16a34a' : sentiment.toLowerCase().includes('neg') ? '#dc2626' : '#d97706';
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: 16, background: '#f8fafc', borderRadius: 10, border: '1px solid #e2e8f0' }}>
+        <div style={{ width: 40, height: 40, borderRadius: '50%', background: color + '20', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20 }}>
+          {sentiment.toLowerCase().includes('pos') ? '😊' : sentiment.toLowerCase().includes('neg') ? '😞' : '😐'}
+        </div>
+        <div>
+          <p style={{ fontSize: 16, fontWeight: 700, color }}>{sentiment}</p>
+          {score != null && <p style={{ fontSize: 12, color: '#94a3b8' }}>Confidence: {(score * 100).toFixed(1)}%</p>}
+        </div>
+      </div>
+      {Object.entries(data).filter(([k]) => !['sentiment','label','result','score','confidence','probability'].includes(k)).map(([k, v]) => (
+        <div key={k} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 10px', background: '#f8fafc', borderRadius: 6, border: '1px solid #e2e8f0' }}>
+          <span style={{ fontSize: 12, color: '#64748b', fontWeight: 600, textTransform: 'capitalize' }}>{k.replace(/_/g, ' ')}</span>
+          <span style={{ fontSize: 12, color: '#374151' }}>{typeof v === 'object' ? JSON.stringify(v) : String(v)}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function ClassificationView({ data }) {
+  const label = data.label ?? data.category ?? data.class ?? data.classification ?? null;
+  const confidence = data.confidence ?? data.score ?? data.probability ?? null;
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+      {label && (
+        <div style={{ padding: 16, background: '#eff6ff', borderRadius: 10, border: '1px solid #bfdbfe', textAlign: 'center' }}>
+          <p style={{ fontSize: 10, color: '#3b82f6', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: 4 }}>Classification</p>
+          <p style={{ fontSize: 20, fontWeight: 800, color: '#1d4ed8' }}>{label}</p>
+          {confidence != null && <p style={{ fontSize: 12, color: '#64748b', marginTop: 4 }}>Confidence: {(confidence * 100).toFixed(1)}%</p>}
+        </div>
+      )}
+      {Object.entries(data).filter(([k]) => !['label','category','class','classification','confidence','score','probability'].includes(k)).map(([k, v]) => (
+        <div key={k} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 10px', background: '#f8fafc', borderRadius: 6, border: '1px solid #e2e8f0' }}>
+          <span style={{ fontSize: 12, color: '#64748b', fontWeight: 600, textTransform: 'capitalize' }}>{k.replace(/_/g, ' ')}</span>
+          <span style={{ fontSize: 12, color: '#374151' }}>{typeof v === 'object' ? JSON.stringify(v) : String(v)}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function GenericJsonView({ data }) {
+  function renderValue(v, depth = 0) {
+    if (v === null || v === undefined) return <span style={{ color: '#94a3b8' }}>—</span>;
+    if (typeof v === 'boolean') return <span style={{ color: v ? '#16a34a' : '#dc2626', fontWeight: 600 }}>{v ? 'Yes' : 'No'}</span>;
+    if (typeof v === 'number') return <span style={{ color: '#2563eb', fontWeight: 600 }}>{v}</span>;
+    if (Array.isArray(v)) return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 4 }}>
+        {v.map((item, i) => (
+          <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+            <span style={{ color: '#94a3b8', fontSize: 11, marginTop: 2, flexShrink: 0 }}>•</span>
+            <span style={{ fontSize: 12, color: '#374151' }}>{typeof item === 'object' ? JSON.stringify(item) : String(item)}</span>
+          </div>
+        ))}
+      </div>
+    );
+    if (typeof v === 'object' && depth < 2) return (
+      <div style={{ marginTop: 4, paddingLeft: 8, borderLeft: '2px solid #e2e8f0' }}>
+        {Object.entries(v).map(([k2, v2]) => (
+          <div key={k2} style={{ display: 'flex', gap: 8, marginBottom: 4 }}>
+            <span style={{ fontSize: 11, color: '#64748b', fontWeight: 600, minWidth: 80, textTransform: 'capitalize' }}>{k2.replace(/_/g, ' ')}</span>
+            <span style={{ fontSize: 12, color: '#374151' }}>{typeof v2 === 'object' ? JSON.stringify(v2) : String(v2)}</span>
+          </div>
+        ))}
+      </div>
+    );
+    return <span style={{ fontSize: 12, color: '#374151' }}>{String(v)}</span>;
+  }
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+      {Object.entries(data).map(([k, v]) => (
+        <div key={k} style={{ padding: '8px 12px', background: '#f8fafc', borderRadius: 8, border: '1px solid #e2e8f0' }}>
+          <p style={{ fontSize: 10, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.6px', marginBottom: 4 }}>
+            {k.replace(/_/g, ' ').replace(/([A-Z])/g, ' $1').trim()}
+          </p>
+          {renderValue(v)}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function ComplianceView({ data }) {
+  const passed = data.passed ?? data.compliant ?? data.status === 'PASS' ?? null;
+  const findings = data.findings ?? data.violations ?? data.issues ?? [];
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+      {passed !== null && (
+        <div style={{ padding: 16, background: passed ? '#f0fdf4' : '#fef2f2', borderRadius: 10, border: `1px solid ${passed ? '#bbf7d0' : '#fecaca'}`, textAlign: 'center' }}>
+          <p style={{ fontSize: 18, fontWeight: 800, color: passed ? '#16a34a' : '#dc2626' }}>
+            {passed ? '✓ COMPLIANT' : '✗ NON-COMPLIANT'}
+          </p>
+        </div>
+      )}
+      {findings.length > 0 && (
+        <div>
+          <p style={{ fontSize: 11, fontWeight: 600, color: '#64748b', textTransform: 'uppercase', marginBottom: 6 }}>Findings</p>
+          {findings.map((f, i) => (
+            <div key={i} style={{ padding: '6px 10px', background: '#fffbeb', borderRadius: 6, border: '1px solid #fde68a', marginBottom: 4 }}>
+              <span style={{ fontSize: 12, color: '#374151' }}>{typeof f === 'object' ? JSON.stringify(f) : String(f)}</span>
+            </div>
+          ))}
+        </div>
+      )}
+      {Object.entries(data).filter(([k]) => !['passed','compliant','status','findings','violations','issues'].includes(k)).map(([k, v]) => (
+        <div key={k} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 10px', background: '#f8fafc', borderRadius: 6, border: '1px solid #e2e8f0' }}>
+          <span style={{ fontSize: 12, color: '#64748b', fontWeight: 600 }}>{k.replace(/_/g, ' ')}</span>
+          <span style={{ fontSize: 12, color: '#374151' }}>{typeof v === 'object' ? JSON.stringify(v) : String(v)}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function SmartResponseRenderer({ responseText, intentType, showRawOverride }) {
+  const [showRaw, setShowRaw] = useState(false);
+
+  if (!responseText) return (
+    <div className="text-center py-3">
+      <p className="text-sm text-slate-400">Response text not available — adapter may be a mock or response was not stored.</p>
+    </div>
+  );
+
+  const parsed = tryParseJson(responseText);
+  const isJson = parsed !== null && typeof parsed === 'object';
+
+  // Determine intent category for smart rendering
+  const type = (intentType ?? '').toLowerCase();
+  const isFraud      = type.includes('fraud') || (parsed?.riskScore !== undefined && parsed?.recommendation !== undefined);
+  const isSentiment  = type.includes('sentiment') || (parsed?.sentiment !== undefined);
+  const isClassify   = type.includes('classif') || (parsed?.label !== undefined && parsed?.confidence !== undefined);
+  const isCompliance = type.includes('compliance') || type.includes('audit') || (parsed?.passed !== undefined || parsed?.compliant !== undefined);
+
+  return (
+    <div>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+        <p style={{ fontSize: 10, fontWeight: 600, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.8px' }}>
+          {isJson ? (isFraud ? 'Fraud Risk Assessment' : isSentiment ? 'Sentiment Analysis' : isClassify ? 'Classification Result' : isCompliance ? 'Compliance Check' : 'Structured Response') : 'Adapter Response'}
+        </p>
+        {isJson && (
+          <span onClick={(e) => { e.stopPropagation(); setShowRaw(v => !v); }}
+            style={{ fontSize: 11, color: '#64748b', background: '#f1f5f9', border: '1px solid #e2e8f0', borderRadius: 6, padding: '3px 8px', cursor: 'pointer', userSelect: 'none' }}>
+            {showRaw ? '← Smart view' : 'Raw JSON →'}
+          </span>
+        )}
+      </div>
+
+      {showRaw || !isJson ? (
+        <div style={{ fontFamily: isJson ? "'JetBrains Mono', monospace" : 'inherit', fontSize: 13, color: '#374151', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 8, padding: 12, lineHeight: 1.6, whiteSpace: isJson ? 'pre-wrap' : 'pre-line', wordBreak: 'break-word', maxHeight: 400, overflowY: 'auto' }}>
+          {isJson ? JSON.stringify(parsed, null, 2) : responseText}
+        </div>
+      ) : (
+        <div>
+          {isFraud      && <FraudDetectionView data={parsed} />}
+          {isSentiment  && !isFraud && <SentimentView data={parsed} />}
+          {isClassify   && !isFraud && !isSentiment && <ClassificationView data={parsed} />}
+          {isCompliance && !isFraud && !isSentiment && !isClassify && <ComplianceView data={parsed} />}
+          {!isFraud && !isSentiment && !isClassify && !isCompliance && <GenericJsonView data={parsed} />}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function DecisionOutputCard({ executions }) {
   const [showRaw,    setShowRaw]    = useState(false);
   const [copiedText, setCopiedText] = useState(false);
@@ -474,40 +744,11 @@ function DecisionOutputCard({ executions }) {
           </div>
         )}
 
-        {/* AI response */}
-        {hasResponse ? (
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">
-                Adapter response
-              </p>
-              <button
-                onClick={() => setShowRaw(v => !v)}
-                className="text-xs text-slate-400 hover:text-slate-600 flex items-center gap-1">
-                {showRaw ? <><EyeOff size={9} /> Collapse</> : <><Eye size={9} /> Expand</>}
-              </button>
-            </div>
-            <div className={cn(
-              'rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700 leading-relaxed overflow-hidden transition-all',
-              showRaw ? '' : 'max-h-32'
-            )}
-              style={{ fontFamily: 'inherit' }}>
-              {exec.responseText}
-            </div>
-            {!showRaw && exec.responseText?.length > 300 && (
-              <button onClick={() => setShowRaw(true)}
-                className="text-xs text-blue-500 mt-1 underline">
-                Show full response
-              </button>
-            )}
-          </div>
-        ) : (
-          <div className="text-center py-3">
-            <p className="text-sm text-slate-400">
-              Response text not available — adapter may be a mock or response was not stored.
-            </p>
-          </div>
-        )}
+        {/* AI response — smart renderer */}
+        <SmartResponseRenderer
+          responseText={exec.responseText}
+          intentType={exec.intentType}
+        />
 
         {/* Token counts if available */}
         {((exec.promptTokens > 0) || (exec.completionTokens > 0)) && (
@@ -691,8 +932,6 @@ export default function IntentDetail({ keycloak }) {
             <CardContent>
               {intent.constraints ? (
                 <>
-                  <Row label="Max latency"  value={intent.constraints.maxLatency
-                    ? `${intent.constraints.maxLatency}ms` : '—'} />
                   <Row label="Max latency ms" value={intent.constraints.maxLatencyMs
                     ? `${intent.constraints.maxLatencyMs}ms` : '—'} />
                   <Row label="Max retries"  value={intent.constraints.maxRetries ?? '—'} />
