@@ -14,11 +14,11 @@ export default function HomePage({ keycloak }) {
             <Card sx={{ width: 400, textAlign: "center", p: 2 }}>
                 <CardContent>
                     <Typography variant="h5" gutterBottom>
-                        DecisionMesh AI Control Plane
+                        Govern Every AI Decision
                     </Typography>
 
                     <Typography sx={{ mb: 3 }}>
-                        Intent-centric AI orchestration platform
+                        AI Governance &amp; Compliance Control Plane
                     </Typography>
 
                     <Button

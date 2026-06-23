@@ -3,7 +3,7 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, FlaskConical, ListOrdered, Cpu,
   Puzzle, ShieldCheck, BarChart3, TrendingUp,
-  KeyRound, ScrollText, ChevronRight,
+  KeyRound, ScrollText, ChevronRight, ClipboardCheck,
   UserPlus, PanelLeftClose, FolderOpen,
   ChevronDown, Check, Plus, Palette, CreditCard, Receipt,
   Bug, Library, MessageSquarePlus, TestTube2,
@@ -36,6 +36,7 @@ const NAV = [
       { label: 'Executions',    icon: Cpu,             to: '/executions'     },
       { label: 'Adapters',      icon: Puzzle,          to: '/adapters'       },
       { label: 'Policies',      icon: ShieldCheck,     to: '/policies'       },
+      { label: 'Review Queue',  icon: ClipboardCheck,  to: '/review-queue'   },
     ],
   },
   {

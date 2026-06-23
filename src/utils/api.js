@@ -291,3 +291,25 @@ export async function setupTenant(keycloak, payload) {
     body: JSON.stringify(payload),
   });
 }
+// ── Review Queue ──────────────────────────────────────────────────────────────
+
+export async function getReviewQueue(keycloak, params = {}) {
+  const qs = new URLSearchParams(
+    Object.fromEntries(Object.entries(params).filter(([, v]) => v != null))
+  ).toString();
+  return request(keycloak, `/review-queue${qs ? `?${qs}` : ''}`);
+}
+
+export async function approveIntent(keycloak, intentId, note = '') {
+  return request(keycloak, `/review-queue/${intentId}/approve`, {
+    method: 'POST',
+    body: JSON.stringify({ note }),
+  });
+}
+
+export async function rejectIntent(keycloak, intentId, note = '') {
+  return request(keycloak, `/review-queue/${intentId}/reject`, {
+    method: 'POST',
+    body: JSON.stringify({ note }),
+  });
+}

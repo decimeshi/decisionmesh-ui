@@ -42,6 +42,7 @@ const Billing          = lazy(() => import('./pages/Billing'));
 const CreditLedger     = lazy(() => import('./pages/CreditLedger'));
 const TokenDebugPage   = lazy(() => import('./pages/TokenDebugPage'));
 const FintechIntents   = lazy(() => import('./pages/FintechIntents'));
+const ReviewQueue      = lazy(() => import('./pages/ReviewQueue'));
 
 // ── sys_admin only pages ──────────────────────────────────────────────────────
 const AdminPaymentTesting = lazy(() => import('./pages/AdminPaymentTesting'));
@@ -142,6 +143,7 @@ export default function App({ keycloak }) {
                 <Route path="/credits"                element={<CreditLedger     keycloak={keycloak} />} />
                 <Route path="/debug/token"            element={<TokenDebugPage   keycloak={keycloak} />} />
                 <Route path="/intent-library"         element={<FintechIntents   keycloak={keycloak} />} />
+                <Route path="/review-queue"           element={<ReviewQueue      keycloak={keycloak} />} />
 
                 <Route path="/blog/intent-based-ai-control-plane" element={<IntentBasedAIControlPlane />}/>
                 <Route path="/blog/ai-governance-enterprise-infrastructure" element={<AIGovernanceInfrastructure />}/>
