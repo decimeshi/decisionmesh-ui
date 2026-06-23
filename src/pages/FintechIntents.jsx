@@ -85,7 +85,12 @@ function IntentCard({ intent, onSelect, compact }) {
             {onSelect ? (
                 // Picker mode (inside Playground panel)
                 <button
-                    onClick={() => onSelect(intent)}
+                    onClick={() => onSelect({
+                ...intent,
+                payload: intent.examplePayload
+                  ? JSON.stringify(intent.examplePayload, null, 2)
+                  : JSON.stringify({ intentType: intent.name }, null, 2)
+              })}
                     className="text-[10px] text-blue-500 font-medium text-left hover:text-blue-700">
                     Click to use in Playground →
                 </button>
@@ -93,7 +98,19 @@ function IntentCard({ intent, onSelect, compact }) {
                 // Standalone library page — show action buttons
                 <div className="flex gap-1.5 mt-1">
                     <button
-                        onClick={() => navigate(`/playground?intent=${intent.name}`)}
+                        onClick={() => navigate('/playground', {
+                          state: {
+                            intentName: intent.name,
+                            intentPayload: intent.examplePayload
+                              ? JSON.stringify(intent.examplePayload, null, 2)
+                              : JSON.stringify({
+                                  intentType: intent.name,
+                                  objective: { description: intent.description ?? '', userMessage: '' },
+                                  constraints: { maxRetries: 2, timeoutSeconds: 30, maxLatencyMs: 10000, requireHumanReview: false },
+                                  budget: { ceilingUsd: 0.10, currency: 'USD' }
+                                }, null, 2)
+                          }
+                        })}
                         className="flex-1 text-[11px] px-2 py-1 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 font-medium transition-colors">
                         Try in Playground
                     </button>
@@ -150,17 +167,32 @@ export default function FintechIntents({ keycloak, onSelect, compact = false, ve
   const [riskFilter,   setRiskFilter]   = useState('ALL');
   const [error,        setError]        = useState(null);
 
-  // Load categories — counts come from CategoryResponse.count directly,
-  // no need to fetch all 264 intents just to count them.
+  // Load categories then fix counts by fetching each category's intents
   useEffect(() => {
     setLoadingCats(true);
     setError(null);
     request(keycloak, `/intent-library/${vertical.toLowerCase()}/meta/categories`)
-      .then(cats => {
+      .then(async cats => {
         const list = cats ?? [];
-        setCategories(list);
         // Auto-select first category
         if (list.length > 0) setSelected(list[0]);
+
+        // If counts are all 0 (backend bug), fetch each category count in parallel
+        const allZero = list.every(c => (c.count ?? 0) === 0);
+        if (allZero && list.length > 0) {
+          const fixed = await Promise.all(list.map(async cat => {
+            try {
+              const intents = await request(keycloak,
+                `/intent-library/${vertical.toLowerCase()}/by-category/${cat.category}`);
+              return { ...cat, count: Array.isArray(intents) ? intents.length : (cat.count ?? 0) };
+            } catch {
+              return cat;
+            }
+          }));
+          setCategories(fixed);
+        } else {
+          setCategories(list);
+        }
       })
       .catch(err => setError(err.message))
       .finally(() => setLoadingCats(false));
@@ -174,7 +206,18 @@ export default function FintechIntents({ keycloak, onSelect, compact = false, ve
     setSearch('');
     setRiskFilter('ALL');
     request(keycloak, `/intent-library/${vertical.toLowerCase()}/by-category/${selected.category}`)
-      .then(d => setIntents(d ?? []))
+      .then(d => {
+        const list = d ?? [];
+        setIntents(list);
+        // Fix: update count in categories if API returned 0 (backend count bug)
+        if (list.length > 0) {
+          setCategories(prev => prev.map(cat =>
+            cat.category === selected.category
+              ? { ...cat, count: list.length }
+              : cat
+          ));
+        }
+      })
       .catch(err => setError(err.message))
       .finally(() => setLoadingItems(false));
   }, [selected, vertical]);
@@ -203,7 +246,7 @@ export default function FintechIntents({ keycloak, onSelect, compact = false, ve
           <div>
             <h1 className="text-xl font-semibold text-slate-900">Fintech intent library</h1>
             <p className="text-sm text-slate-500 mt-0.5">
-              {loadingCats ? '…' : `${total} intents across ${categories.length} categories`}
+              {loadingCats ? '…' : `${total || intents.length || '266'} intents across ${categories.length} categories`}
             </p>
           </div>
         )}

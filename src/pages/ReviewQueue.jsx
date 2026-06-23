@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 import Page from '../components/shared/Page';
 import { Card, EmptyState, Spinner, Button } from '../components/shared';
-import { getReviewQueue, approveIntent, rejectIntent, getExecutionsByIntent } from '../utils/api';
+import { getReviewQueue, approveIntent, rejectIntent } from '../utils/api';
 import { formatRelative, formatDate, shortId } from '../lib/utils';
 
 // ── Risk badge ────────────────────────────────────────────────────────────────
@@ -60,26 +60,27 @@ function TypeBadge({ type }) {
 
 // ── AI Output Panel ───────────────────────────────────────────────────────────
 function AiOutputPanel({ execution }) {
-  if (!execution) return (
-    <div className="mt-3 px-3 py-2 bg-slate-50 rounded-lg text-xs text-slate-400 italic">
-      Loading AI analysis…
-    </div>
-  );
+  if (!execution) return null;
 
+  // Parse responseText — strip markdown fences if present
   let parsed = null;
   try {
-    if (execution.responseText) parsed = JSON.parse(execution.responseText);
+    if (execution.responseText) {
+      let raw = execution.responseText.trim();
+      raw = raw.replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/\s*```$/i, '').trim();
+      parsed = JSON.parse(raw);
+    }
   } catch (_) {}
 
-  const riskScore    = parsed?.riskScore    ?? parsed?.risk_score    ?? null;
-  const riskLevel    = parsed?.riskLevel    ?? parsed?.risk_level    ?? null;
-  const recommendation = parsed?.recommendation ?? null;
-  const reasoning    = parsed?.reasoning    ?? null;
-  const riskFactors  = parsed?.riskFactors  ?? parsed?.risk_factors  ?? [];
-  const complianceFlags = parsed?.complianceFlags ?? [];
-  const violatedFrameworks = parsed?.violatedFrameworks ?? [];
-  const reportingObligations = parsed?.reportingObligations ?? [];
-
+  // Read fields from parsed JSON (authoritative) or fall back to ReviewItem fields
+  const riskScore      = parsed?.complianceScore ?? parsed?.riskScore ?? execution.riskScore ?? null;
+  const recommendation = parsed?.recommendation  ?? execution.aiRecommendation ?? null;
+  const reasoning      = parsed?.reasoning       ?? execution.reasoning ?? null;
+  const riskLevel      = parsed?.riskLevel       ?? null;
+  const riskFactors    = parsed?.riskFactors     ?? parsed?.risk_factors ?? [];
+  const complianceFlags       = parsed?.complianceFlags       ?? [];
+  const violatedFrameworks    = parsed?.violatedFrameworks    ?? [];
+  const reportingObligations  = parsed?.reportingObligations ?? [];
   const riskPct = riskScore != null ? Math.round(riskScore * 100) : null;
 
   return (
@@ -99,7 +100,9 @@ function AiOutputPanel({ execution }) {
         {riskPct != null && (
           <div>
             <div className="flex justify-between text-xs mb-1">
-              <span className="text-slate-500">Risk Score</span>
+              <span className="text-slate-500">
+                {riskLevel ? `Risk Score (${riskLevel})` : 'Risk Score'}
+              </span>
               <span className="font-bold text-slate-700">{riskPct}%</span>
             </div>
             <div className="w-full bg-slate-100 rounded-full h-2">
@@ -176,34 +179,31 @@ function AiOutputPanel({ execution }) {
           </div>
         )}
 
-        {/* Raw output if not JSON */}
+        {/* Raw output only when JSON parse failed */}
         {!parsed && execution.responseText && (
           <div className="bg-slate-50 rounded-lg px-3 py-2">
             <p className="text-xs font-medium text-slate-600 mb-1">AI Output</p>
             <p className="text-xs text-slate-700 leading-relaxed line-clamp-6">
-              {execution.responseText}
+              {execution.responseText.replace(/```json/gi,'').replace(/```/g,'').trim()}
             </p>
           </div>
         )}
 
-        {/* Execution meta */}
-        <div className="flex items-center gap-4 pt-1 border-t border-slate-100">
-          {execution.latencyMs != null && (
-            <span className="flex items-center gap-1 text-xs text-slate-400">
-              <Zap size={10}/> {execution.latencyMs}ms
-            </span>
-          )}
-          {execution.costUsd != null && (
-            <span className="flex items-center gap-1 text-xs text-slate-400">
-              <DollarSign size={10}/> ${Number(execution.costUsd).toFixed(4)}
-            </span>
-          )}
-          {execution.qualityScore != null && (
-            <span className="text-xs text-slate-400">
-              Quality: {Math.round(execution.qualityScore * 100)}%
-            </span>
-          )}
-        </div>
+        {/* Execution meta from parsed JSON */}
+        {parsed && (
+          <div className="flex items-center gap-4 pt-1 border-t border-slate-100">
+            {parsed.latencyMs != null && (
+              <span className="flex items-center gap-1 text-xs text-slate-400">
+                <Zap size={10}/> {parsed.latencyMs}ms
+              </span>
+            )}
+            {parsed.costUsd != null && (
+              <span className="flex items-center gap-1 text-xs text-slate-400">
+                <DollarSign size={10}/> ${Number(parsed.costUsd).toFixed(4)}
+              </span>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -328,7 +328,6 @@ function ActionModal({ intent, action, onConfirm, onCancel, loading }) {
 export default function ReviewQueue({ keycloak }) {
   const navigate   = useNavigate();
   const [items,    setItems]    = useState([]);
-  const [execMap,  setExecMap]  = useState({});  // intentId → execution record
   const [loading,  setLoading]  = useState(true);
   const [error,    setError]    = useState(null);
   const [modal,    setModal]    = useState(null);
@@ -339,33 +338,10 @@ export default function ReviewQueue({ keycloak }) {
     setLoading(true);
     setError(null);
     getReviewQueue(keycloak)
-      .then(async data => {
+      .then(data => {
         const list = Array.isArray(data) ? data : (data?.content ?? []);
         setItems(list);
         setLoading(false);
-
-        // Fetch execution records for each pending intent in parallel
-        const pending = list.filter(i => i.reviewStatus === 'PENDING' || !i.reviewStatus);
-        const results = await Promise.allSettled(
-          pending.map(item =>
-            getExecutionsByIntent(keycloak, item.intentId ?? item.id)
-              .then(execs => {
-                const arr = Array.isArray(execs) ? execs : (execs?.content ?? []);
-                // Use latest execution record
-                const latest = arr.sort((a,b) =>
-                  new Date(b.executedAt ?? b.executed_at ?? 0) -
-                  new Date(a.executedAt ?? a.executed_at ?? 0))[0];
-                return { id: item.intentId ?? item.id, exec: latest };
-              })
-          )
-        );
-        const map = {};
-        results.forEach(r => {
-          if (r.status === 'fulfilled' && r.value?.exec) {
-            map[r.value.id] = r.value.exec;
-          }
-        });
-        setExecMap(map);
       })
       .catch(err => {
         setError(err.message ?? 'Failed to load review queue');
@@ -482,7 +458,7 @@ export default function ReviewQueue({ keycloak }) {
                 <ReviewCard
                   key={id}
                   item={item}
-                  execution={execMap[id]}
+                  execution={item}
                   onApprove={() => setModal({ intent: item, action: 'approve' })}
                   onReject={()  => setModal({ intent: item, action: 'reject'  })}
                   onNavigate={() => navigate(`/intents/${id}`)}
