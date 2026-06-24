@@ -47,15 +47,39 @@ function StepIcon({ status }) {
   return <Circle size={18} className="text-slate-300" />;
 }
 
-export default function ExecutionTimeline({ keycloak, intentId }) {
+// Props:
+//   terminal — passed from parent (IntentDetail) based on DB state
+//   satisfied — passed from parent based on satisfactionState
+// These are the source of truth — don't rely solely on events
+export default function ExecutionTimeline({ keycloak, intentId, terminal: terminalProp = false, satisfied: satisfiedProp = false, currentPhase: currentPhaseProp }) {
   const [loading,      setLoading]      = useState(true);
-  const [currentPhase, setCurrentPhase] = useState('CREATED');
-  const [terminal,     setTerminal]     = useState(false);
-  const [satisfied,    setSatisfied]    = useState(false);
+  const [currentPhase, setCurrentPhase] = useState(currentPhaseProp ?? 'CREATED');
+  const [terminal,     setTerminal]     = useState(terminalProp);
+  const [satisfied,    setSatisfied]    = useState(satisfiedProp);
   const intervalRef = useRef(null);
+
+  // Sync from props — parent DB state is source of truth
+  useEffect(() => {
+    if (terminalProp) {
+      setTerminal(true);
+      setSatisfied(satisfiedProp);
+      setCurrentPhase('COMPLETED');
+      setLoading(false);
+      // Stop polling immediately
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+    }
+  }, [terminalProp, satisfiedProp]);
 
   useEffect(() => {
     if (!intentId) return;
+    // Don't start polling if already terminal from props
+    if (terminalProp) {
+      setLoading(false);
+      return;
+    }
     let mounted = true;
 
     async function load() {
@@ -97,7 +121,7 @@ export default function ExecutionTimeline({ keycloak, intentId }) {
       clearInterval(intervalRef.current);
       intervalRef.current = null;
     };
-  }, [intentId]);
+  }, [intentId, terminalProp]);
 
   if (loading) return <div className="flex justify-center py-8"><Spinner /></div>;
 
@@ -109,7 +133,6 @@ export default function ExecutionTimeline({ keycloak, intentId }) {
 
         return (
           <div key={phase} className="relative">
-            {/* Connector line */}
             {!isLast && (
               <div className={cn(
                 'absolute left-[8px] top-[26px] h-10 w-px',
@@ -151,7 +174,6 @@ export default function ExecutionTimeline({ keycloak, intentId }) {
         );
       })}
 
-      {/* Terminal summary */}
       {terminal && (
         <div className={cn(
           'mt-4 px-4 py-3 rounded-xl text-xs font-medium flex items-center gap-2',

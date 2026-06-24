@@ -815,11 +815,16 @@ export default function IntentDetail({ keycloak }) {
   }, [load]);
 
   // Auto-refresh while non-terminal
+  // Stop polling when terminal=true — even if events don't show SATISFIED
   useEffect(() => {
     if (!intent || intent.terminal) return;
+    // Extra safety — stop if SATISFIED or VIOLATED even if terminal flag missed
+    const isDone = intent.satisfactionState === 'SATISFIED'
+                || intent.satisfactionState === 'VIOLATED';
+    if (isDone) return;
     const t = setInterval(load, 5000);
     return () => clearInterval(t);
-  }, [intent?.terminal, load]);
+  }, [intent?.terminal, intent?.satisfactionState, load]);
 
   if (loading) return (
     <Page title="Intent detail">
@@ -1021,7 +1026,7 @@ export default function IntentDetail({ keycloak }) {
             violationReason={intent.violationReason}
             constraints={intent.constraints}
           />
-          <ReplayPanel intentId={intentId} keycloak={keycloak} />
+          <ReplayPanel intentId={intentId} keycloak={keycloak} satisfactionState={intent?.satisfactionState} />
 
           {/* Adapter detail */}
           <AdapterCard events={events} adapters={adapters} executions={executions} />
