@@ -1095,7 +1095,7 @@ export default function Playground({ keycloak }) {
           const completed = (execs ?? []).find(e =>
             e.status === 'COMPLETED' || e.status === 'SUCCESS' || e.phase === 'COMPLETED'
           ) ?? execs?.[0];
-          if (completed?.responseText) {
+          if (completed?.responseText || completed?.response_text) {
             setExecResult(completed);
             clearInterval(pollRef.current);
             reload();
@@ -1111,11 +1111,12 @@ export default function Playground({ keycloak }) {
             clearInterval(pollRef.current);
             reload();
           } else if (
-            intentDetail?.satisfactionState === 'UNKNOWN' &&
-            intentDetail?.phase === 'COMPLETED'
+            intentDetail?.terminal ||
+            (intentDetail?.satisfactionState === 'UNKNOWN' &&
+             intentDetail?.phase === 'COMPLETED')
           ) {
-            // Intent completed but parked for human review (requireHumanReview:true)
-            // terminal=false so normal terminal check doesn't fire
+            // Intent is terminal OR parked for human review (UNKNOWN+COMPLETED).
+            // terminal may be false for review-queue intents — catch both cases.
             setExecResult(completed ?? null);
             clearInterval(pollRef.current);
             reload();
