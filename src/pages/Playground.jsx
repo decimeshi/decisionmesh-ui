@@ -880,13 +880,21 @@ function PolicyStrip({ json }) {
 // ── Intent type selector — free-form + suggestions ───────────────────────────
 // intentType is a free-form string in the Quarkus backend (no enum).
 // Chips are quick-select shortcuts only — user can type anything.
+// When an intentType is already set (from paste or selection), collapse the
+// browser and show only a compact badge — click to expand and change.
 function IntentTypeSelector({ json, onSelect }) {
   const [customVal, setCustomVal] = useState('');
+  const [expanded, setExpanded] = useState(false);
 
   const currentType = (() => {
     try { return JSON.parse(json)?.intentType ?? ''; }
     catch { return ''; }
   })();
+
+  // Collapse automatically when intentType becomes set
+  useEffect(() => {
+    if (currentType) setExpanded(false);
+  }, [currentType]);
 
   // Derive category from current intentType — default Fintech
   const matchedCategory = (() => {
@@ -909,9 +917,33 @@ function IntentTypeSelector({ json, onSelect }) {
   function handleCustomSubmit(e) {
     e.preventDefault();
     const val = customVal.trim().toLowerCase().replace(/\s+/g, '_');
-    if (val) { onSelect(val); setCustomVal(''); }
+    if (val) { onSelect(val); setCustomVal(''); setExpanded(false); }
   }
 
+  // ── Collapsed view — shown when intentType is set and not expanded ──────────
+  if (currentType && !expanded) {
+    return (
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <CardTitle>Intent type</CardTitle>
+              <span className="text-xs font-mono font-semibold px-2.5 py-0.5 rounded-full bg-blue-600 text-white">
+                {currentType}
+              </span>
+            </div>
+            <button
+              onClick={() => setExpanded(true)}
+              className="text-[10px] text-blue-500 hover:text-blue-700 font-medium transition-colors">
+              Change →
+            </button>
+          </div>
+        </CardHeader>
+      </Card>
+    );
+  }
+
+  // ── Expanded view — shown when no intentType set, or user clicked Change ────
   return (
     <Card>
       <CardHeader>
@@ -922,17 +954,26 @@ function IntentTypeSelector({ json, onSelect }) {
               Free-form string — type anything or pick a suggestion
             </p>
           </div>
-          <div className="flex gap-1">
-            {INTENT_CATEGORIES.map(c => (
-              <button key={c} onClick={() => setCatFilter(c)}
-                className={`px-2 py-0.5 rounded-md text-[10px] font-medium transition-colors ${
-                  catFilter === c
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
-                }`}>
-                {c}
+          <div className="flex items-center gap-2">
+            {currentType && (
+              <button
+                onClick={() => setExpanded(false)}
+                className="text-[10px] text-slate-400 hover:text-slate-600 font-medium transition-colors">
+                ✕ Cancel
               </button>
-            ))}
+            )}
+            <div className="flex gap-1">
+              {INTENT_CATEGORIES.map(c => (
+                <button key={c} onClick={() => setCatFilter(c)}
+                  className={`px-2 py-0.5 rounded-md text-[10px] font-medium transition-colors ${
+                    catFilter === c
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
+                  }`}>
+                  {c}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       </CardHeader>
@@ -1044,7 +1085,24 @@ export default function Playground({ keycloak }) {
     setError(null);
   }
 
-  function setIntentType(id) {
+  async function setIntentType(id) {
+    // Try to load the full library payload for this intent type.
+    // If found, replace the entire payload so description, userMessage,
+    // constraints and budget all match the selected intent — not just the type.
+    try {
+      const res = await request(keycloak, `/intent-library/by-name/${encodeURIComponent(id)}`);
+      if (res?.examplePayload) {
+        // Library payload found — load it fully, preserving model tier
+        const payload = typeof res.examplePayload === 'string'
+          ? JSON.parse(res.examplePayload)
+          : res.examplePayload;
+        setJson(JSON.stringify(payload, null, 2));
+        setJsonErr(null);
+        return;
+      }
+    } catch { /* library lookup failed — fall through to simple swap */ }
+
+    // Fallback: just update intentType in existing payload
     try {
       const p = JSON.parse(json);
       p.intentType = id;
