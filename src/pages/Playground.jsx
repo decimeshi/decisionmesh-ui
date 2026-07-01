@@ -30,24 +30,32 @@ function tryParseJson(text) {
 }
 
 function RiskGauge({ score }) {
-  const pct = Math.round((score ?? 0) * 100);
-  const color = score >= 0.8 ? '#dc2626' : score >= 0.6 ? '#d97706' : score >= 0.3 ? '#f59e0b' : '#16a34a';
-  const label = score >= 0.8 ? 'CRITICAL' : score >= 0.6 ? 'HIGH' : score >= 0.3 ? 'MEDIUM' : 'LOW';
+  // Normalise: if score > 1, assume it's already on 0-100 scale
+  const normalised = score > 1 ? score / 100 : (score ?? 0);
+  const pct = Math.round(normalised * 100);
+  const color = normalised >= 0.8 ? '#dc2626'
+      : normalised >= 0.6 ? '#d97706'
+          : normalised >= 0.3 ? '#f59e0b'
+              : '#16a34a';
+  const label = normalised >= 0.8 ? 'CRITICAL'
+      : normalised >= 0.6 ? 'HIGH'
+          : normalised >= 0.3 ? 'MEDIUM'
+              : 'LOW';
   return (
-    <div style={{ textAlign: 'center', padding: '12px 0' }}>
-      <div style={{ position: 'relative', width: 80, height: 80, margin: '0 auto 8px' }}>
-        <svg viewBox="0 0 36 36" style={{ transform: 'rotate(-90deg)', width: 80, height: 80 }}>
-          <circle cx="18" cy="18" r="15.9" fill="none" stroke="#e2e8f0" strokeWidth="3" />
-          <circle cx="18" cy="18" r="15.9" fill="none" stroke={color} strokeWidth="3"
-            strokeDasharray={`${pct} ${100 - pct}`} strokeLinecap="round" />
-        </svg>
-        <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column' }}>
-          <span style={{ fontSize: 16, fontWeight: 800, color, lineHeight: 1 }}>{pct}</span>
-          <span style={{ fontSize: 9, color: '#94a3b8' }}>/ 100</span>
+      <div style={{ textAlign: 'center', padding: '12px 0' }}>
+        <div style={{ position: 'relative', width: 80, height: 80, margin: '0 auto 8px' }}>
+          <svg viewBox="0 0 36 36" style={{ transform: 'rotate(-90deg)', width: 80, height: 80 }}>
+            <circle cx="18" cy="18" r="15.9" fill="none" stroke="#e2e8f0" strokeWidth="3" />
+            <circle cx="18" cy="18" r="15.9" fill="none" stroke={color} strokeWidth="3"
+                    strokeDasharray={`${pct} ${100 - pct}`} strokeLinecap="round" />
+          </svg>
+          <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column' }}>
+            <span style={{ fontSize: 16, fontWeight: 800, color, lineHeight: 1 }}>{pct}</span>
+            <span style={{ fontSize: 9, color: '#94a3b8' }}>/ 100</span>
+          </div>
         </div>
+        <div style={{ fontSize: 11, fontWeight: 700, color, letterSpacing: '0.5px' }}>{label} RISK</div>
       </div>
-      <div style={{ fontSize: 11, fontWeight: 700, color, letterSpacing: '0.5px' }}>{label} RISK</div>
-    </div>
   );
 }
 
