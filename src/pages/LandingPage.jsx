@@ -34,7 +34,7 @@ const C = {
   textCard:     '#f5f7fa',       // Milky white - card body quotes, high legibility
   textCardMono: '#e2e8f0',       // Milky white mono - card detail lines
 
-  mono:        "ui-monospace, 'JetBrains Mono', 'SF Mono', 'Menlo', 'Consolas', 'Roboto Mono', monospace",
+  mono:        "ui-monospace, 'SF Mono', 'Menlo', 'Consolas', 'Roboto Mono', monospace",
   navBg:     '#0a1a33',
   navBorder: 'rgba(46,124,184,0.28)',
   navText:   '#e5e7eb',
@@ -376,13 +376,13 @@ function Hero({ onRegister, onLogin }) {
       {/* Scan line removed — aurora theme */}
 
       {/* Main content */}
-      <div style={{ position: 'relative', zIndex: 3, display: 'flex', flexDirection: 'column', maxWidth: 1280, margin: '0 auto', padding: '104px 24px 72px', width: '100%' }}>
+      <div style={{ position: 'relative', zIndex: 3, display: 'flex', flexDirection: 'column', maxWidth: 1280, margin: '0 auto', padding: '76px 24px 64px', width: '100%' }}>
 
         {/* Three-column layout */}
         <div style={{ display: 'grid', gridTemplateColumns: '1.15fr 28px 1.3fr 28px 1.15fr', gap: 0, alignItems: 'stretch' }} className="hero-grid">
 
           {/* LEFT — Problem cards */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12, justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16, justifyContent: 'space-between' }}>
             <div style={{ fontFamily: C.mono, fontSize: 12, color: C.red, letterSpacing: '1.5px', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
               <span style={{ display: 'inline-block', width: 6, height: 6, borderRadius: '50%', background: C.red, animation: 'pulse-dot 1.5s ease infinite' }} />
               UNRESOLVED INCIDENTS
@@ -512,7 +512,7 @@ function Hero({ onRegister, onLogin }) {
           </div>
 
           {/* RIGHT — Resolution cards */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12, justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16, justifyContent: 'space-between' }}>
             <div style={{ fontFamily: C.mono, fontSize: 12, color: '#34d399', letterSpacing: '1.5px', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
               <span style={{ display: 'inline-block', width: 6, height: 6, borderRadius: '50%', background: C.green, animation: 'pulse-dot 1.5s ease infinite' }} />
               RESOLVED BY DECISIONMESH
@@ -1194,7 +1194,6 @@ export default function LandingPage() {
   return (
     <>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap');
         * { box-sizing: border-box; margin: 0; padding: 0; }
         html { scroll-behavior: smooth; }
         body {
