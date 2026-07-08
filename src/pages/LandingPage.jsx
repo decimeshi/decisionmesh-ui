@@ -379,10 +379,10 @@ function Hero({ onRegister, onLogin }) {
       <div style={{ position: 'relative', zIndex: 3, display: 'flex', flexDirection: 'column', maxWidth: 1280, margin: '0 auto', padding: '88px 24px 64px', width: '100%' }}>
 
         {/* Three-column layout */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1.15fr 28px 1.3fr 28px 1.15fr', gap: 0, alignItems: 'start' }} className="hero-grid">
+        <div style={{ display: 'grid', gridTemplateColumns: '1.15fr 28px 1.3fr 28px 1.15fr', gap: 0, alignItems: 'stretch' }} className="hero-grid">
 
           {/* LEFT — Problem cards */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 14, justifyContent: 'flex-start' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14, justifyContent: 'space-between' }}>
             <div style={{ fontFamily: C.mono, fontSize: 12, color: C.red, letterSpacing: '1.5px', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
               <span style={{ display: 'inline-block', width: 6, height: 6, borderRadius: '50%', background: C.red, animation: 'pulse-dot 1.5s ease infinite' }} />
               UNRESOLVED INCIDENTS
@@ -431,7 +431,7 @@ function Hero({ onRegister, onLogin }) {
           </div>
 
           {/* CENTER — Hero content + pipeline */}
-          <div style={{ textAlign: 'center', animation: 'fadeUp 0.7s ease both', animationDelay: '0.1s' }}>
+          <div style={{ textAlign: 'center', animation: 'fadeUp 0.7s ease both', animationDelay: '0.1s', display: 'flex', flexDirection: 'column', justifyContent: 'flex-start' }}>
             {/* Badge */}
             <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: C.blueLight, border: `1px solid ${C.blueMuted}`, borderRadius: 999, padding: '5px 14px', marginBottom: 28 }}>
               <span style={{ width: 6, height: 6, borderRadius: '50%', background: C.blue, display: 'inline-block', animation: 'pulse-dot 2s infinite', flexShrink: 0 }} />
@@ -458,7 +458,7 @@ function Hero({ onRegister, onLogin }) {
             </div>
 
             {/* CTAs */}
-            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', justifyContent: 'center', marginBottom: 44 }}>
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', justifyContent: 'center', marginBottom: 32 }}>
               <button onClick={onRegister} style={{ background: C.blue, color: '#fff', fontSize: 15, fontWeight: 700, border: 'none', borderRadius: 9, padding: '13px 26px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, letterSpacing: '-0.2px', transition: 'background 0.15s, transform 0.1s' }}
                 onMouseEnter={e => { e.currentTarget.style.background = '#245f91'; e.currentTarget.style.transform = 'translateY(-1px)'; }}
                 onMouseLeave={e => { e.currentTarget.style.background = C.blue; e.currentTarget.style.transform = 'none'; }}>
@@ -512,7 +512,7 @@ function Hero({ onRegister, onLogin }) {
           </div>
 
           {/* RIGHT — Resolution cards */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 14, justifyContent: 'flex-start' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14, justifyContent: 'space-between' }}>
             <div style={{ fontFamily: C.mono, fontSize: 12, color: '#34d399', letterSpacing: '1.5px', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
               <span style={{ display: 'inline-block', width: 6, height: 6, borderRadius: '50%', background: C.green, animation: 'pulse-dot 1.5s ease infinite' }} />
               RESOLVED BY DECISIONMESH
