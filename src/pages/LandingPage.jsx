@@ -212,14 +212,16 @@ function NavBar({ onLogin, onRegister }) {
       <div style={{ maxWidth: 1160, margin: '0 auto', padding: '0 20px', display: 'flex', alignItems: 'center', height: 58 }}>
         {/* Logo */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 9, flex: 1 }}>
-          <img src="/decimeshi-icon.svg" alt="DecisionMesh" style={{ width: 42, height: 42, flexShrink: 0 }} />
+          <img src="/decimeshi-icon.svg" alt="DecisionMesh" style={{ width: 62, height: 60, flexShrink: 0 }} />
           <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1 }}>
             <span style={{
-              fontWeight: 900, fontSize: 17, letterSpacing: '-0.5px',
+              fontWeight: 900, fontSize: 17, letterSpacing: '0.4px',
               background: 'linear-gradient(90deg, #f0f9ff 0%, #f0f9ff 48%, #38bdf8 65%, #06b6d4 100%)',
               WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text',
-            }}>DecisionMesh</span>
-            <span style={{ fontSize: 8, fontWeight: 700, color: C.textSub, letterSpacing: '1.5px', textTransform: 'uppercase', marginTop: 1 }}>AI Control Plane</span>
+            }}>D E C I M E S H I </span>
+            <span style={{ fontSize: 8, fontWeight: 700, color: C.textSub, letterSpacing: '0.5px', textTransform: 'uppercase', marginTop: 2, lineHeight: 1.3, whiteSpace: 'nowrap' }}>
+              The Trust Infrastructure<br />for Intelligent Systems
+            </span>
           </div>
           <span style={{ fontSize: 9, fontWeight: 700, color: '#7eb8d4', background: 'rgba(46,124,184,0.12)', border: '1px solid rgba(46,124,184,0.30)', borderRadius: 4, padding: '2px 6px', letterSpacing: '0.8px' }}>BETA</span>
         </div>
