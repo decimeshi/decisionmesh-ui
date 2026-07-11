@@ -7,7 +7,7 @@ import {
   UserPlus, PanelLeftClose, FolderOpen,
   ChevronDown, Check, Plus, Palette, CreditCard, Receipt,
   Bug, Library, MessageSquarePlus, TestTube2,
-  Users, Coins, Webhook, HeartPulse, Zap, BookOpen,
+  Users, Coins, Webhook, HeartPulse, Zap, BookOpen, ShieldAlert,
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { useProject } from '../context/ProjectContext';
@@ -66,6 +66,9 @@ const NAV = [
 ];
 
 const ADMIN_ITEMS = [
+  // First, deliberately. In an incident this is the item you are reaching for —
+  // it does not belong buried under Token Debug.
+  { label: 'Kill Switches',   icon: ShieldAlert,       to: '/admin/kill-switches' },
   { label: 'Users',           icon: Users,             to: '/admin/users'    },
   { label: 'Credits',         icon: Coins,             to: '/admin/credits'  },
   { label: 'Webhooks',        icon: Webhook,           to: '/admin/webhooks' },
