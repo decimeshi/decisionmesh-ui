@@ -115,6 +115,32 @@ export async function getIntentAvailability(keycloak) {
 }
 
 /**
+ * POST /api/onboard/ensure
+ *
+ * Zitadel does NOT put `email` or `name` in the ACCESS token — only in the ID token /
+ * userinfo. Quarkus OIDC reads the access token, so server-side jwt.getClaim("email")
+ * is null. That is why users.email was empty and users.name held a truncated Zitadel
+ * sub ("36813433"): OnboardingService fell back to sub.substring(0,8).
+ *
+ * The backend's /ensure endpoint was built precisely to take these from the request
+ * body instead — and was never called. The browser HAS them (loadUserInfo: true maps
+ * userinfo onto tokenParsed), exactly as createCheckout already relies on for Stripe.
+ *
+ * MUST be called BEFORE getMe(): getMe → provisionUser creates the row, and once
+ * `name` holds a non-blank junk value the isBlank() backfill guard in
+ * enrichUserProfile can never repair it.
+ */
+export async function ensureUser(keycloak) {
+  return request(keycloak, '/onboard/ensure', {
+    method: 'POST',
+    body: JSON.stringify({
+      email: keycloak?.tokenParsed?.email ?? null,
+      name:  keycloak?.tokenParsed?.name  ?? null,
+    }),
+  });
+}
+
+/**
  * GET /api/intents/auth/me
  *
  * Returns the  resolved by the server's IdentityAugmentor.

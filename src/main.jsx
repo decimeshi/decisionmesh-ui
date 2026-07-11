@@ -25,7 +25,7 @@ import LandingPage  from './pages/LandingPage';
 import DocsPage     from './pages/DocsPage';
 import SecurityPage  from './pages/SecurityPage';
 import Onboarding   from './pages/Onboarding';
-import { getMe }    from './utils/api';
+import { getMe, ensureUser } from './utils/api';
 import { oidcConfig, createKeycloakShim, debugToken } from './auth/zitadel';
 import './index.css';
 
@@ -88,7 +88,23 @@ function AppWrapper() {
 
     debugToken(auth.user.access_token);
 
-    getMe(keycloak)
+    // ensureUser BEFORE getMe — the order is load-bearing.
+    //
+    // Zitadel omits `email`/`name` from the ACCESS token, so the backend cannot read
+    // them (jwt.getClaim("email") is null). getMe → provisionUser would create the
+    // user row with a null email and a name derived from the subject id ("36813433"),
+    // and because that junk value is NOT blank, enrichUserProfile's isBlank() backfill
+    // guard can never repair it afterwards. The row is poisoned permanently.
+    //
+    // /ensure exists to take the profile from the request body instead. The browser has
+    // it (loadUserInfo: true → userinfo → tokenParsed), which is the same source
+    // createCheckout already uses for Stripe. It was written and never called.
+    //
+    // Failure here is non-fatal: getMe still runs, the user still gets in — they just
+    // land without a resolved profile, which is the status quo, not a regression.
+    ensureUser(keycloak)
+      .catch(err => console.warn('[Auth] ensureUser failed — profile may be incomplete:', err?.message))
+      .then(() => getMe(keycloak))
       .then(meData => {
         const onboarded = meData?.onboarded === true;
         setNeedsOnboard(!onboarded);
