@@ -17,7 +17,7 @@ import {
 import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { v4 as uuidv4 } from 'uuid';
 import Page from '../components/shared/Page';
-import { Card, CardHeader, CardTitle, CardContent, Button } from '../components/shared';
+import { Card, CardHeader, CardTitle, CardContent, Button, KillSwitchNotice } from '../components/shared';
 import ExecutionTimeline from '../components/timeline/ExecutionTimeline';
 import { submitIntent, getIntent, getExecutionsByIntent, request } from '../utils/api';
 import { useCredits, MODEL_TIERS } from '../context/CreditContext';
@@ -1050,6 +1050,7 @@ export default function Playground({ keycloak }) {
   const [loading,    setLoading]    = useState(false);
   const [result,     setResult]     = useState(null);
   const [error,      setError]      = useState(null);
+  const [paused,     setPaused]     = useState(false);   // kill switch active (503)
   const [copied,     setCopied]     = useState(false);
   const [creditCost, setCreditCost] = useState(null);
   const [showRaw,    setShowRaw]    = useState(false);
@@ -1123,7 +1124,7 @@ export default function Playground({ keycloak }) {
 
   async function handleSubmit() {
     if (isEmpty) { setError('No credits remaining. Top up to continue.'); return; }
-    setError(null); setResult(null); setCreditCost(null);
+    setError(null); setPaused(false); setResult(null); setCreditCost(null);
 
     let body;
     try   { body = JSON.parse(json); }
@@ -1191,6 +1192,16 @@ export default function Playground({ keycloak }) {
       }, 2000);
     } catch (e) {
       refundCredits(tier);
+
+      // Kill switch — a deliberate platform halt, not a user error.
+      // Checked BEFORE the message-sniffing below: a 503 halt matches none of those
+      // patterns and would otherwise surface as "Intent submission failed", blaming
+      // the user's constraints for a platform decision and inviting a doomed retry.
+      if (e.code === 'KILL_SWITCH_ACTIVE') {
+        setPaused(true);
+        return;                         // finally{} still clears loading
+      }
+
       // Parse SLA / constraint violation errors into friendly messages
       const msg = e.message ?? '';
       if (msg.includes('SLAException') || msg.includes('Latency constraint violated')) {
@@ -1565,6 +1576,22 @@ export default function Playground({ keycloak }) {
 
       </div>
     </Page>
+      {/* Kill switch — pinned above the floating bar.
+          The inline submit block is display:none once an intent is ready, so the user
+          submits from the fixed bottom bar. A notice rendered in the left column's
+          normal flow would appear above the fold, off-screen, and read as "nothing
+          happened". Feedback has to appear where the click happened. */}
+      {paused && (
+        <div className="fixed bottom-20 left-4 z-50" style={{ right: '120px' }}>
+          <KillSwitchNotice
+            keycloak={keycloak}
+            onResume={handleSubmit}
+            intentJson={json}
+            isAdmin={keycloak?.tokenParsed?.['urn:zitadel:iam:org:project:roles']?.sys_admin != null}
+          />
+        </div>
+      )}
+
       {/* Floating sticky submit bar — appears when intent is ready */}
       {hasIntent && !result && (
         <div
@@ -1593,6 +1620,7 @@ export default function Playground({ keycloak }) {
           <div className="flex items-center gap-3 shrink-0">
             {jsonErr && <span className="text-xs text-red-500 font-medium">⚠ Fix JSON</span>}
             {isEmpty && <span className="text-xs text-red-500 font-medium">No credits</span>}
+            {paused  && <span className="text-xs text-amber-600 font-medium">Processing paused</span>}
             {loading && <span className="text-xs text-blue-500 animate-pulse">Executing…</span>}
             <button
               onClick={handleSubmit}

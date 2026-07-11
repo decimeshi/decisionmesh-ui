@@ -1,5 +1,6 @@
 import { cn, PHASE_COLORS, SATISFACTION_COLORS } from '../../lib/utils';
 export { cn } from '../../lib/utils';
+export { default as KillSwitchNotice } from './KillSwitchNotice';
 
 // ── Card ──────────────────────────────────────────────────────────────────────
 export function Card({ children, className, ...props }) {

@@ -51,6 +51,7 @@ const AdminUsers          = lazy(() => import('./pages/AdminUsers'));
 const AdminCredits        = lazy(() => import('./pages/AdminCredits'));
 const AdminWebhooks       = lazy(() => import('./pages/AdminWebhooks'));
 const AdminHealth         = lazy(() => import('./pages/AdminHealth'));
+const KillSwitchAdmin     = lazy(() => import('./pages/KillSwitchAdmin'));
 const DocsPage            = lazy(() => import('./pages/DocsPage'));
 
 // ── Error boundary ────────────────────────────────────────────────────────────
@@ -188,6 +189,16 @@ export default function App({ keycloak }) {
                 <Route path="/admin/health" element={
                   <SysAdminRoute keycloak={keycloak}>
                     <AdminHealth keycloak={keycloak} />
+                  </SysAdminRoute>
+                } />
+
+                {/* Kill switches — the emergency stop console.
+                    Without this route, /admin/kill-switches fell through to the "*"
+                    catch-all below and silently redirected to the dashboard, which is
+                    why "Manage kill switches" appeared to do nothing. */}
+                <Route path="/admin/kill-switches" element={
+                  <SysAdminRoute keycloak={keycloak}>
+                    <KillSwitchAdmin keycloak={keycloak} isPlatformOperator />
                   </SysAdminRoute>
                 } />
 

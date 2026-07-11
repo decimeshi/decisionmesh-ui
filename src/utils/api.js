@@ -5,11 +5,13 @@ import { v4 as uuidv4 } from 'uuid';
 // Typed error so callers can distinguish auth failures (401/403) from
 // other errors and show appropriate UI without catching everything blindly.
 export class ApiError extends Error {
-  constructor(status, message) {
+  constructor(status, message, code = null) {
     super(message);
-    this.name    = 'ApiError';
-    this.status  = status;
-    this.isAuth  = status === 401 || status === 403;
+    this.name      = 'ApiError';
+    this.status    = status;
+    this.isAuth    = status === 401 || status === 403;
+    this.code      = code;                          // machine-readable, e.g. KILL_SWITCH_ACTIVE
+    this.retryable = code === 'KILL_SWITCH_ACTIVE'; // a halt is transient, not a user error
   }
 }
 
@@ -57,6 +59,19 @@ export async function request(keycloak, path, options = {}) {
   if (res.status === 401) {
     throw new ApiError(401, `Unauthorized — ${path}. Check Token Debugger (/debug/token) for details.`);
   }
+  // Kill switch — the platform is deliberately halted (not a crash, not a user error).
+  // Surfaced as a typed error carrying a stable `code`, so callers branch on e.code
+  // rather than sniffing message text. Handled here in request() so EVERY endpoint
+  // gets it, not just submitIntent.
+  if (res.status === 503) {
+    const raw = await res.text();
+    let body = {};
+    try { body = JSON.parse(raw); } catch { /* not JSON — fall through */ }
+    if (body.error === 'KILL_SWITCH_ACTIVE') {
+      throw new ApiError(503, body.message ?? 'AI processing is paused.', 'KILL_SWITCH_ACTIVE');
+    }
+    throw new ApiError(503, raw);
+  }
   if (res.status === 204) return null;
   if (!res.ok) throw new ApiError(res.status, await res.text());
   const text = await res.text();
@@ -85,6 +100,18 @@ export async function listIntents(keycloak, params = {}) {
 
 export async function getIntentEvents(keycloak, id) {
   return request(keycloak, `/intents/${id}/events`);
+}
+
+/**
+ * "Can I submit right now?" — cheap enough to poll while the kill switch is on.
+ *
+ * Polling by re-submitting the intent would burn an idempotency key, a rate-limit
+ * token and an audit row on every attempt — flooding the pipeline during exactly the
+ * incident it was paused for. This reads the server's Redis-cached kill-switch state
+ * instead.
+ */
+export async function getIntentAvailability(keycloak) {
+  return request(keycloak, '/intents/availability');
 }
 
 /**
@@ -213,6 +240,30 @@ export async function listAudit(keycloak, params = {}) {
       Object.fromEntries(Object.entries(params).filter(([, v]) => v != null))
   ).toString();
   return request(keycloak, `/audit${qs ? `?${qs}` : ''}`);
+}
+
+// ── Kill switches (admin) ─────────────────────────────────────────────────────
+// API_BASE already ends in /api, and KillSwitchResource sits at
+// @Path("/api/admin/kill-switches") — so the path here is '/admin/kill-switches'.
+
+export async function listKillSwitches(keycloak) {
+  return request(keycloak, '/admin/kill-switches');
+}
+
+/** Active AND lifted. The lifted rows are the audit trail — who halted what and why. */
+export async function listKillSwitchHistory(keycloak) {
+  return request(keycloak, '/admin/kill-switches/history');
+}
+
+export async function engageKillSwitch(keycloak, body) {
+  return request(keycloak, '/admin/kill-switches', {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
+}
+
+export async function liftKillSwitch(keycloak, id) {
+  return request(keycloak, `/admin/kill-switches/${id}`, { method: 'DELETE' });
 }
 
 // ── Billing ───────────────────────────────────────────────────────────────────
