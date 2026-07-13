@@ -24,6 +24,7 @@ import App          from './App';
 import LandingPage  from './pages/LandingPage';
 import DocsPage     from './pages/DocsPage';
 import SecurityPage  from './pages/SecurityPage';
+import DemoPage     from './pages/DemoPage';
 import Onboarding   from './pages/Onboarding';
 import { getMe, ensureUser } from './utils/api';
 import { oidcConfig, createKeycloakShim, debugToken } from './auth/zitadel';
@@ -209,6 +210,19 @@ function AppWrapper() {
     return (
       <Routes>
         <Route path="/security" element={<SecurityPage />} />
+      </Routes>
+    );
+  }
+
+  // Demo — public route.
+  // MUST be here, above the auth gate. This is the URL you paste into outreach
+  // (decimeshi.com/demo). If it lived in App.jsx it would sit behind
+  // `if (!auth.isAuthenticated) return <LandingPage />` — a CIO clicking your link
+  // would hit a login wall, which is the fastest way to waste a warm click.
+  if (pathname === '/demo') {
+    return (
+      <Routes>
+        <Route path="/demo" element={<DemoPage />} />
       </Routes>
     );
   }
