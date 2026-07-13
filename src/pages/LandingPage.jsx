@@ -69,6 +69,7 @@ const Icon = {
 
 // ── Data ──────────────────────────────────────────────────────────────────────
 const FEATURES = [
+  { icon: 'AlertTriangle', title: 'Kill switch', desc: 'Halt any model mid-flight — one click. Platform, tenant, or intent type. Every blocked request permanently recorded: who stopped it, why, and how long it ran.', color: '#ef4444', badge: 'NEW' },
   { icon: 'DollarSign', title: 'Budget enforcement', desc: 'Set hard cost ceilings per intent. Execution stops the moment spend exceeds your limit — before the bill arrives.', color: '#22c55e' },
   { icon: 'GitBranch', title: 'Multi-adapter routing', desc: 'Route to OpenAI, Anthropic, Google, or Azure. Automatic fallback to the next adapter on timeout or failure.', color: '#3b82f6' },
   { icon: 'Shield', title: 'Policy governance', desc: 'Write rules like "cost > $0.01 → REJECT" or "latency > 5s → FALLBACK". Policies run before every execution.', color: '#a855f7' },
@@ -449,7 +450,7 @@ function Hero({ onRegister, onLogin }) {
             </h1>
 
             <p style={{ fontSize: 'clamp(16px, 1.9vw, 19px)', color: C.textSecondary, lineHeight: 1.65, maxWidth: 500, margin: '0 auto 30px', fontWeight: 400 }}>
-              Every AI decision — governed, audited, replayed, and compliant. Built for regulators, compliance teams, engineers, and executives.
+              Most AI governance tools tell you what happened. DecisionMesh lets you <strong style={{ color: '#fca5a5', fontWeight: 700 }}>stop it mid-flight</strong> — and prove to an auditor who stopped it, why, and how long it ran.
             </p>
 
             {/* Compliance badges */}
@@ -566,6 +567,76 @@ function PainSection() {
             </div>
           ))}
         </div>
+      </div>
+    </section>
+  );
+}
+
+// ── Kill Switch — the differentiator ──────────────────────────────────────────
+//
+// Every competitor in this category sells OBSERVABILITY: dashboards, monitoring,
+// audit trails. All of it forensic — it tells you what already happened. Almost none
+// of them sit IN the request path, so they can watch but they cannot intervene.
+//
+// DecisionMesh does. That is the one claim most of the market literally cannot make,
+// and it belongs above the fold, not buried as feature #16.
+//
+// HONESTY CONSTRAINT: the switch is engaged by a HUMAN. Nothing detects a misbehaving
+// model automatically yet. The copy below says "one click" and "in-path" — never
+// "detects and stops". A CISO who catches an overclaim here distrusts the whole page,
+// and automated detection is the very next thing on the roadmap. Say what is true.
+function KillSwitchSection() {
+  const points = [
+    {
+      k: 'One click, five scopes',
+      v: 'Halt everything, one tenant, one intent type, one provider, or one model. Proportionate response — you should not have to stop the platform to stop a problem.',
+    },
+    {
+      k: 'In the request path, not beside it',
+      v: 'Enforced before the model is called, before spend, before the intent is even persisted. Monitoring tools sit outside the path — they can see a problem, but they cannot stop one.',
+    },
+    {
+      k: 'Every block is evidence',
+      v: 'Each halted request writes an immutable record: who engaged the switch, why, which requests it stopped, and when it was lifted. That record survives the failed request itself.',
+    },
+  ];
+
+  return (
+    <section style={{ background: '#0d0a0f', padding: '80px 24px', borderTop: '1px solid rgba(239,68,68,0.25)' }}>
+      <div style={{ maxWidth: 1060, margin: '0 auto' }}>
+
+        <div style={{ textAlign: 'center', marginBottom: 46 }}>
+          <p style={{ color: '#ef4444', fontSize: 11, fontWeight: 700, letterSpacing: '2px', textTransform: 'uppercase', marginBottom: 12, fontFamily: C.mono }}>
+            Emergency Stop
+          </p>
+          <h2 style={{ fontSize: 'clamp(26px, 4vw, 40px)', fontWeight: 700, color: C.textPrimary, letterSpacing: '-1px', marginBottom: 14, lineHeight: 1.2 }}>
+            Everyone else tells you what happened.<br />
+            <span style={{ color: '#f87171' }}>We let you stop it.</span>
+          </h2>
+          <p style={{ color: C.textSecondary, fontSize: 16, maxWidth: 640, margin: '0 auto', lineHeight: 1.7 }}>
+            A model starts producing harmful output at 2am. Your dashboard shows it. Your
+            audit trail records it. Neither of them stops it. DecisionMesh sits in the
+            request path — so you can.
+          </p>
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16, marginBottom: 32 }}>
+          {points.map(({ k, v }) => (
+            <div key={k} style={{ background: '#170f14', border: '1px solid rgba(239,68,68,0.25)', borderRadius: 12, padding: '26px 22px', transition: 'border-color 0.2s' }}
+              onMouseEnter={e => e.currentTarget.style.borderColor = 'rgba(239,68,68,0.55)'}
+              onMouseLeave={e => e.currentTarget.style.borderColor = 'rgba(239,68,68,0.25)'}>
+              <div style={{ color: '#ef4444', marginBottom: 12 }}><Icon.AlertTriangle /></div>
+              <h3 style={{ color: C.textPrimary, fontWeight: 600, fontSize: 16, marginBottom: 8 }}>{k}</h3>
+              <p style={{ color: C.textSecondary, fontSize: 13.5, lineHeight: 1.7 }}>{v}</p>
+            </div>
+          ))}
+        </div>
+
+        {/* Say the true thing plainly. An overclaim here would cost more than it buys. */}
+        <p style={{ textAlign: 'center', color: C.textMuted ?? C.textSecondary, fontSize: 13, fontStyle: 'italic', opacity: 0.75 }}>
+          Engaged by a human, enforced by the platform. Automated detection is next on the roadmap.
+        </p>
+
       </div>
     </section>
   );
@@ -1222,6 +1293,7 @@ export default function LandingPage() {
         <NavBar onLogin={handleLogin} onRegister={handleRegister} />
         <Hero onRegister={handleRegister} onLogin={handleLogin} />
         <PainSection />
+        <KillSwitchSection />
         <Platform />
         <Features />
         <Audiences />
