@@ -28,7 +28,7 @@ export default function DemoPage() {
         </div>
 
         <VideoEmbed
-          videoId="YLYqmVmJ39g"
+          videoId="iucFxhOhpT4"
           title="DecisionMesh — the enterprise AI control plane for regulated industries"
           className="shadow-2xl"
         />
