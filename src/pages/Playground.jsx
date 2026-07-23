@@ -899,7 +899,8 @@ function IntentTypeSelector({ json, onSelect }) {
     catch { return ''; }
   })();
 
-  // Collapse automatically when intentType becomes set
+  // Collapse once a type is chosen — pasting JSON or picking a chip both land
+  // here, so selection closes the picker without an explicit dismiss.
   useEffect(() => {
     if (currentType) setExpanded(false);
   }, [currentType]);
@@ -928,22 +929,33 @@ function IntentTypeSelector({ json, onSelect }) {
     if (val) { onSelect(val); setCustomVal(''); setExpanded(false); }
   }
 
-  // ── Collapsed view — shown when intentType is set and not expanded ──────────
-  if (currentType && !expanded) {
+  // ── Collapsed view — the default, whether or not an intentType is set ───────
+  //
+  // Previously this was `currentType && !expanded`, so clearing the JSON emptied
+  // currentType and dropped the user into the full suggestion grid — the page
+  // jumped from one compact row to several hundred chips mid-edit. Deleting text
+  // is not a request to browse intent types.
+  //
+  // The grid now opens only when the user asks for it. With no type set, the
+  // badge shows an em dash rather than a stale value: honest about the state,
+  // and the layout does not move.
+  if (!expanded) {
     return (
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <CardTitle>Intent type</CardTitle>
-              <span className="text-xs font-mono font-semibold px-2.5 py-0.5 rounded-full bg-blue-600 text-white">
-                {currentType}
+              <span className={`text-xs font-mono font-semibold px-2.5 py-0.5 rounded-full ${
+                currentType ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-400'
+              }`}>
+                {currentType || '—'}
               </span>
             </div>
             <button
               onClick={() => setExpanded(true)}
               className="text-[10px] text-blue-500 hover:text-blue-700 font-medium transition-colors">
-              Change →
+              {currentType ? 'Change →' : 'Choose →'}
             </button>
           </div>
         </CardHeader>
