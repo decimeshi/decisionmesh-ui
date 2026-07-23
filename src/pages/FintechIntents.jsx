@@ -114,9 +114,15 @@ function IntentCard({ intent, onSelect, compact }) {
                         className="flex-1 text-[11px] px-2 py-1 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 font-medium transition-colors">
                         Try in Playground
                     </button>
+                    {/* Disabled until the policy builder ships: /policies/new does
+                        not exist, so this previously landed on the dashboard.
+                        Kept visible so the capability is discoverable, but with
+                        cursor-not-allowed and a title — a greyed button with no
+                        explanation reads as broken rather than as "not yet". */}
                     <button
-                        onClick={() => navigate(`/policies/new?intentType=${intent.name}`)}
-                        className="text-[11px] px-2 py-1 rounded-lg bg-slate-100 text-slate-500 hover:bg-slate-200 transition-colors">
+                        disabled
+                        title="Policy builder ships shortly"
+                        className="text-[11px] px-2 py-1 rounded-lg bg-slate-100 text-slate-400 cursor-not-allowed">
                         Add Policy
                     </button>
                 </div>
