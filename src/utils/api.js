@@ -31,6 +31,42 @@ async function refreshToken(keycloak) {
   }
 }
 
+// ── Project scope ─────────────────────────────────────────────────────────────
+// The selected project travels as X-Project-Id on every call. The backend
+// validates it against the caller's tenant and derives the owning team from
+// projects.team_id, so one header populates both audit dimensions.
+//
+// Module-level rather than a React context so plain callers of request() get it
+// too — an audit dimension that only some code paths set is worse than none,
+// because the gaps are invisible in the resulting report.
+let currentProjectId = null;
+
+// Same key ProjectContext already uses — one stored fact, not two that can drift.
+const PROJECT_KEY = 'dm_active_project';
+
+// ProjectContext falls back to a placeholder project ('proj-default') when the
+// API has not answered yet. Sending that as X-Project-Id would fail the backend's
+// uuid parse and log a malformed-header warning on every request, so only real
+// ids travel. Absent header = backend uses the tenant's default project.
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** Call from ProjectContext whenever the active project changes. */
+export function setCurrentProject(projectId) {
+  currentProjectId = UUID_RE.test(projectId ?? '') ? projectId : null;
+  try {
+    if (currentProjectId) localStorage.setItem(PROJECT_KEY, currentProjectId);
+  } catch { /* private mode — in-memory only, scope resets on reload */ }
+}
+
+export function getCurrentProject() {
+  if (currentProjectId) return currentProjectId;
+  try {
+    const saved = localStorage.getItem(PROJECT_KEY);
+    if (UUID_RE.test(saved ?? '')) currentProjectId = saved;
+  } catch { /* ignore */ }
+  return currentProjectId;
+}
+
 // Exported so contexts and pages can use it directly instead of
 // duplicating their own fetch + auth logic.
 export async function request(keycloak, path, options = {}) {
@@ -48,10 +84,17 @@ export async function request(keycloak, path, options = {}) {
       ? Object.fromEntries(options.headers.entries())
       : (options.headers ?? {});
 
+  // Omitted entirely when no project is selected, rather than sent empty: the
+  // backend logs a malformed-header warning on a blank value, and falls back to
+  // the tenant's default project when the header is absent.
+  const projectId = getCurrentProject();
+  const scopeHeaders = projectId ? { 'X-Project-Id': projectId } : {};
+
   const res = await fetch(`${API_BASE}${path}`, {
     ...options,
     headers: {
       'Content-Type': 'application/json',
+      ...scopeHeaders,          // before callerHeaders — an explicit call can override
       ...callerHeaders,
       Authorization: `Bearer ${keycloak.token}`, // always last — never overridden
     },
@@ -262,9 +305,17 @@ export async function revokeApiKey(keycloak, id) {
 // ── Audit ─────────────────────────────────────────────────────────────────────
 
 export async function listAudit(keycloak, params = {}) {
-  const qs = new URLSearchParams(
-      Object.fromEntries(Object.entries(params).filter(([, v]) => v != null))
-  ).toString();
+  // Built by append, not Object.fromEntries: the latter collapses an array into
+  // "a,b" on a single key, whereas JAX-RS binds List<String> from a REPEATED key.
+  // dataClass is multi-valued (?dataClass=X&dataClass=Y), so the collapsed form
+  // would silently match nothing.
+  const sp = new URLSearchParams();
+  for (const [k, v] of Object.entries(params)) {
+    if (v == null || v === '') continue;
+    if (Array.isArray(v)) v.forEach(x => x != null && x !== '' && sp.append(k, x));
+    else sp.append(k, v);
+  }
+  const qs = sp.toString();
   return request(keycloak, `/audit${qs ? `?${qs}` : ''}`);
 }
 
@@ -372,7 +423,7 @@ export async function setupTenant(keycloak, payload) {
 
 export async function getReviewQueue(keycloak, params = {}) {
   const qs = new URLSearchParams(
-    Object.fromEntries(Object.entries(params).filter(([, v]) => v != null))
+      Object.fromEntries(Object.entries(params).filter(([, v]) => v != null))
   ).toString();
   return request(keycloak, `/review-queue${qs ? `?${qs}` : ''}`);
 }

@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect } from 'react';
-import { getOrg, listProjects } from '../utils/api';
+import { getOrg, listProjects, setCurrentProject } from '../utils/api';
 
 // ── Default data ──────────────────────────────────────────────────────────────
 // Used as fallback when the API hasn't returned yet or isn't available.
@@ -59,7 +59,12 @@ export function ProjectProvider({ keycloak, children }) {
             // Restore last selected project from localStorage
             const saved = localStorage.getItem('dm_active_project');
             const found = saved ? list.find(p => p.id === saved) : null;
-            setActiveProject(found ?? list.find(p => p.isDefault) ?? list[0]);
+            const chosen = found ?? list.find(p => p.isDefault) ?? list[0];
+            setActiveProject(chosen);
+            // Restored selections must reach the API layer too, not just switches —
+            // otherwise every request after a page reload is recorded against the
+            // tenant default while the UI shows a different project.
+            setCurrentProject(chosen?.id);
           }
         }
       } catch {
@@ -76,6 +81,9 @@ export function ProjectProvider({ keycloak, children }) {
   function switchProject(project) {
     setActiveProject(project);
     localStorage.setItem('dm_active_project', project.id);
+    // Every subsequent API call carries this project on X-Project-Id, which the
+    // backend validates against the tenant and uses to derive the owning team.
+    setCurrentProject(project.id);
   }
 
   function addProject(project) {
