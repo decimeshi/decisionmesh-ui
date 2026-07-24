@@ -122,82 +122,37 @@ function AppWrapper() {
 
   // ── Called by Onboarding after POST /setup-tenant succeeds ─
   //
-  // Flow:
-  //   1. setupTenant() assigned the role in Zitadel
-  //   2. We must get a NEW token — the current one has no role
-  //   3. signinSilent() exchanges a fresh PKCE code via hidden
-  //      iframe — Zitadel returns a token with the role included
-  //   4. We mark onboarding done and let the useEffect above
-  //      re-run with the new access_token to re-confirm via getMe
-  //
-  // FIX 2: was `await auth.signinSilent()` with return value ignored,
-  // then `auth.user` read immediately. auth.user is React state that
-  // hasn't re-rendered yet — it's still the OLD token. signinSilent()
-  // returns the new user directly; capture and use that instead.
-  //
-  // FIX 3+4: was `createKeycloakShim(newUser, auth)` then `getMe(freshKeycloak)`.
-  // The freshKeycloak was built from stale auth.user, so getMe was called
-  // with the old no-role token and returned onboarded=false — causing the
-  // screen to stay stuck on onboarding forever.
-  //
-  // Fix: don't call getMe again here. setupTenant succeeded — onboarding
-  // is definitively complete. Set needsOnboard(false) directly.
-  // The useEffect above will re-run automatically when auth.user?.access_token
-  // changes after signinSilent, re-confirming via getMe in the background.
+  // setupTenant() has already written the tenant, project, team and an OWNER
+  // grant in role_grant. Nothing further is required to make the user
+  // authorised, so this simply marks onboarding done and renders the app.
   const onOnboardingComplete = useCallback(async () => {
-    try {
-      setRefreshingToken(true);
-      console.log('[Auth] Onboarding complete — fetching fresh token with role...');
+    // No token refresh. The existing token is already sufficient.
+    //
+    // This used to do removeUser() → signinSilent() → fall back to a full
+    // redirect login, because tenant roles lived in the JWT: onboarding assigned
+    // tenant_user in Zitadel, and the role was invisible until a new token was
+    // issued. That is why finishing signup bounced the user through an
+    // authentication round trip.
+    //
+    // Roles now resolve from role_grant on every request (see
+    // ZitadelRoleAugmentor), so the OWNER grant written during onboarding is live
+    // the moment the transaction commits. The token carries identity; this system
+    // decides authority. Nothing about the token needs to change.
+    //
+    // Removing this also removes a real failure mode: signinSilent depends on
+    // silent_redirect_uri being registered in the Zitadel console, and when it was
+    // not, the fallback threw the user into a fresh login immediately after they
+    // had just signed up.
+    setNeedsOnboard(false);
+  }, []);
 
-      // Step 1: evict stale no-role token from sessionStorage
-      await auth.removeUser();
-
-      // Step 2: silently re-authenticate — Zitadel browser session is
-      // still active so no login UI is shown. Returns new user directly.
-      const newUser = await auth.signinSilent();
-
-      if (newUser?.access_token) {
-        debugToken(newUser.access_token);
-      } else {
-        // signinSilent returned null — likely silent_redirect_uri is not
-        // registered in Zitadel Console or the page doesn't exist yet.
-        // Fallback below will handle this via redirect.
-        throw new Error('signinSilent returned no user — check silent_redirect_uri config');
-      }
-
-      // Onboarding is done — setupTenant succeeded and we have a fresh token.
-      // Don't call getMe again here: it would use auth.user (React state)
-      // which hasn't updated yet, returning the stale token and onboarded=false.
-      // The useEffect will re-run once auth.user?.access_token updates and
-      // will call getMe with the correct fresh token at that point.
-      setNeedsOnboard(false);
-
-    } catch (err) {
-      console.error('[Auth] Token refresh failed:', err.message);
-
-      // Fallback: full redirect login — Zitadel always issues a fresh
-      // token with roles on a new redirect flow. prompt=login in
-      // extraQueryParams forces a new session even if one exists.
-      console.warn('[Auth] Falling back to redirect login...');
-      sessionStorage.setItem(`dm_${import.meta.env.VITE_APP_ENV ?? 'dev'}_post_onboard_redirect`, 'true');
-      await auth.signinRedirect({ extraQueryParams: { prompt: 'login' } });
-    } finally {
-      setRefreshingToken(false);
-    }
-  }, [auth]);
-
-  // ── Handle post-onboard redirect fallback ──────────────────
-  // If forceTokenRefresh fell back to a full redirect, the app
-  // reloads after login. Restore the correct state here.
+  // ── Clear the legacy post-onboard redirect marker ──────────
+  // Onboarding no longer redirects, but a session that started before this change
+  // may still carry the flag. Removed rather than acted on: leaving it would make
+  // a future reader think the redirect path is still live.
   useEffect(() => {
-    if (!auth.isAuthenticated) return;
-    const wasRedirected = sessionStorage.getItem(`dm_${import.meta.env.VITE_APP_ENV ?? 'dev'}_post_onboard_redirect`);
-    if (wasRedirected) {
-      sessionStorage.removeItem(`dm_${import.meta.env.VITE_APP_ENV ?? 'dev'}_post_onboard_redirect`);
-      // getMe will run via the main useEffect above — no extra action needed
-      console.log('[Auth] Returned from post-onboard redirect — getMe will re-check onboarded state');
-    }
-  }, [auth.isAuthenticated]);
+    sessionStorage.removeItem(`dm_${import.meta.env.VITE_APP_ENV ?? 'dev'}_post_onboard_redirect`);
+  }, []);
 
   // ── Render ─────────────────────────────────────────────────
 
