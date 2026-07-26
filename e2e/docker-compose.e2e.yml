@@ -1,0 +1,117 @@
+# E2E test stack — self-contained, no dependency on decisionmesh-infra.
+#
+# Brings up: postgres, redis, vault (dev mode, unseal-proof by construction),
+# a mock OIDC server standing in for Zitadel Cloud, and the backend app
+# (pulled pre-built from GHCR, built by decisionmesh's own CI).
+#
+# NOT included yet: Kafka. The smoke test and journeys 1-2 don't need it;
+# journey 3 (submit-intent) will, once we get there — see the commented
+# block below and application-e2e.properties.
+#
+# Networking note (read before debugging a confusing auth failure):
+# the browser (Playwright, running on the host / CI runner) and the `app`
+# container reach mock-oidc via DIFFERENT paths — the browser via its
+# published host port, `app` via docker-network DNS. For the JWT issuer
+# string to match on both sides, both must use the exact same hostname:
+# "mock-oidc". `extra_hosts` below makes that hostname resolve from
+# INSIDE the app container back out to the host's published port. The
+# HOST side (where Playwright/the browser runs) needs a matching
+# `127.0.0.1 mock-oidc` entry in /etc/hosts — see e2e/README.md and the
+# CI workflow step that adds it. This is the single most likely thing to
+# get wrong on a first run; if login silently fails, check this first.
+#
+# Usage:
+#   docker compose -f e2e/docker-compose.e2e.yml up -d --wait
+#   docker compose -f e2e/docker-compose.e2e.yml logs -f app   # while debugging boot
+#   docker compose -f e2e/docker-compose.e2e.yml down -v       # teardown, wipe volumes
+
+name: decisionmesh-e2e
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_DB: decisionmesh
+      POSTGRES_USER: decisionmesh
+      POSTGRES_PASSWORD: decisionmesh
+    ports:
+      - "5433:5432"   # offset from 5432 so this can run alongside local dev
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U decisionmesh -d decisionmesh"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6380:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  vault:
+    image: openbao/openbao:2
+    command: ["server", "-dev", "-dev-root-token-id=e2e-root-token", "-dev-listen-address=0.0.0.0:8200"]
+    ports:
+      - "8201:8200"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O-", "http://127.0.0.1:8200/v1/sys/health?standbyok=true"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  mock-oidc:
+    image: ghcr.io/navikt/mock-oauth2-server:2.1.0
+    environment:
+      JSON_CONFIG_PATH: /app/config.json
+    volumes:
+      - ./mock-oidc/config.json:/app/config.json:ro
+    ports:
+      - "8080:8080"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O-", "http://127.0.0.1:8080/zitadel/.well-known/openid-configuration"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  app:
+    # Pulls the image decisionmesh's own CI (ci.yml) already builds and
+    # pushes on every push to staging/main. Swap the tag if you want to
+    # test against a specific commit instead: ghcr.io/decimeshi/decisionmesh:sha-<short-sha>
+    image: ghcr.io/decimeshi/decisionmesh:staging
+    environment:
+      QUARKUS_PROFILE: e2e
+      VAULT_ADDR: http://vault:8200
+      VAULT_TOKEN: e2e-root-token
+    extra_hosts:
+      - "mock-oidc:host-gateway"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      vault:
+        condition: service_healthy
+      mock-oidc:
+        condition: service_healthy
+    ports:
+      # Matches vite.config.js's hardcoded proxy target (http://localhost:8080)
+      # exactly, so the Vite dev server's /api proxy needs zero changes to
+      # reach this container. If you have a local dev backend also using
+      # 8080, stop it before running the e2e stack.
+      - "8080:8080"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O-", "http://127.0.0.1:8080/q/health/ready"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 20s
+
+  # kafka:
+  #   image: apache/kafka:3.7.0
+  #   ... add once journey 3 (submit-intent) needs the outbox publisher.
+  #   Remember to also uncomment mp.messaging.connector.smallrye-kafka.bootstrap.servers
+  #   in application-e2e.properties.
