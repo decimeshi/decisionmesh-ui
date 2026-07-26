@@ -191,7 +191,11 @@ export default function PlatformReport({ keycloak }) {
                     {rows.map((r, i) => (
                       <tr key={i} className="hover:bg-slate-50 transition-colors">
                         <td className="px-4 py-2.5">
-                          <code className="text-slate-700 font-mono text-[11px]">{r.group ?? '—'}</code>
+                          {groupBy === 'DAY' ? (
+                            <code className="text-slate-700 font-mono text-2xs">{r.group ?? '—'}</code>
+                          ) : (
+                            <span className="text-slate-700 font-medium">{r.group ?? 'Unassigned'}</span>
+                          )}
                         </td>
                         <td className="px-4 py-2.5 text-right text-slate-600">{Number(r.records ?? 0).toLocaleString()}</td>
                         <td className="px-4 py-2.5 text-right text-slate-600">{Number(r.tokens ?? 0).toLocaleString()}</td>
