@@ -319,6 +319,28 @@ export async function listAudit(keycloak, params = {}) {
   return request(keycloak, `/audit${qs ? `?${qs}` : ''}`);
 }
 
+// ── Auth capabilities ─────────────────────────────────────────────────────────
+// "Can I do X", computed server-side by AuthCapabilitiesResource from the same
+// AccessControl/role checks the actual gated resources use — never decode the
+// JWT client-side for this. tenant_admin in particular is NOT in the JWT by
+// design (ZitadelRoleAugmentor resolves it from role_grant on every request),
+// so there is no client-side substitute for asking the server.
+
+export async function getCapabilities(keycloak) {
+  return request(keycloak, '/auth/capabilities');
+}
+
+// ── Spend (CXO dashboard) ─────────────────────────────────────────────────────
+// API_BASE ends in /api, SpendResource sits at @Path("/api/spend") with a
+// /by-project sub-path — so the path here is '/spend/by-project'.
+
+export async function getSpendByProject(keycloak, params = {}) {
+  const qs = new URLSearchParams(
+      Object.fromEntries(Object.entries(params).filter(([, v]) => v != null && v !== ''))
+  ).toString();
+  return request(keycloak, `/spend/by-project${qs ? `?${qs}` : ''}`);
+}
+
 // ── Kill switches (admin) ─────────────────────────────────────────────────────
 // API_BASE already ends in /api, and KillSwitchResource sits at
 // @Path("/api/admin/kill-switches") — so the path here is '/admin/kill-switches'.
@@ -341,6 +363,112 @@ export async function engageKillSwitch(keycloak, body) {
 
 export async function liftKillSwitch(keycloak, id) {
   return request(keycloak, `/admin/kill-switches/${id}`, { method: 'DELETE' });
+}
+
+// ── Admin: users ──────────────────────────────────────────────────────────────
+// Named helpers for AdminResource.java (@RolesAllowed("sys_admin"), /api/admin/*).
+// Pages previously called request() directly with inline paths/query strings —
+// consolidated here to match the rest of this file and give every admin
+// endpoint one call site if its path or params ever change.
+
+export async function getAdminUsers(keycloak, params = {}) {
+  const qs = new URLSearchParams(
+      Object.fromEntries(Object.entries(params).filter(([, v]) => v != null && v !== ''))
+  ).toString();
+  return request(keycloak, `/admin/users${qs ? `?${qs}` : ''}`);
+}
+
+export async function getAdminUser(keycloak, userId) {
+  return request(keycloak, `/admin/users/${userId}`);
+}
+
+export async function suspendUser(keycloak, userId) {
+  return request(keycloak, `/admin/users/${userId}/suspend`, { method: 'POST' });
+}
+
+export async function activateUser(keycloak, userId) {
+  return request(keycloak, `/admin/users/${userId}/activate`, { method: 'POST' });
+}
+
+export async function adjustUserCredits(keycloak, userId, amount, note = '') {
+  return request(keycloak, `/admin/users/${userId}/credits`, {
+    method: 'POST',
+    body: JSON.stringify({ amount, note }),
+  });
+}
+
+// ── Admin: credit ledger ─────────────────────────────────────────────────────
+
+export async function getAdminCredits(keycloak, params = {}) {
+  const qs = new URLSearchParams(
+      Object.fromEntries(Object.entries(params).filter(([, v]) => v != null && v !== ''))
+  ).toString();
+  return request(keycloak, `/admin/credits${qs ? `?${qs}` : ''}`);
+}
+
+export async function getAdminCreditStats(keycloak) {
+  return request(keycloak, '/admin/credits/stats');
+}
+
+// ── Admin: webhook event log ─────────────────────────────────────────────────
+
+export async function getAdminWebhooks(keycloak, params = {}) {
+  const qs = new URLSearchParams(
+      Object.fromEntries(Object.entries(params).filter(([, v]) => v != null && v !== ''))
+  ).toString();
+  return request(keycloak, `/admin/webhooks${qs ? `?${qs}` : ''}`);
+}
+
+export async function replayWebhook(keycloak, eventId) {
+  return request(keycloak, `/admin/webhooks/${eventId}/replay`, { method: 'POST' });
+}
+
+/**
+ * Logs a synthetic webhook event for testing (AdminPaymentTesting.jsx).
+ * Only writes a row to the webhook log for inspection/replay — it does NOT
+ * invoke real billing side effects. See AdminResource.simulateWebhook's
+ * javadoc for why that's a deliberate boundary, not a shortcut.
+ */
+export async function simulateWebhook(keycloak, eventType) {
+  return request(keycloak, '/admin/webhooks/simulate', {
+    method: 'POST',
+    body: JSON.stringify({ eventType }),
+  });
+}
+
+// ── Admin: system health ─────────────────────────────────────────────────────
+
+export async function getAdminHealth(keycloak) {
+  return request(keycloak, '/admin/health');
+}
+
+// ── Admin: feedback ───────────────────────────────────────────────────────────
+
+export async function getAdminFeedback(keycloak, params = {}) {
+  const qs = new URLSearchParams(
+      Object.fromEntries(Object.entries(params).filter(([, v]) => v != null && v !== ''))
+  ).toString();
+  return request(keycloak, `/admin/feedback${qs ? `?${qs}` : ''}`);
+}
+
+// ── Admin: data retention ─────────────────────────────────────────────────────
+// GET /api/admin/retention/dry-run returns a plain-text report (Response.ok(String)
+// in AdminResource, not JSON) — request() falls back to raw text when JSON.parse
+// fails, so this passes the string straight through.
+
+export async function getRetentionDryRun(keycloak) {
+  return request(keycloak, '/admin/retention/dry-run');
+}
+
+// ── Reports: platform-wide (sys_admin only, cross-tenant) ───────────────────
+// ReportResource sits at @Path("/api/reports"); /platform is the cross-tenant
+// rollup, distinct from /cost (tenant-scoped, used by CostAnalytics.jsx).
+
+export async function getPlatformReport(keycloak, params = {}) {
+  const qs = new URLSearchParams(
+      Object.fromEntries(Object.entries(params).filter(([, v]) => v != null && v !== ''))
+  ).toString();
+  return request(keycloak, `/reports/platform${qs ? `?${qs}` : ''}`);
 }
 
 // ── Billing ───────────────────────────────────────────────────────────────────

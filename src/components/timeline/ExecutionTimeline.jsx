@@ -154,13 +154,13 @@ export default function ExecutionTimeline({ keycloak, intentId, terminal: termin
                     {label}
                   </span>
                   {status === 'active' && !terminal && (
-                    <span className="text-[10px] font-medium text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded-full">
+                    <span className="text-2xs font-medium text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded-full">
                       In progress
                     </span>
                   )}
                   {isLast && terminal && (
                     <span className={cn(
-                      'text-[10px] font-medium px-1.5 py-0.5 rounded-full',
+                      'text-2xs font-medium px-1.5 py-0.5 rounded-full',
                       satisfied ? 'text-green-600 bg-green-50' : 'text-red-600 bg-red-50'
                     )}>
                       {satisfied ? 'Satisfied ✓' : 'Violated ✗'}

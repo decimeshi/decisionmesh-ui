@@ -1,13 +1,14 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
-  ShieldAlert, ShieldCheck, Power, PowerOff, Plus, X, AlertTriangle, Clock,
+  ShieldAlert, ShieldCheck, Power, PowerOff, Plus, X, AlertTriangle, Clock, Cpu,
 } from 'lucide-react';
 import Page from '../components/shared/Page';
 import { Card, EmptyState, Spinner, Button } from '../components/shared';
 import {
-  listKillSwitches, listKillSwitchHistory, engageKillSwitch, liftKillSwitch,
+  listKillSwitches, listKillSwitchHistory, engageKillSwitch, liftKillSwitch, listAdapters,
 } from '../utils/api';
 import { formatDate, formatRelative, shortId } from '../lib/utils';
+import { useCapabilities } from '../context/CapabilityContext';
 
 /**
  * Kill switch console.
@@ -26,6 +27,11 @@ const SCOPES = [
   { value: 'INTENT_TYPE', label: 'Intent type',                   platformOnly: false },
   { value: 'PROVIDER',    label: 'Provider',                      platformOnly: false },
   { value: 'ADAPTER',     label: 'Adapter',                       platformOnly: false },
+  // Model — a specific model version misbehaving (prompt injection, PII leak,
+  // policy violation). This is the compliance-halt scope the AI Spend dashboard
+  // links out to: spend view shows a model is "killed", the actual halt happens
+  // here. scopeKey is the model name, e.g. "gpt-4o" or "claude-opus-4-8".
+  { value: 'MODEL',       label: 'Model — halts a specific model version', platformOnly: false },
 ];
 
 function ScopeBadge({ scopeType, scopeKey }) {
@@ -39,24 +45,36 @@ function ScopeBadge({ scopeType, scopeKey }) {
   );
 }
 
-export default function KillSwitchAdmin({ keycloak, isPlatformOperator = true }) {
-  const [active,  setActive]  = useState([]);
-  const [history, setHistory] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error,   setError]   = useState(null);
-  const [busy,    setBusy]    = useState(null);   // id being lifted
+export default function KillSwitchAdmin({ keycloak }) {
+  // Was a hardcoded `isPlatformOperator = true` prop — every caller of this page
+  // saw the PLATFORM scope option regardless of their actual role, since App.jsx
+  // always passed the prop truthy. Now reads the server-resolved capability
+  // instead, so a tenant_admin correctly does NOT see "halt every tenant".
+  const { isPlatformOperator } = useCapabilities();
+  const [active,   setActive]   = useState([]);
+  const [history,  setHistory]  = useState([]);
+  const [adapters, setAdapters] = useState([]);
+  const [loading,  setLoading]  = useState(true);
+  const [error,    setError]    = useState(null);
+  const [busy,     setBusy]     = useState(null);   // id being lifted
   const [showForm, setShowForm] = useState(false);
+  // Prefills the engage form when a row's "Kill" button is clicked below,
+  // instead of making the operator type the exact model/adapter identifier
+  // by hand during an incident.
+  const [engagePreset, setEngagePreset] = useState(null); // { scopeType, scopeKey, label } | null
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [a, h] = await Promise.all([
+      const [a, h, ad] = await Promise.all([
         listKillSwitches(keycloak),
         listKillSwitchHistory(keycloak),
+        listAdapters(keycloak).catch(() => []),   // non-fatal — the list is a convenience, not required
       ]);
       setActive(a ?? []);
       // history returns active + lifted; show only the lifted ones below
       setHistory((h ?? []).filter(s => !s.active));
+      setAdapters(ad ?? []);
       setError(null);
     } catch (e) {
       setError(e.message ?? 'Could not load kill switches');
@@ -66,6 +84,17 @@ export default function KillSwitchAdmin({ keycloak, isPlatformOperator = true })
   }, [keycloak]);
 
   useEffect(() => { load(); }, [load]);
+
+  /** The active switch (if any) matching this scope — same rule as the backend's matches(). */
+  function activeSwitchFor(scopeType, scopeKey) {
+    return active.find(sw =>
+      sw.scopeType === scopeType && (sw.scopeKey === '*' || sw.scopeKey === scopeKey));
+  }
+
+  function killScope(scopeType, scopeKey, label) {
+    setEngagePreset({ scopeType, scopeKey, label });
+    setShowForm(true);
+  }
 
   async function onLift(sw) {
     // Confirm deliberately. Lifting by accident during an incident is worse than
@@ -95,7 +124,7 @@ export default function KillSwitchAdmin({ keycloak, isPlatformOperator = true })
       subtitle={halted ? `${active.length} active — processing is halted` : 'No active switches'}
       action={
         <Button variant={showForm ? 'secondary' : 'destructive'} size="sm"
-          onClick={() => setShowForm(v => !v)}>
+          onClick={() => { setEngagePreset(null); setShowForm(v => !v); }}>
           {showForm ? <><X size={13}/> Cancel</> : <><Plus size={13}/> Engage kill switch</>}
         </Button>
       }
@@ -127,11 +156,84 @@ export default function KillSwitchAdmin({ keycloak, isPlatformOperator = true })
 
       {showForm && (
         <EngageForm
+          key={engagePreset ? `${engagePreset.scopeType}:${engagePreset.scopeKey}` : 'blank'}
           keycloak={keycloak}
           isPlatformOperator={isPlatformOperator}
-          onDone={() => { setShowForm(false); load(); }}
+          initialScopeType={engagePreset?.scopeType}
+          initialScopeKey={engagePreset?.scopeKey}
+          presetLabel={engagePreset?.label}
+          onDone={() => { setShowForm(false); setEngagePreset(null); load(); }}
+          onCancel={() => { setShowForm(false); setEngagePreset(null); }}
           onError={setError}
         />
+      )}
+
+      {/* ── Known models & adapters: the actual emergency action. Engaging a
+          switch used to mean typing the exact model identifier from memory —
+          this lists what's actually configured so the operator picks instead
+          of types, and shows Lift right on the row that's already halted. ── */}
+      {adapters.length > 0 && (
+        <Card className="mb-5">
+          <div className="px-5 py-3 border-b border-slate-100 flex items-center gap-2">
+            <Cpu size={13} className="text-slate-500" />
+            <h3 className="text-[13px] font-semibold text-slate-800">Models &amp; adapters</h3>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-slate-100">
+                  {['Adapter', 'Provider', 'Model', 'Status', ''].map(h => (
+                    <th key={h} className="px-5 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wide">{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {adapters.map(a => {
+                  const modelKey = a.modelId || a.name;
+                  const modelSw  = activeSwitchFor('MODEL', modelKey);
+                  const adapterSw = activeSwitchFor('ADAPTER', String(a.id));
+                  const killedBy = modelSw || adapterSw;
+                  return (
+                    <tr key={a.id} className={`border-b border-slate-50 ${killedBy ? 'bg-red-50/30' : ''}`}>
+                      <td className="px-5 py-3 text-slate-800 font-medium">{a.name}</td>
+                      <td className="px-5 py-3 text-slate-600">{a.provider}</td>
+                      <td className="px-5 py-3 text-slate-600">{a.modelId || '—'}</td>
+                      <td className="px-5 py-3">
+                        {killedBy ? (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold bg-red-100 text-red-800">
+                            Halted ({killedBy.scopeType})
+                          </span>
+                        ) : a.isActive ? (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold bg-emerald-100 text-emerald-800">
+                            Active
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold bg-slate-100 text-slate-500">
+                            Disabled
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-5 py-3 text-right">
+                        {killedBy ? (
+                          <Button variant="secondary" size="sm"
+                            loading={busy === killedBy.killSwitchId}
+                            onClick={() => onLift(killedBy)}>
+                            <PowerOff size={12} /> Lift
+                          </Button>
+                        ) : (
+                          <Button variant="destructive" size="sm"
+                            onClick={() => killScope('MODEL', modelKey, a.name)}>
+                            <Power size={12} /> Kill
+                          </Button>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </Card>
       )}
 
       {/* ── Active ── */}
@@ -241,9 +343,9 @@ export default function KillSwitchAdmin({ keycloak, isPlatformOperator = true })
 
 // ── Engage form ──────────────────────────────────────────────────────────────
 
-function EngageForm({ keycloak, isPlatformOperator, onDone, onError }) {
-  const [scopeType, setScopeType] = useState('TENANT');
-  const [scopeKey,  setScopeKey]  = useState('*');
+function EngageForm({ keycloak, isPlatformOperator, initialScopeType, initialScopeKey, presetLabel, onDone, onCancel, onError }) {
+  const [scopeType, setScopeType] = useState(initialScopeType ?? 'TENANT');
+  const [scopeKey,  setScopeKey]  = useState(initialScopeKey  ?? '*');
   const [reason,    setReason]    = useState('');
   const [saving,    setSaving]    = useState(false);
 
@@ -283,6 +385,12 @@ function EngageForm({ keycloak, isPlatformOperator, onDone, onError }) {
         <h3 className="text-[13px] font-semibold text-red-900">Engage kill switch</h3>
       </div>
       <div className="px-5 py-4 space-y-3">
+        {initialScopeKey && (
+          <p className="text-[11px] text-slate-500 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2">
+            Prefilled to halt <span className="font-semibold text-slate-700">{presetLabel ?? initialScopeKey}</span> —
+            change the scope or identifier below if this isn't right.
+          </p>
+        )}
         <div>
           <label className="block text-xs font-medium text-slate-600 mb-1">Scope</label>
           <select value={scopeType} onChange={e => setScopeType(e.target.value)}
@@ -294,11 +402,21 @@ function EngageForm({ keycloak, isPlatformOperator, onDone, onError }) {
         {!wildcard && (
           <div>
             <label className="block text-xs font-medium text-slate-600 mb-1">
-              {scopeType === 'INTENT_TYPE' ? 'Intent type' : scopeType === 'PROVIDER' ? 'Provider' : 'Adapter ID'}
+              {scopeType === 'INTENT_TYPE' ? 'Intent type'
+                : scopeType === 'PROVIDER' ? 'Provider'
+                : scopeType === 'MODEL'    ? 'Model name'
+                : 'Adapter ID'}
             </label>
             <input value={scopeKey === '*' ? '' : scopeKey} onChange={e => setScopeKey(e.target.value)}
-              placeholder={scopeType === 'INTENT_TYPE' ? 'fraud_detection' : 'openai'}
+              placeholder={scopeType === 'INTENT_TYPE' ? 'fraud_detection'
+                : scopeType === 'MODEL' ? 'gpt-4o'
+                : 'openai'}
               className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            {scopeType === 'MODEL' && (
+              <p className="mt-1 text-[11px] text-slate-400">
+                Exact model identifier as recorded in the audit log, e.g. the value shown in AI Spend's model breakdown.
+              </p>
+            )}
           </div>
         )}
 
@@ -314,10 +432,17 @@ function EngageForm({ keycloak, isPlatformOperator, onDone, onError }) {
           </p>
         </div>
 
-        <Button variant="destructive" size="md" loading={saving}
-          disabled={!reason.trim()} onClick={submit}>
-          <Power size={13} /> {isPlatform ? 'Halt all processing' : 'Engage'}
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="destructive" size="md" loading={saving}
+            disabled={!reason.trim()} onClick={submit}>
+            <Power size={13} /> {isPlatform ? 'Halt all processing' : 'Engage'}
+          </Button>
+          {onCancel && (
+            <Button variant="secondary" size="md" onClick={onCancel}>
+              <X size={13} /> Cancel
+            </Button>
+          )}
+        </div>
       </div>
     </Card>
   );

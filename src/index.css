@@ -42,9 +42,13 @@
     --card-shadow:    0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
 
     /* ── Text ───────────────────────────────────────────────────────────────── */
+    /* --text-muted was #94a3b8 (slate-400), which is ~2.5:1 against white and
+       fails WCAG AA (4.5:1) for informational text. #64748b (slate-500) is the
+       accessible floor for any text that carries meaning — reserve slate-400
+       for purely decorative elements (icons, dividers), never body copy. */
     --text-primary:   #0f172a;
     --text-secondary: #475569;
-    --text-muted:     #94a3b8;
+    --text-muted:     #64748b;
 
     /* ── Status ─────────────────────────────────────────────────────────────── */
     --green:  #16a34a;

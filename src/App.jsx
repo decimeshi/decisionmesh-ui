@@ -5,7 +5,7 @@ import TopBar from './layout/TopBar';
 import { Spinner } from './components/shared';
 import LowCreditBanner from './components/shared/LowCreditBanner';
 import FeedbackWidget from './components/FeedbackWidget';
-import SysAdminRoute from './components/SysAdminRoute';
+import { RequireCapability } from './context/CapabilityContext';
 import AIGovernanceInfrastructure from "./pages/blog/AIGovernanceInfrastructure.jsx";
 import IntentBasedAIControlPlane from "./pages/blog/IntentBasedAIControlPlane.jsx";
 import SecurityPage from "./pages/SecurityPage.jsx";
@@ -30,6 +30,7 @@ const ExecutionMonitor = lazy(() => import('./pages/ExecutionMonitor'));
 const Adapters         = lazy(() => import('./pages/Adapters'));
 const PolicyBuilder    = lazy(() => import('./pages/PolicyBuilder'));
 const CostAnalytics    = lazy(() => import('./pages/CostAnalytics'));
+const AiSpend           = lazy(() => import('./pages/AiSpend'));
 const DriftDashboard   = lazy(() => import('./pages/DriftDashboard'));
 const ApiKeys          = lazy(() => import('./pages/ApiKeys'));
 const AuditLog         = lazy(() => import('./pages/AuditLog'));
@@ -51,6 +52,8 @@ const AdminUsers          = lazy(() => import('./pages/AdminUsers'));
 const AdminCredits        = lazy(() => import('./pages/AdminCredits'));
 const AdminWebhooks       = lazy(() => import('./pages/AdminWebhooks'));
 const AdminHealth         = lazy(() => import('./pages/AdminHealth'));
+const RetentionDryRun     = lazy(() => import('./pages/RetentionDryRun'));
+const PlatformReport      = lazy(() => import('./pages/PlatformReport'));
 const KillSwitchAdmin     = lazy(() => import('./pages/KillSwitchAdmin'));
 const DocsPage            = lazy(() => import('./pages/DocsPage'));
 
@@ -132,6 +135,17 @@ export default function App({ keycloak }) {
                 <Route path="/adapters"               element={<Adapters         keycloak={keycloak} />} />
                 <Route path="/policies"               element={<PolicyBuilder    keycloak={keycloak} />} />
                 <Route path="/analytics/cost"         element={<CostAnalytics    keycloak={keycloak} />} />
+                {/* CXO AI spend — gated on canViewSpend, resolved server-side by
+                    AuthCapabilitiesResource from the same checks SpendResource enforces
+                    (@RolesAllowed(sys_admin,tenant_admin) + Permission.REPORT_READ). NOT a
+                    JWT role decode — tenant_admin isn't in the token, see CapabilityContext.
+                    Decision support (spend/ROI), not the compliance halt — see AiSpend.jsx
+                    for why the kill switch lives at /admin/kill-switches. */}
+                <Route path="/spend" element={
+                  <RequireCapability capability="canViewSpend">
+                    <AiSpend keycloak={keycloak} />
+                  </RequireCapability>
+                } />
                 <Route path="/analytics/drift"        element={<DriftDashboard   keycloak={keycloak} />} />
                 <Route path="/api-keys"               element={<ApiKeys          keycloak={keycloak} />} />
                 <Route path="/audit"                  element={<AuditLog         keycloak={keycloak} />} />
@@ -160,46 +174,75 @@ export default function App({ keycloak }) {
                 <Route path="/blog/ai-governance-fintech-rbi-sebi-guidelines"     element={<AiGovernanceFintech />}/>
                 <Route path="/blog/rbac-llm-api-access-control"                   element={<RbacLlmApi />}/>
 
-                {/* ── sys_admin only routes ──────────────────────────────── */}
+                {/* ── sys_admin only routes ──────────────────────────────────
+                    Gated on isPlatformOperator (RequireCapability), NOT the old
+                    SysAdminRoute JWT decode. sys_admin can now come from either
+                    the Zitadel claim OR the platform_admin bootstrap table (see
+                    ZitadelRoleAugmentor / V2__platform_admin.sql) — a God account
+                    seeded that second way carries sys_admin in the server-side
+                    SecurityIdentity but NOT in the raw JWT the browser holds, so
+                    a client-side decode would wrongly lock them out of every page
+                    below even though every one of these backend endpoints would
+                    accept them. isPlatformOperator is computed server-side by
+                    AuthCapabilitiesResource from the same identity.hasRole() call
+                    the backend resources use, so it can never disagree with them. */}
                 <Route path="/admin/payments" element={
-                  <SysAdminRoute keycloak={keycloak}>
+                  <RequireCapability capability="isPlatformOperator">
                     <AdminPaymentTesting keycloak={keycloak} />
-                  </SysAdminRoute>
+                  </RequireCapability>
                 } />
                 <Route path="/admin/feedback" element={
-                  <SysAdminRoute keycloak={keycloak}>
+                  <RequireCapability capability="isPlatformOperator">
                     <AdminFeedback keycloak={keycloak} />
-                  </SysAdminRoute>
+                  </RequireCapability>
                 } />
                 <Route path="/admin/users" element={
-                  <SysAdminRoute keycloak={keycloak}>
+                  <RequireCapability capability="isPlatformOperator">
                     <AdminUsers keycloak={keycloak} />
-                  </SysAdminRoute>
+                  </RequireCapability>
                 } />
                 <Route path="/admin/credits" element={
-                  <SysAdminRoute keycloak={keycloak}>
+                  <RequireCapability capability="isPlatformOperator">
                     <AdminCredits keycloak={keycloak} />
-                  </SysAdminRoute>
+                  </RequireCapability>
                 } />
                 <Route path="/admin/webhooks" element={
-                  <SysAdminRoute keycloak={keycloak}>
+                  <RequireCapability capability="isPlatformOperator">
                     <AdminWebhooks keycloak={keycloak} />
-                  </SysAdminRoute>
+                  </RequireCapability>
                 } />
                 <Route path="/admin/health" element={
-                  <SysAdminRoute keycloak={keycloak}>
+                  <RequireCapability capability="isPlatformOperator">
                     <AdminHealth keycloak={keycloak} />
-                  </SysAdminRoute>
+                  </RequireCapability>
+                } />
+                <Route path="/admin/retention" element={
+                  <RequireCapability capability="isPlatformOperator">
+                    <RetentionDryRun keycloak={keycloak} />
+                  </RequireCapability>
+                } />
+                <Route path="/admin/reports/platform" element={
+                  <RequireCapability capability="isPlatformOperator">
+                    <PlatformReport keycloak={keycloak} />
+                  </RequireCapability>
                 } />
 
                 {/* Kill switches — the emergency stop console.
                     Without this route, /admin/kill-switches fell through to the "*"
                     catch-all below and silently redirected to the dashboard, which is
-                    why "Manage kill switches" appeared to do nothing. */}
+                    why "Manage kill switches" appeared to do nothing.
+
+                    Gated on canManageKillSwitches/canLiftKillSwitches rather than
+                    SysAdminRoute (sys_admin only): KillSwitchResource itself authorises
+                    both sys_admin AND tenant_admin (isPlatformOperator() OR isTenantAdmin()
+                    in KillSwitchResource.assertScopeAllowed) — the old sys_admin-only gate
+                    here was stricter than the backend and silently locked out tenant admins
+                    the API would have accepted. isPlatformOperator is no longer a hardcoded
+                    prop either; KillSwitchAdmin reads it from useCapabilities(). */}
                 <Route path="/admin/kill-switches" element={
-                  <SysAdminRoute keycloak={keycloak}>
-                    <KillSwitchAdmin keycloak={keycloak} isPlatformOperator />
-                  </SysAdminRoute>
+                  <RequireCapability capability={['canManageKillSwitches', 'canLiftKillSwitches']}>
+                    <KillSwitchAdmin keycloak={keycloak} />
+                  </RequireCapability>
                 } />
 
                 <Route path="/docs"     element={<DocsPage />} />

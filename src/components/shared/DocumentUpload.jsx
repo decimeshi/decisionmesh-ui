@@ -51,7 +51,7 @@ function MethodCard({ id, icon, label, sub, selected, onSelect }) {
         ${selected ? 'text-blue-700' : 'text-slate-600'}`}>
         {icon}{label}
       </div>
-      <p className="text-[10px] text-slate-400 leading-tight">{sub}</p>
+      <p className="text-2xs text-slate-500 leading-tight">{sub}</p>
     </button>
   );
 }
@@ -252,7 +252,7 @@ export default function DocumentUpload({ keycloak, onDocumentReady, onClear }) {
                 ? `Base64 encoded — ${encodedKb} KB added to payload`
                 : 'Uploaded to S3 — URL injected into payload'}
             </p>
-            <p className="text-[10px] font-mono text-green-600 truncate">
+            <p className="text-2xs font-mono text-green-600 truncate">
               {docRef.documentUrl ?? `data:[${docType(file)}] base64 · ${encodedKb} KB`}
             </p>
           </div>
