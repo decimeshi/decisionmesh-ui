@@ -1,12 +1,13 @@
 /**
  * AdminPaymentTesting.jsx — Stripe & Razorpay Dev Testing Console
  *
- * Available only to sys_admin role (wrap with SysAdminRoute in router).
+ * Available only to sys_admin (isPlatformOperator capability — see
+ * AuthCapabilitiesResource / CapabilityContext, not a JWT decode).
  * Provides:
  *   - Test card / UPI numbers with one-click copy
  *   - Trigger test checkouts for every plan + interval
  *   - Trigger test credit pack purchases
- *   - Simulate webhook events via backend
+ *   - Log synthetic webhook events into the webhook event log
  *   - View recent Stripe & Razorpay events
  *   - Environment indicator (test vs live)
  */
@@ -18,7 +19,7 @@ import {
 } from 'lucide-react';
 import Page from '../components/shared/Page';
 import { Card, CardHeader, CardTitle, CardContent, Spinner } from '../components/shared';
-import { request } from '../utils/api';
+import { request, simulateWebhook as simulateWebhookApi } from '../utils/api';
 
 // ── Stripe test cards ─────────────────────────────────────────────────────────
 const STRIPE_CARDS = [
@@ -243,14 +244,14 @@ export default function AdminPaymentTesting({ keycloak }) {
   }
 
   // ── Simulate webhook ──────────────────────────────────────────────────────
+  // Logs a synthetic event into the webhook event log — does not invoke real
+  // billing side effects (no credits granted, no subscription changed). See
+  // AdminResource.simulateWebhook's javadoc for why that's deliberate.
   async function simulateWebhook(event) {
     setWebhookFiring(event.id);
     try {
-      await request(keycloak, '/admin/webhooks/simulate', {
-        method: 'POST',
-        body: JSON.stringify({ eventType: event.id }),
-      });
-      addResult('success', `Webhook simulated: ${event.label}`);
+      await simulateWebhookApi(keycloak, event.id);
+      addResult('success', `Logged: ${event.label} — view it in Admin > Webhooks`);
     } catch (e) {
       addResult('error', `Webhook ${event.id}: ${e.message}`);
     } finally {
@@ -428,8 +429,11 @@ export default function AdminPaymentTesting({ keycloak }) {
         defaultOpen={false}
       >
         <p className="text-xs text-slate-500 mb-4">
-          Fires a synthetic webhook payload to <code className="text-[10px] bg-slate-100 px-1 rounded">POST /admin/webhooks/simulate</code> on
-          the backend, which processes it through the same handler as real events.
+          Logs a synthetic event to <code className="text-[10px] bg-slate-100 px-1 rounded">POST /admin/webhooks/simulate</code>,
+          visible in the Webhooks admin page for inspecting the log and replay UI.
+          It does not trigger real billing side effects — no credits are granted
+          and no subscription changes. To exercise the actual payment path, use
+          the checkout triggers above (real Stripe/Razorpay test-mode calls).
         </p>
         <div className="space-y-2">
           {WEBHOOK_EVENTS.map(event => (

@@ -7,11 +7,13 @@
  *   - Paginated feedback list
  *   - Highlight low-rating entries for triage
  *
- * Wrap with SysAdminRoute in your router:
+ * Wrap with RequireCapability in your router (isPlatformOperator — server-
+ * computed, see AuthCapabilitiesResource — rather than SysAdminRoute's JWT
+ * decode, so a sys_admin seeded via platform_admin still sees this page):
  *   <Route path="/admin/feedback" element={
- *     <SysAdminRoute keycloak={keycloak}>
+ *     <RequireCapability capability="isPlatformOperator">
  *       <AdminFeedback keycloak={keycloak} />
- *     </SysAdminRoute>
+ *     </RequireCapability>
  *   } />
  */
 import { useState, useEffect, useCallback } from 'react';
@@ -21,7 +23,7 @@ import {
 } from 'lucide-react';
 import Page from '../components/shared/Page';
 import { Card, CardHeader, CardTitle, CardContent, Spinner } from '../components/shared';
-import { request } from '../utils/api';
+import { getAdminFeedback } from '../utils/api';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 const CATEGORIES = [
@@ -87,11 +89,11 @@ export default function AdminFeedback({ keycloak }) {
   const load = useCallback(async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true); else setLoading(true);
     try {
-      const params = new URLSearchParams({ limit: '200' });
-      if (category !== 'all') params.set('category', category);
-      if (minRating > 1)      params.set('minRating', minRating);
-
-      const data = await request(keycloak, `/admin/feedback?${params}`);
+      const data = await getAdminFeedback(keycloak, {
+        limit: 200,
+        category:  category !== 'all' ? category  : null,
+        minRating: minRating > 1       ? minRating : null,
+      });
       setFeedback(data ?? []);
       setPage(0);
     } catch (e) {

@@ -222,7 +222,7 @@ export default function FeedbackWidget({ keycloak }) {
             </div>
             <div>
               <p className="text-sm font-bold text-slate-900 leading-none">Share feedback</p>
-              <p className="text-[10px] text-slate-400 mt-0.5">Help us improve DecisionMesh</p>
+              <p className="text-2xs text-slate-500 mt-0.5">Help us improve DecisionMesh</p>
             </div>
           </div>
           <button
@@ -252,7 +252,7 @@ export default function FeedbackWidget({ keycloak }) {
 
             {/* Star rating */}
             <div>
-              <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide mb-3">
+              <p className="text-2xs font-semibold text-slate-500 uppercase tracking-wide mb-3">
                 How's your experience?
               </p>
               <StarRating value={rating} onChange={setRating} />
@@ -260,7 +260,7 @@ export default function FeedbackWidget({ keycloak }) {
 
             {/* Category dropdown */}
             <div>
-              <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide mb-1.5">
+              <p className="text-2xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">
                 Category
               </p>
               <div ref={catRef} className="relative">
@@ -271,7 +271,7 @@ export default function FeedbackWidget({ keycloak }) {
                 >
                   <div>
                     <p className="text-xs font-medium text-slate-800">{selectedCat.label}</p>
-                    <p className="text-[10px] text-slate-400">{selectedCat.desc}</p>
+                    <p className="text-2xs text-slate-500">{selectedCat.desc}</p>
                   </div>
                   <ChevronDown
                     size={13}
@@ -294,7 +294,7 @@ export default function FeedbackWidget({ keycloak }) {
                           <p className={`text-xs font-medium ${category === cat.id ? 'text-blue-700' : 'text-slate-800'}`}>
                             {cat.label}
                           </p>
-                          <p className="text-[10px] text-slate-400">{cat.desc}</p>
+                          <p className="text-2xs text-slate-500">{cat.desc}</p>
                         </div>
                         {category === cat.id && (
                           <Check size={12} className="text-blue-600 mt-0.5 shrink-0" />
@@ -308,7 +308,7 @@ export default function FeedbackWidget({ keycloak }) {
 
             {/* Comment */}
             <div>
-              <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide mb-1.5">
+              <p className="text-2xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">
                 Tell us more <span className="font-normal normal-case text-slate-400">(optional)</span>
               </p>
               <textarea
@@ -320,14 +320,14 @@ export default function FeedbackWidget({ keycloak }) {
                 rows={3}
                 className="w-full text-xs text-slate-700 border border-slate-200 rounded-xl px-3 py-2.5 bg-slate-50 focus:outline-none focus:border-blue-400 focus:bg-white resize-none transition-colors placeholder:text-slate-300"
               />
-              <p className="text-[10px] text-slate-300 text-right mt-0.5">
+              <p className="text-2xs text-slate-400 text-right mt-0.5">
                 {comment.length}/1000
               </p>
             </div>
 
             {/* Error */}
             {error && (
-              <p className="text-[11px] text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+              <p className="text-2xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
                 {error}
               </p>
             )}
@@ -345,7 +345,7 @@ export default function FeedbackWidget({ keycloak }) {
               )}
             </button>
 
-            <p className="text-[10px] text-slate-400 text-center">
+            <p className="text-2xs text-slate-500 text-center">
               Feedback is linked to your account and reviewed by our team.
             </p>
           </div>

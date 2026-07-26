@@ -10,7 +10,7 @@ import {
 } from 'lucide-react';
 import Page from '../components/shared/Page';
 import { Card, Spinner } from '../components/shared';
-import { request } from '../utils/api';
+import { getAdminUsers, getAdminUser, suspendUser, activateUser, adjustUserCredits } from '../utils/api';
 
 function Badge({ active }) {
   return active
@@ -36,10 +36,10 @@ export default function AdminUsers({ keycloak }) {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const params = new URLSearchParams({ page, size: PAGE_SIZE });
-      if (search.trim()) params.set('search', search.trim());
-      if (activeFilter !== 'all') params.set('active', activeFilter === 'active');
-      const data = await request(keycloak, `/admin/users?${params}`);
+      const data = await getAdminUsers(keycloak, {
+        page, size: PAGE_SIZE, search: search.trim() || null,
+        active: activeFilter !== 'all' ? activeFilter === 'active' : null,
+      });
       setUsers(data ?? []);
     } catch (e) {
       showToast('error', e.message ?? 'Failed to load users');
@@ -58,7 +58,7 @@ export default function AdminUsers({ keycloak }) {
   async function handleSuspend(user) {
     setActing(user.userId);
     try {
-      await request(keycloak, `/admin/users/${user.userId}/suspend`, { method: 'POST' });
+      await suspendUser(keycloak, user.userId);
       showToast('success', `${user.email} suspended`);
       load();
     } catch (e) { showToast('error', e.message); }
@@ -68,7 +68,7 @@ export default function AdminUsers({ keycloak }) {
   async function handleActivate(user) {
     setActing(user.userId);
     try {
-      await request(keycloak, `/admin/users/${user.userId}/activate`, { method: 'POST' });
+      await activateUser(keycloak, user.userId);
       showToast('success', `${user.email} activated`);
       load();
     } catch (e) { showToast('error', e.message); }
@@ -80,10 +80,7 @@ export default function AdminUsers({ keycloak }) {
     if (!amount || amount === 0) return;
     setActing(creditModal.user.userId);
     try {
-      const res = await request(keycloak, `/admin/users/${creditModal.user.userId}/credits`, {
-        method: 'POST',
-        body: JSON.stringify({ amount, note: creditNote }),
-      });
+      const res = await adjustUserCredits(keycloak, creditModal.user.userId, amount, creditNote);
       showToast('success', `Credits adjusted — new balance: ${res.newBalance?.toLocaleString()}`);
       setCreditModal(null);
       setCreditAmt('');
@@ -97,7 +94,7 @@ export default function AdminUsers({ keycloak }) {
     setDetailLoading(true);
     setDetailUser({}); // open drawer immediately with loading state
     try {
-      const data = await request(keycloak, `/admin/users/${userId}`);
+      const data = await getAdminUser(keycloak, userId);
       setDetailUser(data);
     } catch (e) {
       showToast('error', e.message ?? 'Failed to load user detail');

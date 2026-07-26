@@ -63,8 +63,8 @@ function CreditPill() {
     >
       <Zap size={11} style={{ color: statusColor }} />
       <div className="flex flex-col items-end gap-0.5">
-        <span className="text-[11px] font-semibold leading-none tabular-nums" style={{ color: statusColor }}>
-          {balance?.toLocaleString()}<span className="font-normal text-slate-400"> cr</span>
+        <span className="text-2xs font-semibold leading-none tabular-nums" style={{ color: statusColor }}>
+          {balance?.toLocaleString()}<span className="font-normal text-slate-500"> cr</span>
         </span>
         <div className="w-12 h-0.5 rounded-full overflow-hidden" style={{ background: '#e2e8f0' }}>
           <div className="h-full rounded-full transition-all"
@@ -145,7 +145,7 @@ function UserMenu({ keycloak }) {
         </div>
         <div className="hidden sm:block text-left">
           <p className="text-[12px] font-semibold text-slate-700 leading-none">{user?.preferred_username ?? user?.name ?? '—'}</p>
-          <p className="text-[11px] text-slate-400 mt-0.5 truncate max-w-[120px]">{user?.email ?? ''}</p>
+          <p className="text-2xs text-slate-500 mt-0.5 truncate max-w-[120px]">{user?.email ?? ''}</p>
         </div>
         <ChevronDown size={11} className={`text-slate-400 hidden sm:block transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
       </button>
@@ -155,11 +155,11 @@ function UserMenu({ keycloak }) {
           style={{ boxShadow: '0 8px 32px rgba(0,0,0,0.12)' }}>
           <div className="px-4 py-3 border-b border-slate-100 bg-slate-50">
             <p className="text-[12px] font-semibold text-slate-700 truncate">{user?.name ?? user?.preferred_username}</p>
-            <p className="text-[11px] text-slate-400 mt-0.5 truncate">{user?.email}</p>
+            <p className="text-2xs text-slate-500 mt-0.5 truncate">{user?.email}</p>
           </div>
           {MENU.map(({ group, items }) => (
             <div key={group} className="py-1 border-b border-slate-100 last:border-0">
-              <p className="px-3 py-1 text-[9px] font-bold text-slate-400 uppercase tracking-widest">{group}</p>
+              <p className="px-3 py-1 text-2xs font-bold text-slate-500 uppercase tracking-widest">{group}</p>
               {items.map(({ icon: Icon, label, action }) => (
                 <button key={label} onClick={() => { action(); setOpen(false); }}
                   className="w-full flex items-center gap-2.5 px-3 py-2 text-[13px] text-slate-600 transition-colors text-left"
@@ -206,7 +206,7 @@ export default function TopBar({ keycloak, sidebarHidden, onToggleSidebar }) {
           {crumbs.map((c, i) => (
             <span key={i} className="flex items-center gap-1 min-w-0">
               {i > 0 && <ChevronRight size={10} className="text-slate-300 shrink-0" />}
-              <span className={`truncate text-[13px] ${i === crumbs.length - 1 ? 'font-semibold text-slate-900' : 'font-medium text-slate-400'}`}>
+              <span className={`truncate text-[13px] ${i === crumbs.length - 1 ? 'font-semibold text-slate-900' : 'font-medium text-slate-500'}`}>
                 {c.label}
               </span>
             </span>
@@ -217,7 +217,7 @@ export default function TopBar({ keycloak, sidebarHidden, onToggleSidebar }) {
       <div className="flex items-center gap-2 shrink-0">
         <CreditPill />
         {!projectLoading && activeProject && (
-          <span className="hidden lg:flex items-center gap-1.5 text-[11px] px-2.5 py-1 rounded-full font-medium border"
+          <span className="hidden lg:flex items-center gap-1.5 text-2xs px-2.5 py-1 rounded-full font-medium border"
             style={{ background: '#f8fafc', borderColor: '#e2e8f0', color: '#475569' }}>
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
             <span className="truncate max-w-[100px]">{activeProject.name}</span>

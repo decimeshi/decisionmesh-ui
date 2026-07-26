@@ -7,12 +7,13 @@ import {
   UserPlus, PanelLeftClose, FolderOpen,
   ChevronDown, Check, Plus, Palette, CreditCard, Receipt,
   Bug, Library, MessageSquarePlus, TestTube2,
-  Users, Coins, Webhook, HeartPulse, Zap, BookOpen, ShieldAlert,
+  Users, Coins, Webhook, HeartPulse, Zap, BookOpen, ShieldAlert, DollarSign,
+  Trash2, Globe2,
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { useProject } from '../context/ProjectContext';
 import { useCredits } from '../context/CreditContext';
-import { hasSysAdminRole } from '../components/SysAdminRoute';
+import { useCapabilities } from '../context/CapabilityContext';
 
 // ── Nav structure ─────────────────────────────────────────────────────────────
 const NAV = [
@@ -44,6 +45,8 @@ const NAV = [
     items: [
       { label: 'Cost',          icon: BarChart3,       to: '/analytics/cost' },
       { label: 'Drift',         icon: TrendingUp,      to: '/analytics/drift'},
+      // CXO-only — filtered out below for callers without sys_admin/tenant_admin.
+      { label: 'AI Spend',      icon: DollarSign,      to: '/spend', cxoOnly: true },
     ],
   },
   {
@@ -65,17 +68,22 @@ const NAV = [
   },
 ];
 
+// Kill Switches used to live in ADMIN_ITEMS, gated on isAdmin (sys_admin only)
+// along with everything else in that section. That was wrong once
+// /admin/kill-switches itself was widened to accept tenant_admin too (see
+// App.jsx) — a tenant_admin who could actually open the page would never see
+// it in the nav, because the whole Admin section was invisible to them.
+// Rendered separately below, gated on the same capability the route checks.
 const ADMIN_ITEMS = [
-  // First, deliberately. In an incident this is the item you are reaching for —
-  // it does not belong buried under Token Debug.
-  { label: 'Kill Switches',   icon: ShieldAlert,       to: '/admin/kill-switches' },
-  { label: 'Users',           icon: Users,             to: '/admin/users'    },
-  { label: 'Credits',         icon: Coins,             to: '/admin/credits'  },
-  { label: 'Webhooks',        icon: Webhook,           to: '/admin/webhooks' },
-  { label: 'Health',          icon: HeartPulse,        to: '/admin/health'   },
-  { label: 'Feedback',        icon: MessageSquarePlus, to: '/admin/feedback' },
-  { label: 'Payments',        icon: TestTube2,         to: '/admin/payments' },
-  { label: 'Token Debug',     icon: Bug,               to: '/debug/token'    },
+  { label: 'Users',           icon: Users,             to: '/admin/users'            },
+  { label: 'Credits',         icon: Coins,             to: '/admin/credits'          },
+  { label: 'Webhooks',        icon: Webhook,           to: '/admin/webhooks'         },
+  { label: 'Health',          icon: HeartPulse,        to: '/admin/health'           },
+  { label: 'Feedback',        icon: MessageSquarePlus, to: '/admin/feedback'         },
+  { label: 'Payments',        icon: TestTube2,         to: '/admin/payments'         },
+  { label: 'Retention',       icon: Trash2,            to: '/admin/retention'        },
+  { label: 'Platform report', icon: Globe2,            to: '/admin/reports/platform' },
+  { label: 'Token Debug',     icon: Bug,               to: '/debug/token'            },
 ];
 
 // ── Credit footer ─────────────────────────────────────────────────────────────
@@ -118,7 +126,7 @@ function CreditFooter() {
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-1.5">
           <Zap size={11} style={{ color: labelColor }} />
-          <span className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: 'var(--sidebar-label)' }}>
+          <span className="text-2xs font-semibold uppercase tracking-widest" style={{ color: 'var(--sidebar-label)' }}>
             Credits
           </span>
         </div>
@@ -132,13 +140,13 @@ function CreditFooter() {
           style={{ width: `${pct}%`, background: barColor }} />
       </div>
       <div className="flex justify-between mt-1.5">
-        <p className="text-[10px] font-medium" style={{ color: labelColor }}>
+        <p className="text-2xs font-medium" style={{ color: labelColor }}>
           {isEmpty        ? '⚠ No credits — top up now'
            : pct < 10    ? '⚠ Critical — top up now'
            : pct < 30    ? '⚠ Running low'
            :               ''}
         </p>
-        <p className="text-[10px]" style={{ color: 'var(--sidebar-label)' }}>
+        <p className="text-2xs" style={{ color: 'var(--sidebar-label)' }}>
           {Math.round(pct)}%
         </p>
       </div>
@@ -188,13 +196,13 @@ function ProjectSwitcher() {
           {org.name?.[0]?.toUpperCase() ?? 'O'}
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-[11px] font-semibold leading-none truncate" style={{ color: 'var(--sidebar-text)' }}>
+          <p className="text-2xs font-semibold leading-none truncate" style={{ color: 'var(--sidebar-text)' }}>
             {org.name}
           </p>
           <div className="flex items-center gap-1 mt-1">
             <div className="w-1.5 h-1.5 rounded-full shrink-0"
               style={{ background: ENV_COLOR[activeProject?.environment] ?? '#94a3b8' }} />
-            <p className="text-[11px] font-medium leading-none truncate" style={{ color: 'var(--sidebar-text-active)' }}>
+            <p className="text-2xs font-medium leading-none truncate" style={{ color: 'var(--sidebar-text-active)' }}>
               {activeProject?.name ?? 'No project'}
             </p>
           </div>
@@ -209,7 +217,7 @@ function ProjectSwitcher() {
           <div className="rounded-xl border overflow-hidden animate-fadeIn"
             style={{ ...dropdownStyle, background: '#1e293b', borderColor: 'rgba(255,255,255,0.1)', boxShadow: '0 8px 32px rgba(0,0,0,0.4)' }}>
             <div className="px-3 py-2 border-b" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
-              <p className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: '#38bdf8' }}>
+              <p className="text-2xs font-semibold uppercase tracking-widest" style={{ color: '#38bdf8' }}>
                 Projects
               </p>
             </div>
@@ -300,7 +308,24 @@ function NavItem({ item, collapsed }) {
 
 // ── Main sidebar ─────────────────────────────────────────────────────────────
 export default function Sidebar({ collapsed, onToggle, onHide, keycloak }) {
-  const isAdmin = hasSysAdminRole(keycloak);
+  // isAdmin used to be hasSysAdminRole(keycloak) — a client-side JWT decode.
+  // That breaks for a sys_admin seeded via the platform_admin bootstrap table
+  // (see ZitadelRoleAugmentor / V2__platform_admin.sql): the server grants
+  // them sys_admin in the SecurityIdentity, but nothing adds that role to the
+  // JWT the browser actually holds, so the decode would hide the entire Admin
+  // section from exactly the God account it exists to bootstrap. isPlatformOperator
+  // is resolved server-side by AuthCapabilitiesResource from the same
+  // identity.hasRole() call every gated admin resource uses, so it can't drift
+  // from what the backend will actually allow — same reasoning as canViewSpend
+  // below for tenant_admin.
+  const {
+    canViewSpend: isCxo, canManageKillSwitches, canLiftKillSwitches,
+    isPlatformOperator: isAdmin,
+  } = useCapabilities();
+  // isAdmin included so a sys_admin without an explicit KILLSWITCH_ENGAGE/LIFT
+  // grant (platform authority bypasses the permission check server-side too,
+  // see AccessControl.can) still sees the item.
+  const canSeeKillSwitches = isAdmin || canManageKillSwitches || canLiftKillSwitches;
 
   return (
     <aside
@@ -327,7 +352,7 @@ export default function Sidebar({ collapsed, onToggle, onHide, keycloak }) {
               <p className="text-[14px] font-black leading-none tracking-tight whitespace-nowrap">
                 <span style={{ color: '#F1F5F9' }}>Decision</span><span style={{ color: '#818CF8' }}>Mesh</span>
               </p>
-              <p className="text-[8px] font-semibold tracking-[0.15em] uppercase mt-0.5 whitespace-nowrap leading-[1.35]"
+              <p className="text-2xs font-semibold tracking-wide uppercase mt-0.5 whitespace-nowrap leading-[1.35]"
                 style={{ color: '#DBE4FF' }}>Govern · Secure<br />Optimize · Prove</p>
             </div>
             <button onClick={onHide} title="Hide sidebar"
@@ -351,7 +376,7 @@ export default function Sidebar({ collapsed, onToggle, onHide, keycloak }) {
           <div key={section.label}>
             {/* Section label */}
             {!collapsed && (
-              <p className="px-4 mb-1 text-[10px] font-semibold tracking-widest uppercase"
+              <p className="px-4 mb-1 text-2xs font-semibold tracking-widest uppercase"
                 style={{ color: '#38bdf8' }}>
                 {section.label}
               </p>
@@ -361,18 +386,35 @@ export default function Sidebar({ collapsed, onToggle, onHide, keycloak }) {
             )}
             {/* Items */}
             <div className="space-y-0.5">
-              {section.items.map(item => (
-                <NavItem key={item.to} item={item} collapsed={collapsed} />
-              ))}
+              {section.items
+                .filter(item => !item.cxoOnly || isCxo)
+                .map(item => (
+                  <NavItem key={item.to} item={item} collapsed={collapsed} />
+                ))}
             </div>
           </div>
         ))}
+
+        {/* Kill Switches — deliberately its own item, not nested in the sys_admin-only
+            Admin section below. The route accepts tenant_admin too (KillSwitchResource
+            authorises both), so gating the nav link on isAdmin alone would hide it from
+            exactly the tenant_admin who can actually use it — an incident-response tool
+            that's reachable by URL but invisible in the nav is worse than not having it. */}
+        {canSeeKillSwitches && (
+          <div>
+            <div className={collapsed ? 'mx-auto mb-1 mt-1' : 'mx-4 mb-1 mt-1'}
+              style={{ height: 1, background: 'rgba(59,130,246,0.3)', width: collapsed ? 24 : undefined }} />
+            <div className="space-y-0.5">
+              <NavItem item={{ label: 'Kill Switches', icon: ShieldAlert, to: '/admin/kill-switches' }} collapsed={collapsed} />
+            </div>
+          </div>
+        )}
 
         {/* Admin section */}
         {isAdmin && (
           <div>
             {!collapsed && (
-              <p className="px-4 mb-1 text-[10px] font-semibold tracking-widest uppercase flex items-center gap-1.5"
+              <p className="px-4 mb-1 text-2xs font-semibold tracking-widest uppercase flex items-center gap-1.5"
                 style={{ color: '#38bdf8' }}>
                 <ShieldCheck size={9} /> Admin
               </p>
@@ -396,7 +438,7 @@ export default function Sidebar({ collapsed, onToggle, onHide, keycloak }) {
       <button
         onClick={onToggle}
         className={cn(
-          'flex items-center gap-2 py-3 border-t text-[11px] transition-colors shrink-0',
+          'flex items-center gap-2 py-3 border-t text-2xs transition-colors shrink-0',
           collapsed ? 'justify-center px-0' : 'px-4'
         )}
         style={{

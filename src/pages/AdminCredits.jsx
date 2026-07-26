@@ -9,7 +9,7 @@ import {
 } from 'lucide-react';
 import Page from '../components/shared/Page';
 import { Card, Spinner } from '../components/shared';
-import { request } from '../utils/api';
+import { getAdminCredits, getAdminCreditStats } from '../utils/api';
 
 const REASONS = [
   'ALL', 'REGISTRATION_GIFT', 'SUBSCRIPTION', 'PURCHASE',
@@ -51,11 +51,9 @@ export default function AdminCredits({ keycloak }) {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const params = new URLSearchParams({ page, size: PAGE_SIZE });
-      if (reason !== 'ALL') params.set('reason', reason);
       const [data, statsData] = await Promise.all([
-        request(keycloak, `/admin/credits?${params}`),
-        request(keycloak, '/admin/credits/stats'),
+        getAdminCredits(keycloak, { page, size: PAGE_SIZE, reason: reason !== 'ALL' ? reason : null }),
+        getAdminCreditStats(keycloak),
       ]);
       setEntries(data ?? []);
       setStats(statsData);
