@@ -5,11 +5,13 @@ import { v4 as uuidv4 } from 'uuid';
 // Typed error so callers can distinguish auth failures (401/403) from
 // other errors and show appropriate UI without catching everything blindly.
 export class ApiError extends Error {
-  constructor(status, message) {
+  constructor(status, message, code = null) {
     super(message);
-    this.name    = 'ApiError';
-    this.status  = status;
-    this.isAuth  = status === 401 || status === 403;
+    this.name      = 'ApiError';
+    this.status    = status;
+    this.isAuth    = status === 401 || status === 403;
+    this.code      = code;                          // machine-readable, e.g. KILL_SWITCH_ACTIVE
+    this.retryable = code === 'KILL_SWITCH_ACTIVE'; // a halt is transient, not a user error
   }
 }
 
@@ -29,6 +31,42 @@ async function refreshToken(keycloak) {
   }
 }
 
+// ── Project scope ─────────────────────────────────────────────────────────────
+// The selected project travels as X-Project-Id on every call. The backend
+// validates it against the caller's tenant and derives the owning team from
+// projects.team_id, so one header populates both audit dimensions.
+//
+// Module-level rather than a React context so plain callers of request() get it
+// too — an audit dimension that only some code paths set is worse than none,
+// because the gaps are invisible in the resulting report.
+let currentProjectId = null;
+
+// Same key ProjectContext already uses — one stored fact, not two that can drift.
+const PROJECT_KEY = 'dm_active_project';
+
+// ProjectContext falls back to a placeholder project ('proj-default') when the
+// API has not answered yet. Sending that as X-Project-Id would fail the backend's
+// uuid parse and log a malformed-header warning on every request, so only real
+// ids travel. Absent header = backend uses the tenant's default project.
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** Call from ProjectContext whenever the active project changes. */
+export function setCurrentProject(projectId) {
+  currentProjectId = UUID_RE.test(projectId ?? '') ? projectId : null;
+  try {
+    if (currentProjectId) localStorage.setItem(PROJECT_KEY, currentProjectId);
+  } catch { /* private mode — in-memory only, scope resets on reload */ }
+}
+
+export function getCurrentProject() {
+  if (currentProjectId) return currentProjectId;
+  try {
+    const saved = localStorage.getItem(PROJECT_KEY);
+    if (UUID_RE.test(saved ?? '')) currentProjectId = saved;
+  } catch { /* ignore */ }
+  return currentProjectId;
+}
+
 // Exported so contexts and pages can use it directly instead of
 // duplicating their own fetch + auth logic.
 export async function request(keycloak, path, options = {}) {
@@ -46,16 +84,36 @@ export async function request(keycloak, path, options = {}) {
       ? Object.fromEntries(options.headers.entries())
       : (options.headers ?? {});
 
+  // Omitted entirely when no project is selected, rather than sent empty: the
+  // backend logs a malformed-header warning on a blank value, and falls back to
+  // the tenant's default project when the header is absent.
+  const projectId = getCurrentProject();
+  const scopeHeaders = projectId ? { 'X-Project-Id': projectId } : {};
+
   const res = await fetch(`${API_BASE}${path}`, {
     ...options,
     headers: {
       'Content-Type': 'application/json',
+      ...scopeHeaders,          // before callerHeaders — an explicit call can override
       ...callerHeaders,
       Authorization: `Bearer ${keycloak.token}`, // always last — never overridden
     },
   });
   if (res.status === 401) {
     throw new ApiError(401, `Unauthorized — ${path}. Check Token Debugger (/debug/token) for details.`);
+  }
+  // Kill switch — the platform is deliberately halted (not a crash, not a user error).
+  // Surfaced as a typed error carrying a stable `code`, so callers branch on e.code
+  // rather than sniffing message text. Handled here in request() so EVERY endpoint
+  // gets it, not just submitIntent.
+  if (res.status === 503) {
+    const raw = await res.text();
+    let body = {};
+    try { body = JSON.parse(raw); } catch { /* not JSON — fall through */ }
+    if (body.error === 'KILL_SWITCH_ACTIVE') {
+      throw new ApiError(503, body.message ?? 'AI processing is paused.', 'KILL_SWITCH_ACTIVE');
+    }
+    throw new ApiError(503, raw);
   }
   if (res.status === 204) return null;
   if (!res.ok) throw new ApiError(res.status, await res.text());
@@ -85,6 +143,44 @@ export async function listIntents(keycloak, params = {}) {
 
 export async function getIntentEvents(keycloak, id) {
   return request(keycloak, `/intents/${id}/events`);
+}
+
+/**
+ * "Can I submit right now?" — cheap enough to poll while the kill switch is on.
+ *
+ * Polling by re-submitting the intent would burn an idempotency key, a rate-limit
+ * token and an audit row on every attempt — flooding the pipeline during exactly the
+ * incident it was paused for. This reads the server's Redis-cached kill-switch state
+ * instead.
+ */
+export async function getIntentAvailability(keycloak) {
+  return request(keycloak, '/intents/availability');
+}
+
+/**
+ * POST /api/onboard/ensure
+ *
+ * Zitadel does NOT put `email` or `name` in the ACCESS token — only in the ID token /
+ * userinfo. Quarkus OIDC reads the access token, so server-side jwt.getClaim("email")
+ * is null. That is why users.email was empty and users.name held a truncated Zitadel
+ * sub ("36813433"): OnboardingService fell back to sub.substring(0,8).
+ *
+ * The backend's /ensure endpoint was built precisely to take these from the request
+ * body instead — and was never called. The browser HAS them (loadUserInfo: true maps
+ * userinfo onto tokenParsed), exactly as createCheckout already relies on for Stripe.
+ *
+ * MUST be called BEFORE getMe(): getMe → provisionUser creates the row, and once
+ * `name` holds a non-blank junk value the isBlank() backfill guard in
+ * enrichUserProfile can never repair it.
+ */
+export async function ensureUser(keycloak) {
+  return request(keycloak, '/onboard/ensure', {
+    method: 'POST',
+    body: JSON.stringify({
+      email: keycloak?.tokenParsed?.email ?? null,
+      name:  keycloak?.tokenParsed?.name  ?? null,
+    }),
+  });
 }
 
 /**
@@ -209,10 +305,42 @@ export async function revokeApiKey(keycloak, id) {
 // ── Audit ─────────────────────────────────────────────────────────────────────
 
 export async function listAudit(keycloak, params = {}) {
-  const qs = new URLSearchParams(
-      Object.fromEntries(Object.entries(params).filter(([, v]) => v != null))
-  ).toString();
+  // Built by append, not Object.fromEntries: the latter collapses an array into
+  // "a,b" on a single key, whereas JAX-RS binds List<String> from a REPEATED key.
+  // dataClass is multi-valued (?dataClass=X&dataClass=Y), so the collapsed form
+  // would silently match nothing.
+  const sp = new URLSearchParams();
+  for (const [k, v] of Object.entries(params)) {
+    if (v == null || v === '') continue;
+    if (Array.isArray(v)) v.forEach(x => x != null && x !== '' && sp.append(k, x));
+    else sp.append(k, v);
+  }
+  const qs = sp.toString();
   return request(keycloak, `/audit${qs ? `?${qs}` : ''}`);
+}
+
+// ── Kill switches (admin) ─────────────────────────────────────────────────────
+// API_BASE already ends in /api, and KillSwitchResource sits at
+// @Path("/api/admin/kill-switches") — so the path here is '/admin/kill-switches'.
+
+export async function listKillSwitches(keycloak) {
+  return request(keycloak, '/admin/kill-switches');
+}
+
+/** Active AND lifted. The lifted rows are the audit trail — who halted what and why. */
+export async function listKillSwitchHistory(keycloak) {
+  return request(keycloak, '/admin/kill-switches/history');
+}
+
+export async function engageKillSwitch(keycloak, body) {
+  return request(keycloak, '/admin/kill-switches', {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
+}
+
+export async function liftKillSwitch(keycloak, id) {
+  return request(keycloak, `/admin/kill-switches/${id}`, { method: 'DELETE' });
 }
 
 // ── Billing ───────────────────────────────────────────────────────────────────
@@ -289,5 +417,27 @@ export async function setupTenant(keycloak, payload) {
   return request(keycloak, '/onboard/setup-tenant', {
     method: 'POST',
     body: JSON.stringify(payload),
+  });
+}
+// ── Review Queue ──────────────────────────────────────────────────────────────
+
+export async function getReviewQueue(keycloak, params = {}) {
+  const qs = new URLSearchParams(
+      Object.fromEntries(Object.entries(params).filter(([, v]) => v != null))
+  ).toString();
+  return request(keycloak, `/review-queue${qs ? `?${qs}` : ''}`);
+}
+
+export async function approveIntent(keycloak, intentId, note = '') {
+  return request(keycloak, `/review-queue/${intentId}/approve`, {
+    method: 'POST',
+    body: JSON.stringify({ note }),
+  });
+}
+
+export async function rejectIntent(keycloak, intentId, note = '') {
+  return request(keycloak, `/review-queue/${intentId}/reject`, {
+    method: 'POST',
+    body: JSON.stringify({ note }),
   });
 }

@@ -147,11 +147,21 @@ function RevealedKey({ apiKey, onDismiss }) {
         <code className="flex-1 text-xs break-all text-emerald-800" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
           {visible ? apiKey.key : `${apiKey.key?.slice(0, 12)}${'•'.repeat(24)}${apiKey.key?.slice(-6)}`}
         </code>
-        <button onClick={() => setVisible(v => !v)} className="text-emerald-600 hover:text-emerald-800 shrink-0">
-          {visible ? <EyeOff size={14} /> : <Eye size={14} />}
+        <button onClick={() => setVisible(v => !v)}
+          title={visible ? 'Hide key' : 'Reveal key'}
+          className="p-1.5 rounded-md text-emerald-700 hover:bg-emerald-100 shrink-0 transition-colors">
+          {visible ? <EyeOff size={15} /> : <Eye size={15} />}
         </button>
-        <button onClick={copy} className="text-emerald-600 hover:text-emerald-800 shrink-0">
-          {copied ? <Check size={14} /> : <Copy size={14} />}
+        {/* A labelled, filled button — not a bare icon. This banner says the key
+            will never be shown again, so the copy action is the one thing on the
+            page that must not be missed. A 14px outline icon reads as decoration. */}
+        <button onClick={copy}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold shrink-0 transition-colors ${
+            copied
+              ? 'bg-emerald-600 text-white'
+              : 'bg-emerald-600 text-white hover:bg-emerald-700'
+          }`}>
+          {copied ? <><Check size={14} /> Copied</> : <><Copy size={14} /> Copy</>}
         </button>
       </div>
       <p className="text-xs text-emerald-700">Name: <strong>{apiKey.name}</strong> · Scopes: {(apiKey.scopes ?? []).join(', ')}</p>
@@ -215,8 +225,11 @@ export default function ApiKeys({ keycloak }) {
                     <div className="flex items-center gap-1.5">
                       <code className="text-xs bg-slate-100 px-2 py-0.5 rounded text-slate-600"
                         style={{ fontFamily: "'JetBrains Mono', monospace" }}>{k.keyPrefix}•••</code>
+                      {/* opacity-40, not opacity-0: an action nobody can see is an
+                          action nobody uses. Hover still brings it to full strength. */}
                       <button onClick={() => copyPrefix(k.keyPrefix)}
-                        className="opacity-0 group-hover:opacity-100 text-slate-300 hover:text-slate-600 transition-all">
+                        title="Copy prefix"
+                        className="opacity-40 group-hover:opacity-100 text-slate-400 hover:text-slate-700 transition-all">
                         {copied === k.keyPrefix ? <Check size={12} className="text-green-500" /> : <Copy size={12} />}
                       </button>
                     </div>
@@ -240,7 +253,8 @@ export default function ApiKeys({ keycloak }) {
                   <td className="px-5 py-3 text-right">
                     {!k.revokedAt && (
                       <button onClick={() => handleRevoke(k.id)}
-                        className="opacity-0 group-hover:opacity-100 p-1.5 rounded-lg hover:bg-red-50 text-slate-300 hover:text-red-500 transition-all">
+                        title="Revoke key"
+                        className="opacity-40 group-hover:opacity-100 p-1.5 rounded-lg hover:bg-red-50 text-slate-400 hover:text-red-500 transition-all">
                         <Trash2 size={13} />
                       </button>
                     )}

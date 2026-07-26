@@ -42,6 +42,7 @@ const Billing          = lazy(() => import('./pages/Billing'));
 const CreditLedger     = lazy(() => import('./pages/CreditLedger'));
 const TokenDebugPage   = lazy(() => import('./pages/TokenDebugPage'));
 const FintechIntents   = lazy(() => import('./pages/FintechIntents'));
+const ReviewQueue      = lazy(() => import('./pages/ReviewQueue'));
 
 // ── sys_admin only pages ──────────────────────────────────────────────────────
 const AdminPaymentTesting = lazy(() => import('./pages/AdminPaymentTesting'));
@@ -50,6 +51,7 @@ const AdminUsers          = lazy(() => import('./pages/AdminUsers'));
 const AdminCredits        = lazy(() => import('./pages/AdminCredits'));
 const AdminWebhooks       = lazy(() => import('./pages/AdminWebhooks'));
 const AdminHealth         = lazy(() => import('./pages/AdminHealth'));
+const KillSwitchAdmin     = lazy(() => import('./pages/KillSwitchAdmin'));
 const DocsPage            = lazy(() => import('./pages/DocsPage'));
 
 // ── Error boundary ────────────────────────────────────────────────────────────
@@ -142,6 +144,7 @@ export default function App({ keycloak }) {
                 <Route path="/credits"                element={<CreditLedger     keycloak={keycloak} />} />
                 <Route path="/debug/token"            element={<TokenDebugPage   keycloak={keycloak} />} />
                 <Route path="/intent-library"         element={<FintechIntents   keycloak={keycloak} />} />
+                <Route path="/review-queue"           element={<ReviewQueue      keycloak={keycloak} />} />
 
                 <Route path="/blog/intent-based-ai-control-plane" element={<IntentBasedAIControlPlane />}/>
                 <Route path="/blog/ai-governance-enterprise-infrastructure" element={<AIGovernanceInfrastructure />}/>
@@ -186,6 +189,16 @@ export default function App({ keycloak }) {
                 <Route path="/admin/health" element={
                   <SysAdminRoute keycloak={keycloak}>
                     <AdminHealth keycloak={keycloak} />
+                  </SysAdminRoute>
+                } />
+
+                {/* Kill switches — the emergency stop console.
+                    Without this route, /admin/kill-switches fell through to the "*"
+                    catch-all below and silently redirected to the dashboard, which is
+                    why "Manage kill switches" appeared to do nothing. */}
+                <Route path="/admin/kill-switches" element={
+                  <SysAdminRoute keycloak={keycloak}>
+                    <KillSwitchAdmin keycloak={keycloak} isPlatformOperator />
                   </SysAdminRoute>
                 } />
 

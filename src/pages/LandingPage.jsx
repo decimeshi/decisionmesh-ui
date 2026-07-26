@@ -3,43 +3,43 @@ import { useState, useEffect, useRef } from 'react';
 
 // ── Design tokens — Deep Ocean theme (Tailwind UI · Planetscale · Clerk) ─────
 // Rich navy base · electric cyan accents · authoritative & calm
+// Replace your token object C with this for a sharp, readable dark mode:
 const C = {
-  // Backgrounds
-  bg:        '#0a1628',          // deep navy page base
-  surface:   '#0d1e35',          // card / section surfaces
-  surfaceAlt:'#091220',          // alternate deeper section
-  border:    '#0c2040',          // borders
-  borderSub: '#0e2848',          // subtle dividers
+  // Backgrounds - Deeper black/blue for maximum text separation
+  bg:        '#030712',          // Ultra-dark slate-black
+  surface:   '#111827',          // Rich dark card background
+  surfaceAlt:'#1f2937',          // Lighter accent section
+  border:    '#374151',          // Highly visible border
+  borderSub: '#1f2937',          // Subtle divider
 
-  // Brand — muted steel blue (toned down, easier on dark navy bg)
-  blue:      '#2e7cb8',          // primary CTA — softer, less glaring
-  blueHover: '#245f91',          // hover — slightly deeper
-  blueLight: 'rgba(14,165,233,0.12)',  // tinted bg
-  blueMuted: 'rgba(14,165,233,0.30)',
-  blueGlow:  'rgba(14,165,233,0.15)',
+  // Brand
+  blue:      '#3b82f6',          // Bright vibrant blue for CTA visibility
+  blueHover: '#2563eb',
+  blueLight: 'rgba(59,130,246,0.1)',
+  blueMuted: 'rgba(59,130,246,0.25)',
+  blueGlow:  'rgba(59,130,246,0.15)',
 
-  // Status — brightened to pop on dark bg
+  // Status
   amber:     '#f59e0b',
   red:       '#ef4444',
   green:     '#10b981',
   purple:    '#8b5cf6',
   cyan:      '#06b6d4',
 
-  // Text — soft whites, never pure white (reduces eye strain on dark)
-  textPrimary:  '#e0f2fe',       // headings — ice blue-white
-  textSecondary:'#7dd3fc',       // body — sky blue-grey
-  textMuted:    '#64748b',       // captions
-  textSub:      '#7eb8d4',       // subtitle text — visible on dark navy
+  // Text - Upgraded to ultra high-contrast tints to prevent eye strain
+  textPrimary:  '#f9fafb',       // Crisp off-white headings (95% contrast ratio)
+  textSecondary:'#e5e7eb',       // Bright gray for body text - highly legible
+  textMuted:    '#9ca3af',       // Perfectly legible caption gray
+  textSub:      '#93c5fd',       // Bright accent text blue
+  textCard:     '#f5f7fa',       // Milky white - card body quotes, high legibility
+  textCardMono: '#e2e8f0',       // Milky white mono - card detail lines
 
-  // Misc
-  mono:        "'Courier New', monospace",
-
-  // Nav — same deep navy as page, crisp border
-  navBg:     '#0a1628',
-  navBorder: '#0c2040',
-  navText:   '#7dd3fc',
-  navHover:  '#e0f2fe',
-  navHoverBg:'rgba(14,165,233,0.10)',
+  mono:        "ui-monospace, 'SF Mono', 'Menlo', 'Consolas', 'Roboto Mono', monospace",
+  navBg:     '#0a1a33',
+  navBorder: 'rgba(46,124,184,0.28)',
+  navText:   '#e5e7eb',
+  navHover:  '#ffffff',
+  navHoverBg:'rgba(59,130,246,0.1)',
 };
 
 // ── Icons ─────────────────────────────────────────────────────────────────────
@@ -69,6 +69,7 @@ const Icon = {
 
 // ── Data ──────────────────────────────────────────────────────────────────────
 const FEATURES = [
+  { icon: 'AlertTriangle', title: 'Kill switch', desc: 'Halt any model mid-flight — one click. Platform, tenant, or intent type. Every blocked request permanently recorded: who stopped it, why, and how long it ran.', color: '#ef4444', badge: 'NEW' },
   { icon: 'DollarSign', title: 'Budget enforcement', desc: 'Set hard cost ceilings per intent. Execution stops the moment spend exceeds your limit — before the bill arrives.', color: '#22c55e' },
   { icon: 'GitBranch', title: 'Multi-adapter routing', desc: 'Route to OpenAI, Anthropic, Google, or Azure. Automatic fallback to the next adapter on timeout or failure.', color: '#3b82f6' },
   { icon: 'Shield', title: 'Policy governance', desc: 'Write rules like "cost > $0.01 → REJECT" or "latency > 5s → FALLBACK". Policies run before every execution.', color: '#a855f7' },
@@ -203,22 +204,25 @@ function NavBar({ onLogin, onRegister }) {
   return (
     <nav style={{
       position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100,
-      background: C.navBg,
+      background: 'linear-gradient(180deg, #0c2144 0%, #0a1a33 100%)',
       borderBottom: `1px solid ${C.navBorder}`,
-      boxShadow: scrolled ? '0 1px 12px rgba(0,0,0,0.06)' : 'none',
-      transition: 'box-shadow 0.3s',
+      boxShadow: scrolled ? '0 2px 18px rgba(8,20,45,0.45)' : 'none',
+      backdropFilter: 'blur(8px)',
+      transition: 'box-shadow 0.3s, background 0.3s',
     }}>
       <div style={{ maxWidth: 1160, margin: '0 auto', padding: '0 20px', display: 'flex', alignItems: 'center', height: 58 }}>
         {/* Logo */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 9, flex: 1 }}>
-          <img src="/decimeshi-icon.svg" alt="DecisionMesh" style={{ width: 42, height: 42, flexShrink: 0 }} />
+          <img src="/decimeshi-icon.svg" alt="DecisionMesh" style={{ width: 62, height: 60, flexShrink: 0 }} />
           <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1 }}>
             <span style={{
-              fontWeight: 900, fontSize: 17, letterSpacing: '-0.5px',
+              fontWeight: 900, fontSize: 17, letterSpacing: '0.4px',
               background: 'linear-gradient(90deg, #f0f9ff 0%, #f0f9ff 48%, #38bdf8 65%, #06b6d4 100%)',
               WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text',
-            }}>DecisionMesh</span>
-            <span style={{ fontSize: 8, fontWeight: 700, color: C.textSub, letterSpacing: '1.5px', textTransform: 'uppercase', marginTop: 1 }}>AI Control Plane</span>
+            }}>D E C I M E S H I </span>
+            <span style={{ fontSize: 8, fontWeight: 700, color: C.textSub, letterSpacing: '0.5px', textTransform: 'uppercase', marginTop: 2, lineHeight: 1.3, whiteSpace: 'nowrap' }}>
+              The Trust Infrastructure<br />for Intelligent Systems
+            </span>
           </div>
           <span style={{ fontSize: 9, fontWeight: 700, color: '#7eb8d4', background: 'rgba(46,124,184,0.12)', border: '1px solid rgba(46,124,184,0.30)', borderRadius: 4, padding: '2px 6px', letterSpacing: '0.8px' }}>BETA</span>
         </div>
@@ -277,7 +281,7 @@ function NavBar({ onLogin, onRegister }) {
 
       {/* Mobile menu */}
       {open && (
-        <div style={{ borderTop: '1px solid rgba(14,165,233,0.15)', padding: '16px 20px 24px', display: 'flex', flexDirection: 'column', gap: 10, background: '#0a1628' }}>
+        <div style={{ borderTop: '1px solid rgba(46,124,184,0.20)', padding: '16px 20px 24px', display: 'flex', flexDirection: 'column', gap: 10, background: '#0a1a33' }}>
           {[['#features', 'Product'], ['#platform', 'Platform'], ['#industries', 'Industries'], ['#compliance', 'Compliance'], ['#pricing', 'Pricing'], ['/docs', 'Docs']].map(([href, label]) => (
             <a key={href} href={href} onClick={() => setOpen(false)} style={{ color: C.textSecondary, fontSize: 15, textDecoration: 'none', padding: '8px 0', borderBottom: `1px solid ${C.borderSub}` }}>{label}</a>
           ))}
@@ -291,15 +295,6 @@ function NavBar({ onLogin, onRegister }) {
 }
 // ── Hero — "The Control Room" ──────────────────────────────────────────────────
 function Hero({ onRegister, onLogin }) {
-  // Live ticker data
-  const tickerEvents = [
-    { id: 'int-8f3a', type: 'CREDIT_DECISION', org: 'FinBank Corp', status: 'GOVERNED', cost: '$0.0031', policy: 'fair-lending-v2', time: '09:41:07' },
-    { id: 'int-2c9d', type: 'PATIENT_TRIAGE', org: 'HealthSys LLC', status: 'HUMAN_GATE', cost: '$0.0089', policy: 'hipaa-pii-check', time: '09:41:06' },
-    { id: 'int-7e1b', type: 'LEGAL_REVIEW', org: 'LexCorp', status: 'GOVERNED', cost: '$0.0044', policy: 'attorney-oversight', time: '09:41:05' },
-    { id: 'int-4a6f', type: 'FRAUD_DETECT', org: 'InsureTech', status: 'BLOCKED', cost: '$0.0000', policy: 'cost-limit-v1', time: '09:41:04' },
-    { id: 'int-1d8c', type: 'CHAT_SUPPORT', org: 'SaaS Co', status: 'GOVERNED', cost: '$0.0012', policy: 'shadow-ai-gate', time: '09:41:03' },
-    { id: 'int-9b2e', type: 'COMPLIANCE_RPT', org: 'RegCorp Gov', status: 'GOVERNED', cost: '$0.0067', policy: 'soc2-audit-trail', time: '09:41:02' },
-  ];
 
   // Problem cards (left side — the chaos)
   const problemCards = [
@@ -329,7 +324,6 @@ function Hero({ onRegister, onLogin }) {
 
   return (
     <section style={{
-      minHeight: '100vh',
       background: 'linear-gradient(160deg, #060f1e 0%, #0a1628 40%, #0c1d3a 100%)',
       position: 'relative',
       overflow: 'hidden',
@@ -376,10 +370,6 @@ function Hero({ onRegister, onLogin }) {
           50%  { opacity: 1; }
           100% { opacity: 0.3; }
         }
-        @keyframes ticker-scroll {
-          0%   { transform: translateX(0); }
-          100% { transform: translateX(-50%); }
-        }
         @keyframes scan-line {
           0%   { transform: translateY(-100%); }
           100% { transform: translateY(100vh); }
@@ -389,14 +379,14 @@ function Hero({ onRegister, onLogin }) {
       {/* Scan line removed — aurora theme */}
 
       {/* Main content */}
-      <div style={{ position: 'relative', zIndex: 3, flex: 1, display: 'flex', flexDirection: 'column', maxWidth: 1280, margin: '0 auto', padding: '100px 24px 0', width: '100%' }}>
+      <div style={{ position: 'relative', zIndex: 3, display: 'flex', flexDirection: 'column', maxWidth: 1280, margin: '0 auto', padding: '88px 24px 64px', width: '100%' }}>
 
         {/* Three-column layout */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 32px 1.4fr 32px 1fr', gap: 0, alignItems: 'stretch', minHeight: '70vh' }} className="hero-grid">
+        <div style={{ display: 'grid', gridTemplateColumns: '1.15fr 28px 1.3fr 28px 1.15fr', gap: 0, alignItems: 'stretch' }} className="hero-grid">
 
           {/* LEFT — Problem cards */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            <div style={{ fontFamily: C.mono, fontSize: 10, color: C.red, letterSpacing: '1.5px', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14, justifyContent: 'space-between' }}>
+            <div style={{ fontFamily: C.mono, fontSize: 12, color: C.red, letterSpacing: '1.5px', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
               <span style={{ display: 'inline-block', width: 6, height: 6, borderRadius: '50%', background: C.red, animation: 'pulse-dot 1.5s ease infinite' }} />
               UNRESOLVED INCIDENTS
             </div>
@@ -416,15 +406,15 @@ function Hero({ onRegister, onLogin }) {
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
                     <span style={{ fontSize: 18 }}>{card.emoji}</span>
                     <div>
-                      <div style={{ color: C.textPrimary, fontSize: 12, fontWeight: 700 }}>{card.role}</div>
-                      <div style={{ color: C.textSub, fontSize: 11, fontFamily: C.mono }}>{card.org}</div>
+                      <div style={{ color: C.textPrimary, fontSize: 15, fontWeight: 700 }}>{card.role}</div>
+                      <div style={{ color: C.textSub, fontSize: 13, fontFamily: C.mono }}>{card.org}</div>
                     </div>
                     <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 4 }}>
                       <span style={{ width: 5, height: 5, borderRadius: '50%', background: card.color, display: 'inline-block', animation: 'pulse-dot 2s ease infinite' }} />
-                      <span style={{ fontSize: 10, color: card.color, fontFamily: C.mono, fontWeight: 700 }}>OPEN</span>
+                      <span style={{ fontSize: 11, color: card.color, fontFamily: C.mono, fontWeight: 700 }}>OPEN</span>
                     </div>
                   </div>
-                  <p style={{ color: C.textMuted, fontSize: 12, lineHeight: 1.55, fontStyle: 'italic' }}>"{card.issue}"</p>
+                  <p style={{ color: C.textCard, fontSize: 15.5, lineHeight: 1.7, fontStyle: 'italic', fontWeight: 500 }}>"{card.issue}"</p>
                 </div>
               </div>
             ))}
@@ -444,11 +434,11 @@ function Hero({ onRegister, onLogin }) {
           </div>
 
           {/* CENTER — Hero content + pipeline */}
-          <div style={{ textAlign: 'center', animation: 'fadeUp 0.7s ease both', animationDelay: '0.1s' }}>
+          <div style={{ textAlign: 'center', animation: 'fadeUp 0.7s ease both', animationDelay: '0.1s', display: 'flex', flexDirection: 'column', justifyContent: 'flex-start' }}>
             {/* Badge */}
             <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: C.blueLight, border: `1px solid ${C.blueMuted}`, borderRadius: 999, padding: '5px 14px', marginBottom: 28 }}>
               <span style={{ width: 6, height: 6, borderRadius: '50%', background: C.blue, display: 'inline-block', animation: 'pulse-dot 2s infinite', flexShrink: 0 }} />
-              <span style={{ color: C.blue, fontSize: 12, fontWeight: 600 }}>Now in beta — free for early adopters</span>
+              <span style={{ color: '#7dd3fc', fontSize: 13, fontWeight: 600 }}>Now in beta — free for early adopters</span>
             </div>
 
             {/* Headline */}
@@ -459,25 +449,25 @@ function Hero({ onRegister, onLogin }) {
               </span>
             </h1>
 
-            <p style={{ fontSize: 'clamp(14px, 1.8vw, 17px)', color: C.textMuted, lineHeight: 1.7, maxWidth: 480, margin: '0 auto 28px', fontWeight: 400 }}>
-              Every AI decision — governed, audited, replayed, and compliant. Built for regulators, compliance teams, engineers, and executives.
+            <p style={{ fontSize: 'clamp(16px, 1.9vw, 19px)', color: C.textSecondary, lineHeight: 1.65, maxWidth: 500, margin: '0 auto 30px', fontWeight: 400 }}>
+              Most AI governance tools tell you what happened. DecisionMesh lets you <strong style={{ color: '#fca5a5', fontWeight: 700 }}>stop it mid-flight</strong> — and prove to an auditor who stopped it, why, and how long it ran.
             </p>
 
             {/* Compliance badges */}
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, justifyContent: 'center', marginBottom: 32 }}>
               {['SOC 2 Ready', 'GDPR', 'EU AI Act', 'HIPAA Aware'].map(tag => (
-                <span key={tag} style={{ fontSize: 11, fontWeight: 600, color: '#7dd3fc', background: 'rgba(14,165,233,0.08)', border: '1px solid rgba(14,165,233,0.20)', borderRadius: 6, padding: '3px 10px', fontFamily: C.mono, letterSpacing: '0.3px' }}>{tag}</span>
+                <span key={tag} style={{ fontSize: 12.5, fontWeight: 700, color: '#a5e0ff', background: 'rgba(14,165,233,0.12)', border: '1px solid rgba(14,165,233,0.30)', borderRadius: 7, padding: '5px 13px', fontFamily: C.mono, letterSpacing: '0.4px' }}>{tag}</span>
               ))}
             </div>
 
             {/* CTAs */}
-            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', justifyContent: 'center', marginBottom: 44 }}>
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', justifyContent: 'center', marginBottom: 32 }}>
               <button onClick={onRegister} style={{ background: C.blue, color: '#fff', fontSize: 15, fontWeight: 700, border: 'none', borderRadius: 9, padding: '13px 26px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, letterSpacing: '-0.2px', transition: 'background 0.15s, transform 0.1s' }}
                 onMouseEnter={e => { e.currentTarget.style.background = '#245f91'; e.currentTarget.style.transform = 'translateY(-1px)'; }}
                 onMouseLeave={e => { e.currentTarget.style.background = C.blue; e.currentTarget.style.transform = 'none'; }}>
                 Start for free <Icon.ArrowRight />
               </button>
-              <button onClick={onLogin} style={{ background: 'rgba(14,165,233,0.08)', color: '#7dd3fc', fontSize: 15, fontWeight: 500, border: '1px solid rgba(14,165,233,0.22)', borderRadius: 9, padding: '13px 24px', cursor: 'pointer', transition: 'background 0.15s' }}
+              <button onClick={onLogin} style={{ background: 'rgba(14,165,233,0.10)', color: '#bae6fd', fontSize: 15, fontWeight: 600, border: '1px solid rgba(14,165,233,0.30)', borderRadius: 9, padding: '13px 24px', cursor: 'pointer', transition: 'background 0.15s' }}
                 onMouseEnter={e => e.currentTarget.style.background = 'rgba(14,165,233,0.14)'}
                 onMouseLeave={e => e.currentTarget.style.background = 'rgba(14,165,233,0.08)'}>
                 Sign in
@@ -485,18 +475,18 @@ function Hero({ onRegister, onLogin }) {
             </div>
 
             {/* Decision Pipeline */}
-            <div style={{ background: 'rgba(14,165,233,0.05)', border: '1px solid rgba(14,165,233,0.15)', borderRadius: 14, boxShadow: '0 2px 20px rgba(14,165,233,0.08)', padding: '20px 18px', backdropFilter: 'blur(8px)' }}>
-              <div style={{ fontFamily: C.mono, fontSize: 9, color: C.textSub, letterSpacing: '1.5px', marginBottom: 14, textAlign: 'left' }}>
+            <div style={{ background: 'rgba(14,165,233,0.06)', border: '1px solid rgba(14,165,233,0.18)', borderRadius: 16, boxShadow: '0 4px 28px rgba(14,165,233,0.10)', padding: '24px 26px', backdropFilter: 'blur(8px)' }}>
+              <div style={{ fontFamily: C.mono, fontSize: 11, color: '#bcd4f5', letterSpacing: '2px', marginBottom: 18, textAlign: 'left', fontWeight: 700 }}>
                 DECISION LIFECYCLE — EVERY AI REQUEST
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 0, overflowX: 'auto' }}>
                 {pipeline.map((stage, i) => (
                   <div key={stage.label} style={{ display: 'flex', alignItems: 'center', flex: 1, minWidth: 0 }}>
                     <div style={{ flex: 1, textAlign: 'center' }}>
-                      <div style={{ width: 36, height: 36, borderRadius: 8, border: `1.5px solid ${stage.color}40`, background: `${stage.color}12`, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 6px', animation: `flow-pulse 2.5s ease infinite`, animationDelay: `${i * 0.3}s` }}>
+                      <div style={{ width: 40, height: 40, borderRadius: 10, border: `1.5px solid ${stage.color}40`, background: `${stage.color}12`, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 8px', animation: `flow-pulse 2.5s ease infinite`, animationDelay: `${i * 0.3}s` }}>
                         <div style={{ width: 8, height: 8, borderRadius: '50%', background: stage.color, opacity: 0.9 }} />
                       </div>
-                      <div style={{ fontFamily: C.mono, fontSize: 8, color: stage.color, letterSpacing: '0.8px', fontWeight: 700 }}>{stage.label}</div>
+                      <div style={{ fontFamily: C.mono, fontSize: 11, color: stage.color, letterSpacing: '1px', fontWeight: 700, filter: 'brightness(1.35)', marginTop: 2 }}>{stage.label}</div>
                     </div>
                     {i < pipeline.length - 1 && (
                       <div style={{ width: 20, height: 2, borderRadius: 2, background: `linear-gradient(90deg, ${stage.color}cc, ${pipeline[i+1].color}cc)`, flexShrink: 0, alignSelf: 'center', marginBottom: 18 }} />
@@ -504,9 +494,9 @@ function Hero({ onRegister, onLogin }) {
                   </div>
                 ))}
               </div>
-              <div style={{ fontFamily: C.mono, fontSize: 10, color: '#10b981', marginTop: 14, display: 'flex', alignItems: 'center', gap: 6 }}>
+              <div style={{ fontFamily: C.mono, fontSize: 12, color: '#34d399', marginTop: 18, display: 'flex', alignItems: 'center', gap: 7, fontWeight: 500, letterSpacing: '0.02em' }}>
                 <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#10b981', display: 'inline-block', animation: 'pulse-dot 1.5s infinite' }} />
-                Processing: 1,240 intents/min · 0 unaudited · 100% governed
+                Every intent · validated, policy-checked, and audited by design
               </div>
             </div>
           </div>
@@ -525,8 +515,8 @@ function Hero({ onRegister, onLogin }) {
           </div>
 
           {/* RIGHT — Resolution cards */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            <div style={{ fontFamily: C.mono, fontSize: 10, color: C.green, letterSpacing: '1.5px', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14, justifyContent: 'space-between' }}>
+            <div style={{ fontFamily: C.mono, fontSize: 12, color: '#34d399', letterSpacing: '1.5px', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
               <span style={{ display: 'inline-block', width: 6, height: 6, borderRadius: '50%', background: C.green, animation: 'pulse-dot 1.5s ease infinite' }} />
               RESOLVED BY DECISIONMESH
             </div>
@@ -535,45 +525,25 @@ function Hero({ onRegister, onLogin }) {
                 background: '#0d1e35',
                 border: `1px solid ${card.color}45`,
                 borderLeft: `3px solid ${card.color}`,
-                borderRadius: 10,
-                padding: '14px 16px',
+                borderRadius: 12,
+                padding: '16px 20px',
                 animation: 'slideInRight 0.6s ease both',
                 animationDelay: card.delay,
                 backdropFilter: 'blur(8px)',
               }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
                   <div style={{ width: 22, height: 22, borderRadius: '50%', background: `${card.color}18`, border: `1.5px solid ${card.color}50`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: card.color, fontSize: 11, fontWeight: 800, flexShrink: 0 }}>{card.emoji}</div>
-                  <div style={{ color: C.textPrimary, fontSize: 12, fontWeight: 700 }}>{card.title}</div>
+                  <div style={{ color: '#ffffff', fontSize: 16, fontWeight: 700, letterSpacing: '-0.01em', lineHeight: 1.3 }}>{card.title}</div>
                   <div style={{ marginLeft: 'auto' }}>
-                    <span style={{ fontSize: 10, color: card.color, fontFamily: C.mono, fontWeight: 700, background: `${card.color}15`, padding: '2px 7px', borderRadius: 4 }}>RESOLVED</span>
+                    <span style={{ fontSize: 10.5, color: card.color, fontFamily: C.mono, fontWeight: 700, background: `${card.color}26`, border: `1px solid ${card.color}55`, padding: '3px 9px', borderRadius: 6, letterSpacing: '0.05em' }}>RESOLVED</span>
                   </div>
                 </div>
-                <p style={{ color: C.textMuted, fontSize: 11, lineHeight: 1.55, fontFamily: C.mono }}>{card.detail}</p>
+                <p style={{ color: '#f8fafc', fontSize: 15, lineHeight: 1.75, fontFamily: C.mono, fontWeight: 500, letterSpacing: '0.01em' }}>{card.detail}</p>
               </div>
             ))}
           </div>
         </div>
 
-        {/* Live decision ticker */}
-        <div style={{ position: 'relative', marginTop: 40, marginBottom: 0, overflow: 'hidden', borderTop: '1px solid rgba(14,165,233,0.12)', borderBottom: '1px solid rgba(14,165,233,0.12)', padding: '10px 0' }}>
-          <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 80, background: 'linear-gradient(90deg, #0a1628, transparent)', zIndex: 2 }} />
-          <div style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: 80, background: 'linear-gradient(-90deg, #0a1628, transparent)', zIndex: 2 }} />
-          <div style={{ display: 'flex', gap: 32, animation: 'ticker-scroll 22s linear infinite', width: 'max-content' }}>
-            {[...tickerEvents, ...tickerEvents].map((ev, i) => (
-              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
-                <span style={{ fontFamily: C.mono, fontSize: 10, color: C.textSub }}>{ev.time}</span>
-                <span style={{ fontFamily: C.mono, fontSize: 10, color: C.textMuted, background: C.surface, border: `1px solid ${C.border}`, borderRadius: 4, padding: '1px 6px' }}>{ev.id}</span>
-                <span style={{ fontSize: 11, color: C.textSecondary, fontWeight: 600 }}>{ev.type}</span>
-                <span style={{ fontSize: 11, color: C.textMuted }}>{ev.org}</span>
-                <span style={{ fontSize: 10, fontWeight: 700, fontFamily: C.mono, color: ev.status === 'BLOCKED' ? C.amber : ev.status === 'HUMAN_GATE' ? C.purple : C.green, background: ev.status === 'BLOCKED' ? 'rgba(245,158,11,0.1)' : ev.status === 'HUMAN_GATE' ? 'rgba(139,92,246,0.1)' : 'rgba(16,185,129,0.1)', borderRadius: 4, padding: '1px 7px' }}>
-                  {ev.status}
-                </span>
-                <span style={{ fontFamily: C.mono, fontSize: 10, color: C.textSub }}>{ev.cost}</span>
-                <span style={{ width: 1, height: 14, background: C.border, margin: '0 4px' }} />
-              </div>
-            ))}
-          </div>
-        </div>
       </div>
     </section>
   );
@@ -597,6 +567,76 @@ function PainSection() {
             </div>
           ))}
         </div>
+      </div>
+    </section>
+  );
+}
+
+// ── Kill Switch — the differentiator ──────────────────────────────────────────
+//
+// Every competitor in this category sells OBSERVABILITY: dashboards, monitoring,
+// audit trails. All of it forensic — it tells you what already happened. Almost none
+// of them sit IN the request path, so they can watch but they cannot intervene.
+//
+// DecisionMesh does. That is the one claim most of the market literally cannot make,
+// and it belongs above the fold, not buried as feature #16.
+//
+// HONESTY CONSTRAINT: the switch is engaged by a HUMAN. Nothing detects a misbehaving
+// model automatically yet. The copy below says "one click" and "in-path" — never
+// "detects and stops". A CISO who catches an overclaim here distrusts the whole page,
+// and automated detection is the very next thing on the roadmap. Say what is true.
+function KillSwitchSection() {
+  const points = [
+    {
+      k: 'One click, five scopes',
+      v: 'Halt everything, one tenant, one intent type, one provider, or one model. Proportionate response — you should not have to stop the platform to stop a problem.',
+    },
+    {
+      k: 'In the request path, not beside it',
+      v: 'Enforced before the model is called, before spend, before the intent is even persisted. Monitoring tools sit outside the path — they can see a problem, but they cannot stop one.',
+    },
+    {
+      k: 'Every block is evidence',
+      v: 'Each halted request writes an immutable record: who engaged the switch, why, which requests it stopped, and when it was lifted. That record survives the failed request itself.',
+    },
+  ];
+
+  return (
+    <section style={{ background: '#0d0a0f', padding: '80px 24px', borderTop: '1px solid rgba(239,68,68,0.25)' }}>
+      <div style={{ maxWidth: 1060, margin: '0 auto' }}>
+
+        <div style={{ textAlign: 'center', marginBottom: 46 }}>
+          <p style={{ color: '#ef4444', fontSize: 11, fontWeight: 700, letterSpacing: '2px', textTransform: 'uppercase', marginBottom: 12, fontFamily: C.mono }}>
+            Emergency Stop
+          </p>
+          <h2 style={{ fontSize: 'clamp(26px, 4vw, 40px)', fontWeight: 700, color: C.textPrimary, letterSpacing: '-1px', marginBottom: 14, lineHeight: 1.2 }}>
+            Everyone else tells you what happened.<br />
+            <span style={{ color: '#f87171' }}>We let you stop it.</span>
+          </h2>
+          <p style={{ color: C.textSecondary, fontSize: 16, maxWidth: 640, margin: '0 auto', lineHeight: 1.7 }}>
+            A model starts producing harmful output at 2am. Your dashboard shows it. Your
+            audit trail records it. Neither of them stops it. DecisionMesh sits in the
+            request path — so you can.
+          </p>
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16, marginBottom: 32 }}>
+          {points.map(({ k, v }) => (
+            <div key={k} style={{ background: '#170f14', border: '1px solid rgba(239,68,68,0.25)', borderRadius: 12, padding: '26px 22px', transition: 'border-color 0.2s' }}
+              onMouseEnter={e => e.currentTarget.style.borderColor = 'rgba(239,68,68,0.55)'}
+              onMouseLeave={e => e.currentTarget.style.borderColor = 'rgba(239,68,68,0.25)'}>
+              <div style={{ color: '#ef4444', marginBottom: 12 }}><Icon.AlertTriangle /></div>
+              <h3 style={{ color: C.textPrimary, fontWeight: 600, fontSize: 16, marginBottom: 8 }}>{k}</h3>
+              <p style={{ color: C.textSecondary, fontSize: 13.5, lineHeight: 1.7 }}>{v}</p>
+            </div>
+          ))}
+        </div>
+
+        {/* Say the true thing plainly. An overclaim here would cost more than it buys. */}
+        <p style={{ textAlign: 'center', color: C.textMuted ?? C.textSecondary, fontSize: 13, fontStyle: 'italic', opacity: 0.75 }}>
+          Engaged by a human, enforced by the platform. Automated detection is next on the roadmap.
+        </p>
+
       </div>
     </section>
   );
@@ -1229,7 +1269,12 @@ export default function LandingPage() {
       <style>{`
         * { box-sizing: border-box; margin: 0; padding: 0; }
         html { scroll-behavior: smooth; }
-        body { font-family: 'Inter', system-ui, -apple-system, sans-serif; }
+        body {
+          font-family: 'Inter', system-ui, -apple-system, sans-serif;
+          -webkit-font-smoothing: antialiased;
+          -moz-osx-font-smoothing: grayscale;
+          text-rendering: optimizeLegibility;
+        }
         @media (max-width: 640px) {
           .hidden-mobile { display: none !important; }
           .show-mobile { display: block !important; }
@@ -1248,6 +1293,7 @@ export default function LandingPage() {
         <NavBar onLogin={handleLogin} onRegister={handleRegister} />
         <Hero onRegister={handleRegister} onLogin={handleLogin} />
         <PainSection />
+        <KillSwitchSection />
         <Platform />
         <Features />
         <Audiences />

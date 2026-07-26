@@ -165,13 +165,13 @@ export default function Onboarding({ keycloak, onComplete }) {
 
         <div style={{ display: 'flex', gap: 10 }}>
           <button
-            style={{ ...styles.btn, background: '#f1f5f9', color: '#475569', flex: '0 0 auto' }}
+            style={{ ...styles.btn, background: '#f1f5f9', color: '#475569', flex: '0 0 auto',width: 'auto' }}
             onClick={() => { setStep('pick'); setAccountType(null); setError(''); }}
           >
             Back
           </button>
           <button
-            style={{ ...styles.btn, flex: 1 }}
+            style={{ ...styles.btn, flex: 1,width: 'auto', whiteSpace: 'nowrap' }}
             disabled={loading}
             onClick={handleSubmit}
           >
