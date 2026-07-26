@@ -9,7 +9,7 @@ import {
 } from 'lucide-react';
 import Page from '../components/shared/Page';
 import { Card, Spinner } from '../components/shared';
-import { request } from '../utils/api';
+import { getAdminWebhooks, replayWebhook } from '../utils/api';
 
 const STATUS_META = {
   received:  { bg: '#eff6ff', color: '#2563eb', label: 'Received'  },
@@ -36,10 +36,11 @@ export default function AdminWebhooks({ keycloak }) {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const params = new URLSearchParams({ page, size: PAGE_SIZE });
-      if (gateway !== 'all') params.set('gateway', gateway);
-      if (status !== 'all')  params.set('status',  status);
-      const data = await request(keycloak, `/admin/webhooks?${params}`);
+      const data = await getAdminWebhooks(keycloak, {
+        page, size: PAGE_SIZE,
+        gateway: gateway !== 'all' ? gateway : null,
+        status:  status  !== 'all' ? status  : null,
+      });
       setEvents(data ?? []);
     } catch (e) {
       console.error('Failed to load webhooks', e);
@@ -58,7 +59,7 @@ export default function AdminWebhooks({ keycloak }) {
   async function handleReplay(event) {
     setReplaying(event.id);
     try {
-      await request(keycloak, `/admin/webhooks/${event.id}/replay`, { method: 'POST' });
+      await replayWebhook(keycloak, event.id);
       showToast('success', `Event ${event.eventType} reset for reprocessing`);
       load();
     } catch (e) {

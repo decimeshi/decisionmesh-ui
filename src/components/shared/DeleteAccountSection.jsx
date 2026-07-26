@@ -180,7 +180,7 @@ export default function DeleteAccountSection({ keycloak }) {
               </button>
             </div>
 
-            <p className="text-center text-[10px] text-slate-400 mt-3">
+            <p className="text-center text-2xs text-slate-500 mt-3">
               GDPR Article 17 — Right to Erasure · support@decimeshi.com
             </p>
           </div>

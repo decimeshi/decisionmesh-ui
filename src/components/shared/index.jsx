@@ -25,7 +25,7 @@ export function CardHeader({ children, className }) {
 
 export function CardTitle({ children, className }) {
   return (
-    <h3 className={cn('text-[13px] font-semibold text-slate-800 tracking-tight', className)}>
+    <h3 className={cn('text-sm font-semibold text-slate-800 tracking-tight', className)}>
       {children}
     </h3>
   );
@@ -63,7 +63,7 @@ export function Button({ children, variant = 'primary', size = 'md', loading, cl
 export function PhaseBadge({ phase }) {
   return (
     <span className={cn(
-      'inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium',
+      'inline-flex items-center px-2 py-0.5 rounded-full text-2xs font-medium',
       PHASE_COLORS[phase] ?? 'bg-slate-100 text-slate-600'
     )}>
       {phase?.replace('_', ' ')}
@@ -74,7 +74,7 @@ export function PhaseBadge({ phase }) {
 export function SatisfactionBadge({ state }) {
   return (
     <span className={cn(
-      'inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium',
+      'inline-flex items-center px-2 py-0.5 rounded-full text-2xs font-medium',
       SATISFACTION_COLORS[state] ?? 'bg-slate-100 text-slate-600'
     )}>
       {state}
@@ -88,9 +88,9 @@ export function MetricCard({ label, value, sub, icon, accent }) {
     <Card className="p-5">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-[11px] text-slate-500 font-medium uppercase tracking-wide">{label}</p>
+          <p className="text-2xs text-slate-500 font-medium uppercase tracking-wide">{label}</p>
           <p className="mt-2 text-2xl font-bold text-slate-900 tabular-nums tracking-tight">{value}</p>
-          {sub && <p className="mt-1 text-[11px] text-slate-400">{sub}</p>}
+          {sub && <p className="mt-1 text-2xs text-slate-500">{sub}</p>}
         </div>
         {icon && (
           <div className="p-2.5 rounded-lg shrink-0 mt-0.5"
@@ -111,7 +111,7 @@ export function EmptyState({ icon, title, description, action }) {
         <div style={{ color: 'var(--brand)' }}>{icon}</div>
       </div>
       <h3 className="text-sm font-semibold text-slate-700">{title}</h3>
-      {description && <p className="mt-1.5 text-[13px] text-slate-400 max-w-sm leading-relaxed">{description}</p>}
+      {description && <p className="mt-1.5 text-[13px] text-slate-500 max-w-sm leading-relaxed">{description}</p>}
       {action && <div className="mt-5">{action}</div>}
     </div>
   );

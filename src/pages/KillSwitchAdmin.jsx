@@ -8,6 +8,7 @@ import {
   listKillSwitches, listKillSwitchHistory, engageKillSwitch, liftKillSwitch,
 } from '../utils/api';
 import { formatDate, formatRelative, shortId } from '../lib/utils';
+import { useCapabilities } from '../context/CapabilityContext';
 
 /**
  * Kill switch console.
@@ -26,6 +27,11 @@ const SCOPES = [
   { value: 'INTENT_TYPE', label: 'Intent type',                   platformOnly: false },
   { value: 'PROVIDER',    label: 'Provider',                      platformOnly: false },
   { value: 'ADAPTER',     label: 'Adapter',                       platformOnly: false },
+  // Model — a specific model version misbehaving (prompt injection, PII leak,
+  // policy violation). This is the compliance-halt scope the AI Spend dashboard
+  // links out to: spend view shows a model is "killed", the actual halt happens
+  // here. scopeKey is the model name, e.g. "gpt-4o" or "claude-opus-4-8".
+  { value: 'MODEL',       label: 'Model — halts a specific model version', platformOnly: false },
 ];
 
 function ScopeBadge({ scopeType, scopeKey }) {
@@ -39,7 +45,12 @@ function ScopeBadge({ scopeType, scopeKey }) {
   );
 }
 
-export default function KillSwitchAdmin({ keycloak, isPlatformOperator = true }) {
+export default function KillSwitchAdmin({ keycloak }) {
+  // Was a hardcoded `isPlatformOperator = true` prop — every caller of this page
+  // saw the PLATFORM scope option regardless of their actual role, since App.jsx
+  // always passed the prop truthy. Now reads the server-resolved capability
+  // instead, so a tenant_admin correctly does NOT see "halt every tenant".
+  const { isPlatformOperator } = useCapabilities();
   const [active,  setActive]  = useState([]);
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -294,11 +305,21 @@ function EngageForm({ keycloak, isPlatformOperator, onDone, onError }) {
         {!wildcard && (
           <div>
             <label className="block text-xs font-medium text-slate-600 mb-1">
-              {scopeType === 'INTENT_TYPE' ? 'Intent type' : scopeType === 'PROVIDER' ? 'Provider' : 'Adapter ID'}
+              {scopeType === 'INTENT_TYPE' ? 'Intent type'
+                : scopeType === 'PROVIDER' ? 'Provider'
+                : scopeType === 'MODEL'    ? 'Model name'
+                : 'Adapter ID'}
             </label>
             <input value={scopeKey === '*' ? '' : scopeKey} onChange={e => setScopeKey(e.target.value)}
-              placeholder={scopeType === 'INTENT_TYPE' ? 'fraud_detection' : 'openai'}
+              placeholder={scopeType === 'INTENT_TYPE' ? 'fraud_detection'
+                : scopeType === 'MODEL' ? 'gpt-4o'
+                : 'openai'}
               className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            {scopeType === 'MODEL' && (
+              <p className="mt-1 text-[11px] text-slate-400">
+                Exact model identifier as recorded in the audit log, e.g. the value shown in AI Spend's model breakdown.
+              </p>
+            )}
           </div>
         )}
 

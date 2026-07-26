@@ -17,9 +17,10 @@ import EuAiActChecklist            from './pages/blog/EuAiActChecklist.jsx';
 import DpdpaCompliance             from './pages/blog/DpdpaCompliance.jsx';
 import AiGovernanceFintech         from './pages/blog/AiGovernanceFintech.jsx';
 import RbacLlmApi                  from './pages/blog/RbacLlmApi.jsx';
-import { ProjectProvider }  from './context/ProjectContext';
-import { BrandingProvider } from './context/BrandingContext';
-import { CreditProvider }   from './context/CreditContext';
+import { ProjectProvider }    from './context/ProjectContext';
+import { BrandingProvider }   from './context/BrandingContext';
+import { CreditProvider }     from './context/CreditContext';
+import { CapabilityProvider } from './context/CapabilityContext';
 import App          from './App';
 import LandingPage  from './pages/LandingPage';
 import DocsPage     from './pages/DocsPage';
@@ -231,7 +232,9 @@ function AppWrapper() {
     <BrandingProvider keycloak={keycloak}>
       <ProjectProvider keycloak={keycloak}>
         <CreditProvider keycloak={keycloak}>
-          <App keycloak={keycloak} />
+          <CapabilityProvider keycloak={keycloak}>
+            <App keycloak={keycloak} />
+          </CapabilityProvider>
         </CreditProvider>
       </ProjectProvider>
     </BrandingProvider>

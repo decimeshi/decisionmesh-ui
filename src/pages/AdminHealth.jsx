@@ -9,7 +9,7 @@ import {
 } from 'lucide-react';
 import Page from '../components/shared/Page';
 import { Card, Spinner } from '../components/shared';
-import { request } from '../utils/api';
+import { getAdminHealth } from '../utils/api';
 
 function MetricRow({ label, value, sub, warning }) {
   return (
@@ -62,7 +62,7 @@ export default function AdminHealth({ keycloak }) {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await request(keycloak, '/admin/health');
+      const data = await getAdminHealth(keycloak);
       setHealth(data);
       setLastFetch(new Date());
     } catch (e) {
