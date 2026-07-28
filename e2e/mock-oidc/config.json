@@ -7,7 +7,7 @@
       "tokenExpiry": 3600,
       "requestMappings": [
         {
-          "requestParam": "scope",
+          "requestParam": "grant_type",
           "match": ".*",
           "claims": {
             "sub": "e2e-test-user",
@@ -20,23 +20,6 @@
                 "e2e-org-id": "e2e-org-id"
               }
             }
-          }
-        }
-      ]
-    },
-    {
-      "issuerId": "zitadel",
-      "tokenExpiry": 3600,
-      "requestMappings": [
-        {
-          "requestParam": "sub",
-          "match": "no-role-user",
-          "claims": {
-            "sub": "no-role-user",
-            "email": "no-role-user@decimeshi.com",
-            "email_verified": true,
-            "name": "E2E No Role User",
-            "preferred_username": "no-role-user@decimeshi.com"
           }
         }
       ]

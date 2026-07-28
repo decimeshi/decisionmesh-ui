@@ -12,3 +12,8 @@ dist/
 .vscode/
 .DS_Store
 Thumbs.db
+
+# Playwright
+e2e/.auth/
+test-results/
+playwright-report/

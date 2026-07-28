@@ -1,30 +1,3 @@
-# E2E test stack — self-contained, no dependency on decisionmesh-infra.
-#
-# Brings up: postgres, redis, vault (dev mode, unseal-proof by construction),
-# a mock OIDC server standing in for Zitadel Cloud, and the backend app
-# (pulled pre-built from GHCR, built by decisionmesh's own CI).
-#
-# NOT included yet: Kafka. The smoke test and journeys 1-2 don't need it;
-# journey 3 (submit-intent) will, once we get there — see the commented
-# block below and application-e2e.properties.
-#
-# Networking note (read before debugging a confusing auth failure):
-# the browser (Playwright, running on the host / CI runner) and the `app`
-# container reach mock-oidc via DIFFERENT paths — the browser via its
-# published host port, `app` via docker-network DNS. For the JWT issuer
-# string to match on both sides, both must use the exact same hostname:
-# "mock-oidc". `extra_hosts` below makes that hostname resolve from
-# INSIDE the app container back out to the host's published port. The
-# HOST side (where Playwright/the browser runs) needs a matching
-# `127.0.0.1 mock-oidc` entry in /etc/hosts — see e2e/README.md and the
-# CI workflow step that adds it. This is the single most likely thing to
-# get wrong on a first run; if login silently fails, check this first.
-#
-# Usage:
-#   docker compose -f e2e/docker-compose.e2e.yml up -d --wait
-#   docker compose -f e2e/docker-compose.e2e.yml logs -f app   # while debugging boot
-#   docker compose -f e2e/docker-compose.e2e.yml down -v       # teardown, wipe volumes
-
 name: decisionmesh-e2e
 
 services:
@@ -70,22 +43,22 @@ services:
     volumes:
       - ./mock-oidc/config.json:/app/config.json:ro
     ports:
-      - "8080:8080"
-    healthcheck:
-      test: ["CMD", "wget", "-q", "-O-", "http://127.0.0.1:8080/zitadel/.well-known/openid-configuration"]
-      interval: 3s
-      timeout: 3s
-      retries: 20
-
+      - "8081:8080"
   app:
-    # Pulls the image decisionmesh's own CI (ci.yml) already builds and
-    # pushes on every push to staging/main. Swap the tag if you want to
-    # test against a specific commit instead: ghcr.io/decimeshi/decisionmesh:sha-<short-sha>
-    image: ghcr.io/decimeshi/decisionmesh:staging
+    build:
+      context: ../../decisionmesh
+      dockerfile: Dockerfile
+    image: decisionmesh-e2e-local:latest
     environment:
       QUARKUS_PROFILE: e2e
       VAULT_ADDR: http://vault:8200
       VAULT_TOKEN: e2e-root-token
+      E2E_DB_HOST: postgres
+      E2E_DB_PORT: "5432"
+      E2E_REDIS_HOST: redis
+      E2E_REDIS_PORT: "6379"
+      E2E_VAULT_HOST: vault
+      E2E_VAULT_PORT: "8200"
     extra_hosts:
       - "mock-oidc:host-gateway"
     depends_on:
@@ -96,22 +69,6 @@ services:
       vault:
         condition: service_healthy
       mock-oidc:
-        condition: service_healthy
+        condition: service_started
     ports:
-      # Matches vite.config.js's hardcoded proxy target (http://localhost:8080)
-      # exactly, so the Vite dev server's /api proxy needs zero changes to
-      # reach this container. If you have a local dev backend also using
-      # 8080, stop it before running the e2e stack.
       - "8080:8080"
-    healthcheck:
-      test: ["CMD", "wget", "-q", "-O-", "http://127.0.0.1:8080/q/health/ready"]
-      interval: 5s
-      timeout: 5s
-      retries: 30
-      start_period: 20s
-
-  # kafka:
-  #   image: apache/kafka:3.7.0
-  #   ... add once journey 3 (submit-intent) needs the outbox publisher.
-  #   Remember to also uncomment mp.messaging.connector.smallrye-kafka.bootstrap.servers
-  #   in application-e2e.properties.
