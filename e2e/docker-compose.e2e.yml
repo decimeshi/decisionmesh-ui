@@ -1,0 +1,74 @@
+name: decisionmesh-e2e
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_DB: decisionmesh
+      POSTGRES_USER: decisionmesh
+      POSTGRES_PASSWORD: decisionmesh
+    ports:
+      - "5433:5432"   # offset from 5432 so this can run alongside local dev
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U decisionmesh -d decisionmesh"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6380:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  vault:
+    image: openbao/openbao:2
+    command: ["server", "-dev", "-dev-root-token-id=e2e-root-token", "-dev-listen-address=0.0.0.0:8200"]
+    ports:
+      - "8201:8200"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O-", "http://127.0.0.1:8200/v1/sys/health?standbyok=true"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  mock-oidc:
+    image: ghcr.io/navikt/mock-oauth2-server:2.1.0
+    environment:
+      JSON_CONFIG_PATH: /app/config.json
+    volumes:
+      - ./mock-oidc/config.json:/app/config.json:ro
+    ports:
+      - "8081:8080"
+  app:
+    build:
+      context: ../../decisionmesh
+      dockerfile: Dockerfile
+    image: decisionmesh-e2e-local:latest
+    environment:
+      QUARKUS_PROFILE: e2e
+      VAULT_ADDR: http://vault:8200
+      VAULT_TOKEN: e2e-root-token
+      E2E_DB_HOST: postgres
+      E2E_DB_PORT: "5432"
+      E2E_REDIS_HOST: redis
+      E2E_REDIS_PORT: "6379"
+      E2E_VAULT_HOST: vault
+      E2E_VAULT_PORT: "8200"
+    extra_hosts:
+      - "mock-oidc:host-gateway"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      vault:
+        condition: service_healthy
+      mock-oidc:
+        condition: service_started
+    ports:
+      - "8080:8080"

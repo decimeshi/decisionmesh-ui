@@ -1,0 +1,28 @@
+{
+  "interactiveLogin": false,
+  "httpServer": "NettyWrapper",
+  "tokenCallbacks": [
+    {
+      "issuerId": "zitadel",
+      "tokenExpiry": 3600,
+      "requestMappings": [
+        {
+          "requestParam": "grant_type",
+          "match": ".*",
+          "claims": {
+            "sub": "e2e-test-user",
+            "email": "e2e-test-user@decimeshi.com",
+            "email_verified": true,
+            "name": "E2E Test User",
+            "preferred_username": "e2e-test-user@decimeshi.com",
+            "urn:zitadel:iam:org:project:roles": {
+              "tenant_admin": {
+                "e2e-org-id": "e2e-org-id"
+              }
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
