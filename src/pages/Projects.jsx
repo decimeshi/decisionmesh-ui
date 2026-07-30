@@ -97,6 +97,16 @@ export default function Projects({ keycloak }) {
     navigate('/');
   }
 
+  // Switches to this project (so the target page loads data scoped to it via
+  // X-Project-Id) then navigates there. stopPropagation is required — these
+  // stats live inside the card's own onClick={handleSwitch}, which would
+  // otherwise also fire and send the user to '/' instead.
+  function goToProjectPage(e, project, path) {
+    e.stopPropagation();
+    switchProject(project);
+    navigate(path);
+  }
+
   return (
     <Page
       title="Projects"
@@ -151,17 +161,19 @@ export default function Projects({ keycloak }) {
                     <span>{project.createdAt ? formatRelative(project.createdAt) : ''}</span>
                   </div>
 
-                  {/* Quick stats */}
+                  {/* Quick stats — each navigates to that page, scoped to this project */}
                   <div className="mt-3 pt-3 border-t border-slate-50 grid grid-cols-3 gap-2 text-center">
                     {[
-                      { label: 'Intents', value: project.intentCount ?? '—' },
-                      { label: 'Members', value: project.memberCount ?? '—' },
-                      { label: 'Adapters', value: project.adapterCount ?? '—' },
-                    ].map(({ label, value }) => (
-                      <div key={label}>
+                      { label: 'Intents',  value: project.intentCount  ?? '—', path: '/intents'  },
+                      { label: 'Members',  value: project.memberCount  ?? '—', path: '/invite'   },
+                      { label: 'Adapters', value: project.adapterCount ?? '—', path: '/adapters' },
+                    ].map(({ label, value, path }) => (
+                      <button key={label}
+                        onClick={e => goToProjectPage(e, project, path)}
+                        className="rounded-lg py-1 -my-1 hover:bg-slate-50 transition-colors">
                         <p className="text-sm font-semibold text-slate-700">{value}</p>
                         <p className="text-[11px] text-slate-400">{label}</p>
-                      </div>
+                      </button>
                     ))}
                   </div>
                 </CardContent>
