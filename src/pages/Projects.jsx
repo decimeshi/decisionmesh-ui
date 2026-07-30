@@ -5,6 +5,7 @@ import Page from '../components/shared/Page';
 import { Card, CardHeader, CardTitle, CardContent, Button, Spinner } from '../components/shared';
 import { useProject } from '../context/ProjectContext';
 import { formatRelative } from '../lib/utils';
+import { createProject } from '../utils/api';
 
 const ENV_COLORS = {
   Production: 'bg-green-100 text-green-700',
@@ -25,23 +26,18 @@ function NewProjectModal({ onSave, onClose, keycloak }) {
 
   async function handleSave() {
     if (!form.name.trim()) { setError('Project name is required'); return; }
-    setSaving(true);
+    setSaving(true); setError(null);
     try {
-      const res = await fetch('http://localhost:8080/api/projects', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${keycloak.token}`,
-        },
-        body: JSON.stringify(form),
-      });
-      const created = res.ok ? await res.json() : { ...form, id: crypto.randomUUID(), isDefault: false, createdAt: new Date().toISOString() };
+      // Was fetch('http://localhost:8080/...') with a silent fallback to a
+      // fake { id: crypto.randomUUID(), ... } object on any non-2xx response —
+      // POST /api/projects didn't exist server-side, so every "new project"
+      // was a client-only object that vanished on the next reload/relogin.
+      // request() throws on a non-2xx response instead of pretending it worked.
+      const created = await createProject(keycloak, form);
       onSave(created);
       onClose();
-    } catch {
-      // API not ready — still create locally
-      onSave({ ...form, id: crypto.randomUUID(), isDefault: false, createdAt: new Date().toISOString() });
-      onClose();
+    } catch (e) {
+      setError(e.message ?? 'Failed to create project');
     } finally {
       setSaving(false);
     }

@@ -1227,22 +1227,25 @@ export default function Playground({ keycloak }) {
       }
 
       const code = parsedError?.code || e?.code || '';
-      const displayMsg =
-          parsedError?.message ||
-          'No active AI models are configured for this tenant.';
 
-      // ── 409 Conflict / NO_ACTIVE_MODELS Check ─────────────────────────────
-      if (
-          code === 'NO_ACTIVE_MODELS' ||
-          rawMsg.includes('NO_ACTIVE_MODELS') ||
-          rawMsg.includes('409') ||
-          e?.status === 409
-      ) {
-        // Trigger Popup
+      // ── NO_ACTIVE_MODELS ────────────────────────────────────────────────────
+      // Keyed off `code`, not a bare 409 status — PROJECT_BUDGET_EXCEEDED below
+      // is also a 409, and the old `e?.status === 409` catch-all here would
+      // have shown "No Active Models" for a budget error instead.
+      if (code === 'NO_ACTIVE_MODELS' || rawMsg.includes('NO_ACTIVE_MODELS')) {
         setPopupMessage({
           title: 'No Active Models Available',
-          description: displayMsg,
+          description: parsedError?.message || 'No active AI models are configured for this tenant.',
           details: parsedError?.details || null,
+          type: 'error',
+        });
+      }
+      // ── PROJECT_BUDGET_EXCEEDED — project's monthly spend ceiling reached ──
+      else if (code === 'PROJECT_BUDGET_EXCEEDED' || rawMsg.includes('PROJECT_BUDGET_EXCEEDED')) {
+        setPopupMessage({
+          title: 'Project Budget Exceeded',
+          description: parsedError?.message || 'This project has reached its monthly budget ceiling. Raise the limit in Project Settings > Budget, or wait until next month.',
+          details: null,
           type: 'error',
         });
       }
@@ -1258,6 +1261,8 @@ export default function Playground({ keycloak }) {
         setError('Budget exceeded — increase ceilingUsd in the intent payload.');
       } else if (rawMsg.includes('500') || rawMsg.includes('Internal Server Error')) {
         setError('Intent submission failed — check your constraints (maxLatencyMs, budget ceiling). Try increasing maxLatencyMs to 10000.');
+      } else if (e?.status === 409) {
+        setError(parsedError?.message || 'Request conflict — please try again.');
       } else {
         setError(rawMsg || 'Intent submission failed. Please try again.');
       }

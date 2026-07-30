@@ -210,8 +210,49 @@ export async function listProjects(keycloak) {
   return request(keycloak, '/projects');
 }
 
+export async function createProject(keycloak, { name, description, environment }) {
+  return request(keycloak, '/projects', {
+    method: 'POST',
+    body: JSON.stringify({ name, description, environment }),
+  });
+}
+
+// Named distinctly from ProjectContext's updateProject (which only patches
+// local cached state) — this is the actual PATCH /api/projects/{id} call.
+export async function updateProjectDetails(keycloak, id, updates) {
+  return request(keycloak, `/projects/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(updates),
+  });
+}
+
 export async function getOrgBranding(keycloak) {
   return request(keycloak, '/org/branding');
+}
+
+// ── Members & invitations (tenant-wide — MemberResource/InvitationResource
+// have no project scoping; see ProjectSettings.jsx's MembersTab comment) ───────
+
+export async function listMembers(keycloak) {
+  return request(keycloak, '/members');
+}
+
+export async function inviteMember(keycloak, email, role) {
+  return request(keycloak, '/invitations', {
+    method: 'POST',
+    body: JSON.stringify({ email, role }),
+  });
+}
+
+export async function updateMemberRole(keycloak, userId, role) {
+  return request(keycloak, `/members/${userId}/role`, {
+    method: 'PATCH',
+    body: JSON.stringify({ role }),
+  });
+}
+
+export async function removeMember(keycloak, userId) {
+  return request(keycloak, `/members/${userId}`, { method: 'DELETE' });
 }
 
 // ── Credits ───────────────────────────────────────────────────────────────────
