@@ -67,46 +67,46 @@ function RecommendationBadge({ value }) {
   };
   const s = styles[value?.toUpperCase()] ?? styles.REVIEW;
   return (
-    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 14px', borderRadius: 8, background: s.bg, border: `1.5px solid ${s.border}` }}>
-      <span style={{ fontSize: 14, fontWeight: 800, color: s.color }}>{s.icon}</span>
-      <span style={{ fontSize: 13, fontWeight: 700, color: s.color, letterSpacing: '0.5px' }}>{value?.toUpperCase()}</span>
-    </div>
+      <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 14px', borderRadius: 8, background: s.bg, border: `1.5px solid ${s.border}` }}>
+        <span style={{ fontSize: 14, fontWeight: 800, color: s.color }}>{s.icon}</span>
+        <span style={{ fontSize: 13, fontWeight: 700, color: s.color, letterSpacing: '0.5px' }}>{value?.toUpperCase()}</span>
+      </div>
   );
 }
 
 function FraudDetectionView({ data }) {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-        <div style={{ background: '#f8fafc', borderRadius: 10, border: '1px solid #e2e8f0', padding: 16, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-          <p style={{ fontSize: 10, color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: 4 }}>Risk Score</p>
-          <RiskGauge score={data.riskScore} />
-        </div>
-        <div style={{ background: '#f8fafc', borderRadius: 10, border: '1px solid #e2e8f0', padding: 16, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-          <p style={{ fontSize: 10, color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.8px' }}>Recommendation</p>
-          <RecommendationBadge value={data.recommendation} />
-        </div>
-      </div>
-      {data.riskFactors?.length > 0 && (
-        <div>
-          <p style={{ fontSize: 11, fontWeight: 600, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: 8 }}>Risk Factors ({data.riskFactors.length})</p>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            {data.riskFactors.map((f, i) => (
-              <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, padding: '7px 10px', background: '#fef2f2', borderRadius: 7, border: '1px solid #fecaca' }}>
-                <span style={{ fontSize: 11, color: '#dc2626', fontWeight: 700, flexShrink: 0, marginTop: 1 }}>⚠</span>
-                <span style={{ fontSize: 13, color: '#374151', lineHeight: 1.5 }}>{f}</span>
-              </div>
-            ))}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          <div style={{ background: '#f8fafc', borderRadius: 10, border: '1px solid #e2e8f0', padding: 16, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+            <p style={{ fontSize: 10, color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: 4 }}>Risk Score</p>
+            <RiskGauge score={data.riskScore} />
+          </div>
+          <div style={{ background: '#f8fafc', borderRadius: 10, border: '1px solid #e2e8f0', padding: 16, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+            <p style={{ fontSize: 10, color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.8px' }}>Recommendation</p>
+            <RecommendationBadge value={data.recommendation} />
           </div>
         </div>
-      )}
-      {data.reasoning && (
-        <div style={{ background: '#f8fafc', borderRadius: 8, border: '1px solid #e2e8f0', padding: 12 }}>
-          <p style={{ fontSize: 10, fontWeight: 600, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: 6 }}>AI Reasoning</p>
-          <p style={{ fontSize: 13, color: '#374151', lineHeight: 1.6 }}>{data.reasoning}</p>
-        </div>
-      )}
-    </div>
+        {data.riskFactors?.length > 0 && (
+            <div>
+              <p style={{ fontSize: 11, fontWeight: 600, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: 8 }}>Risk Factors ({data.riskFactors.length})</p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                {data.riskFactors.map((f, i) => (
+                    <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, padding: '7px 10px', background: '#fef2f2', borderRadius: 7, border: '1px solid #fecaca' }}>
+                      <span style={{ fontSize: 11, color: '#dc2626', fontWeight: 700, flexShrink: 0, marginTop: 1 }}>⚠</span>
+                      <span style={{ fontSize: 13, color: '#374151', lineHeight: 1.5 }}>{f}</span>
+                    </div>
+                ))}
+              </div>
+            </div>
+        )}
+        {data.reasoning && (
+            <div style={{ background: '#f8fafc', borderRadius: 8, border: '1px solid #e2e8f0', padding: 12 }}>
+              <p style={{ fontSize: 10, fontWeight: 600, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: 6 }}>AI Reasoning</p>
+              <p style={{ fontSize: 13, color: '#374151', lineHeight: 1.6 }}>{data.reasoning}</p>
+            </div>
+        )}
+      </div>
   );
 }
 
@@ -116,79 +116,77 @@ function GenericJsonView({ data }) {
     if (typeof v === 'boolean') return <span style={{ color: v ? '#16a34a' : '#dc2626', fontWeight: 600 }}>{v ? 'Yes' : 'No'}</span>;
     if (typeof v === 'number') return <span style={{ color: '#2563eb', fontWeight: 600 }}>{v}</span>;
     if (Array.isArray(v)) return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 4 }}>
-        {v.map((item, i) => (
-          <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
-            <span style={{ color: '#94a3b8', fontSize: 11, marginTop: 2, flexShrink: 0 }}>•</span>
-            <span style={{ fontSize: 12, color: '#374151' }}>{typeof item === 'object' ? JSON.stringify(item) : String(item)}</span>
-          </div>
-        ))}
-      </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 4 }}>
+          {v.map((item, i) => (
+              <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+                <span style={{ color: '#94a3b8', fontSize: 11, marginTop: 2, flexShrink: 0 }}>•</span>
+                <span style={{ fontSize: 12, color: '#374151' }}>{typeof item === 'object' ? JSON.stringify(item) : String(item)}</span>
+              </div>
+          ))}
+        </div>
     );
     if (typeof v === 'object' && depth < 2) return (
-      <div style={{ marginTop: 4, paddingLeft: 8, borderLeft: '2px solid #e2e8f0' }}>
-        {Object.entries(v).map(([k2, v2]) => (
-          <div key={k2} style={{ display: 'flex', gap: 8, marginBottom: 4 }}>
-            <span style={{ fontSize: 11, color: '#64748b', fontWeight: 600, minWidth: 80 }}>{k2.replace(/_/g, ' ')}</span>
-            <span style={{ fontSize: 12, color: '#374151' }}>{typeof v2 === 'object' ? JSON.stringify(v2) : String(v2)}</span>
-          </div>
-        ))}
-      </div>
+        <div style={{ marginTop: 4, paddingLeft: 8, borderLeft: '2px solid #e2e8f0' }}>
+          {Object.entries(v).map(([k2, v2]) => (
+              <div key={k2} style={{ display: 'flex', gap: 8, marginBottom: 4 }}>
+                <span style={{ fontSize: 11, color: '#64748b', fontWeight: 600, minWidth: 80 }}>{k2.replace(/_/g, ' ')}</span>
+                <span style={{ fontSize: 12, color: '#374151' }}>{typeof v2 === 'object' ? JSON.stringify(v2) : String(v2)}</span>
+              </div>
+          ))}
+        </div>
     );
     return <span style={{ fontSize: 12, color: '#374151' }}>{String(v)}</span>;
   }
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-      {Object.entries(data).map(([k, v]) => (
-        <div key={k} style={{ padding: '8px 12px', background: '#f8fafc', borderRadius: 8, border: '1px solid #e2e8f0' }}>
-          <p style={{ fontSize: 10, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.6px', marginBottom: 4 }}>
-            {k.replace(/_/g, ' ').replace(/([A-Z])/g, ' $1').trim()}
-          </p>
-          {renderValue(v)}
-        </div>
-      ))}
-    </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {Object.entries(data).map(([k, v]) => (
+            <div key={k} style={{ padding: '8px 12px', background: '#f8fafc', borderRadius: 8, border: '1px solid #e2e8f0' }}>
+              <p style={{ fontSize: 10, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.6px', marginBottom: 4 }}>
+                {k.replace(/_/g, ' ').replace(/([A-Z])/g, ' $1').trim()}
+              </p>
+              {renderValue(v)}
+            </div>
+        ))}
+      </div>
   );
 }
 
 function SmartResponseRenderer({ responseText, intentType }) {
   const [showRaw, setShowRaw] = useState(false);
   if (!responseText) return (
-    <div className="text-center py-3">
-      <p className="text-sm text-slate-400">Response text not available</p>
-    </div>
+      <div className="text-center py-3">
+        <p className="text-sm text-slate-400">Response text not available</p>
+      </div>
   );
   const parsed = tryParseJson(responseText);
   const isJson = parsed !== null && typeof parsed === 'object';
   const type = (intentType ?? '').toLowerCase();
   const isFraud = type.includes('fraud') || (parsed?.riskScore !== undefined && parsed?.recommendation !== undefined);
   return (
-    <div>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-        <p style={{ fontSize: 10, fontWeight: 600, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.8px' }}>
-          {isJson ? (isFraud ? 'Fraud Risk Assessment' : 'Structured Response') : 'Adapter Response'}
-        </p>
-        {isJson && (
-          <span onClick={(e) => { e.stopPropagation(); setShowRaw(v => !v); }}
-            style={{ fontSize: 11, color: '#64748b', background: '#f1f5f9', border: '1px solid #e2e8f0', borderRadius: 6, padding: '3px 8px', cursor: 'pointer', userSelect: 'none' }}>
+      <div>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+          <p style={{ fontSize: 10, fontWeight: 600, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.8px' }}>
+            {isJson ? (isFraud ? 'Fraud Risk Assessment' : 'Structured Response') : 'Adapter Response'}
+          </p>
+          {isJson && (
+              <span onClick={(e) => { e.stopPropagation(); setShowRaw(v => !v); }}
+                    style={{ fontSize: 11, color: '#64748b', background: '#f1f5f9', border: '1px solid #e2e8f0', borderRadius: 6, padding: '3px 8px', cursor: 'pointer', userSelect: 'none' }}>
             {showRaw ? '← Smart view' : 'Raw JSON →'}
           </span>
+          )}
+        </div>
+        {showRaw || !isJson ? (
+            <div style={{ fontFamily: isJson ? "'JetBrains Mono', monospace" : 'inherit', fontSize: 13, color: '#374151', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 8, padding: 12, lineHeight: 1.6, whiteSpace: isJson ? 'pre-wrap' : 'pre-line', wordBreak: 'break-word', maxHeight: 300, overflowY: 'auto' }}>
+              {isJson ? JSON.stringify(parsed, null, 2) : responseText}
+            </div>
+        ) : (
+            isFraud ? <FraudDetectionView data={parsed} /> : <GenericJsonView data={parsed} />
         )}
       </div>
-      {showRaw || !isJson ? (
-        <div style={{ fontFamily: isJson ? "'JetBrains Mono', monospace" : 'inherit', fontSize: 13, color: '#374151', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 8, padding: 12, lineHeight: 1.6, whiteSpace: isJson ? 'pre-wrap' : 'pre-line', wordBreak: 'break-word', maxHeight: 300, overflowY: 'auto' }}>
-          {isJson ? JSON.stringify(parsed, null, 2) : responseText}
-        </div>
-      ) : (
-        isFraud ? <FraudDetectionView data={parsed} /> : <GenericJsonView data={parsed} />
-      )}
-    </div>
   );
 }
 
 // ── Intent type suggestions ───────────────────────────────────────────────────
-// intentType is a free-form string in the backend — no enum validation.
-// These are common suggestions only. Users can type anything.
 const INTENT_SUGGESTIONS = [
   // ── Payments ──────────────────────────────────────────
   { id: 'detect_fraud_transaction', label: 'Detect Fraud Txn', category: 'Payments' },
@@ -476,8 +474,6 @@ const INTENT_SUGGESTIONS = [
 
 const INTENT_CATEGORIES = ['All', 'Payments', 'Lending', 'AP/AR', 'Treasury', 'Fraud', 'Compliance', 'Procurement', 'Investments', 'Customer Ops', 'Reconciliation', 'Billing', 'Insurance', 'Reporting', 'Risk', 'General'];
 
-
-
 // ── Default payload — control plane focused ───────────────────────────────────
 // Shows budget ceiling, policy rules, and constraints — the actual product.
 const DEFAULT = JSON.stringify({
@@ -674,50 +670,50 @@ function ModelTierSelector({ selected, onChange, navigate }) {
   const tiers = Object.entries(MODEL_TIERS);
 
   return (
-    <Card>
-      <CardHeader><CardTitle>Adapter tier</CardTitle></CardHeader>
-      <CardContent>
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-2">
-          {tiers.map(([key, tier]) => {
-            const isByok = key === 'byok';
-            const isByom = key === 'byom';
-            const isSpecial = isByok || isByom;
+      <Card>
+        <CardHeader><CardTitle>Adapter tier</CardTitle></CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-2">
+            {tiers.map(([key, tier]) => {
+              const isByok = key === 'byok';
+              const isByom = key === 'byom';
+              const isSpecial = isByok || isByom;
 
-            return (
-              <button key={key} type="button" onClick={() => onChange(key)}
-                className="text-left p-3 rounded-xl border-2 transition-all relative"
-                style={{
-                  borderColor:     selected === key ? tier.color : '#e2e8f0',
-                  backgroundColor: selected === key ? tier.bg    : 'white',
-                }}>
-                <div className="flex items-center justify-between mb-1">
+              return (
+                  <button key={key} type="button" onClick={() => onChange(key)}
+                          className="text-left p-3 rounded-xl border-2 transition-all relative"
+                          style={{
+                            borderColor:     selected === key ? tier.color : '#e2e8f0',
+                            backgroundColor: selected === key ? tier.bg    : 'white',
+                          }}>
+                    <div className="flex items-center justify-between mb-1">
                   <span className="text-xs font-bold" style={{ color: tier.color }}>
                     {isSpecial && (isByok ? <Key size={9} className="inline mr-1" /> : <Cpu size={9} className="inline mr-1" />)}
                     {tier.label}
                   </span>
-                  <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full text-white"
-                    style={{ backgroundColor: tier.color }}>
+                      <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full text-white"
+                            style={{ backgroundColor: tier.color }}>
                     {tier.credits} cr
                   </span>
-                </div>
-                <p className="text-[10px] text-slate-500 leading-tight">{tier.models}</p>
-                {isSpecial && (
-                  <button
-                    onClick={e => { e.stopPropagation(); navigate('/billing?tab=byok'); }}
-                    className="mt-1.5 text-[10px] underline"
-                    style={{ color: tier.color }}>
-                    Configure →
+                    </div>
+                    <p className="text-[10px] text-slate-500 leading-tight">{tier.models}</p>
+                    {isSpecial && (
+                        <button
+                            onClick={e => { e.stopPropagation(); navigate('/billing?tab=byok'); }}
+                            className="mt-1.5 text-[10px] underline"
+                            style={{ color: tier.color }}>
+                          Configure →
+                        </button>
+                    )}
                   </button>
-                )}
-              </button>
-            );
-          })}
-        </div>
-        <p className="text-xs text-slate-400">
-          BYOK and BYOM charge 1 credit for orchestration only — your provider or model handles execution.
-        </p>
-      </CardContent>
-    </Card>
+              );
+            })}
+          </div>
+          <p className="text-xs text-slate-400">
+            BYOK and BYOM charge 1 credit for orchestration only — your provider or model handles execution.
+          </p>
+        </CardContent>
+      </Card>
   );
 }
 
@@ -726,113 +722,113 @@ function TemplateBrowser({ onLoad }) {
   const [open, setOpen] = useState(false);
 
   return (
-    <Card>
-      <button className="w-full" onClick={() => setOpen(o => !o)}>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <BookOpen size={14} className="text-slate-500" />
-              <CardTitle>Example intents</CardTitle>
-              <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-blue-50 text-blue-600 border border-blue-100">
+      <Card>
+        <button className="w-full" onClick={() => setOpen(o => !o)}>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <BookOpen size={14} className="text-slate-500" />
+                <CardTitle>Example intents</CardTitle>
+                <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-blue-50 text-blue-600 border border-blue-100">
                 {Object.keys(TEMPLATES).length + 2} examples
               </span>
+              </div>
+              {open
+                  ? <ChevronUp size={14} className="text-slate-400" />
+                  : <ChevronDown size={14} className="text-slate-400" />}
             </div>
-            {open
-              ? <ChevronUp size={14} className="text-slate-400" />
-              : <ChevronDown size={14} className="text-slate-400" />}
-          </div>
-        </CardHeader>
-      </button>
+          </CardHeader>
+        </button>
 
-      {open && (
-        <CardContent className="pt-0 space-y-4">
+        {open && (
+            <CardContent className="pt-0 space-y-4">
 
-          {/* ── Featured: SATISFIED + VIOLATED ── */}
-          <div>
-            <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide mb-2">
-              See positive &amp; negative results
-            </p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {/* ── Featured: SATISFIED + VIOLATED ── */}
+              <div>
+                <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide mb-2">
+                  See positive &amp; negative results
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
 
-              {/* SATISFIED example */}
-              <button type="button"
-                onClick={() => { onLoad(EXAMPLE_SATISFIED); setOpen(false); }}
-                className="text-left p-3 rounded-xl border-2 border-green-200 bg-green-50 hover:border-green-400 hover:bg-green-100 transition-all group">
-                <div className="flex items-center gap-2 mb-1.5">
+                  {/* SATISFIED example */}
+                  <button type="button"
+                          onClick={() => { onLoad(EXAMPLE_SATISFIED); setOpen(false); }}
+                          className="text-left p-3 rounded-xl border-2 border-green-200 bg-green-50 hover:border-green-400 hover:bg-green-100 transition-all group">
+                    <div className="flex items-center gap-2 mb-1.5">
                   <span className="w-5 h-5 rounded-full bg-green-500 flex items-center justify-center flex-shrink-0">
                     <span className="text-white text-[10px] font-bold">✓</span>
                   </span>
-                  <span className="text-xs font-bold text-green-800">SATISFIED example</span>
-                </div>
-                <p className="text-[10px] text-green-700 leading-snug mb-2">
-                  Fraud detection intent with realistic budget ($0.50), generous constraints, and achievable policy rules — completes successfully.
-                </p>
-                <div className="flex flex-wrap gap-1">
-                  {['budget: $0.50', 'retries: 2', 'timeout: 30s', 'drift: 0.20'].map(t => (
-                    <span key={t} className="text-[9px] px-1.5 py-0.5 rounded bg-green-200 text-green-800 font-medium">{t}</span>
-                  ))}
-                </div>
-              </button>
+                      <span className="text-xs font-bold text-green-800">SATISFIED example</span>
+                    </div>
+                    <p className="text-[10px] text-green-700 leading-snug mb-2">
+                      Fraud detection intent with realistic budget ($0.50), generous constraints, and achievable policy rules — completes successfully.
+                    </p>
+                    <div className="flex flex-wrap gap-1">
+                      {['budget: $0.50', 'retries: 2', 'timeout: 30s', 'drift: 0.20'].map(t => (
+                          <span key={t} className="text-[9px] px-1.5 py-0.5 rounded bg-green-200 text-green-800 font-medium">{t}</span>
+                      ))}
+                    </div>
+                  </button>
 
-              {/* VIOLATED example */}
-              <button type="button"
-                onClick={() => { onLoad(EXAMPLE_VIOLATED); setOpen(false); }}
-                className="text-left p-3 rounded-xl border-2 border-red-200 bg-red-50 hover:border-red-400 hover:bg-red-100 transition-all group">
-                <div className="flex items-center gap-2 mb-1.5">
+                  {/* VIOLATED example */}
+                  <button type="button"
+                          onClick={() => { onLoad(EXAMPLE_VIOLATED); setOpen(false); }}
+                          className="text-left p-3 rounded-xl border-2 border-red-200 bg-red-50 hover:border-red-400 hover:bg-red-100 transition-all group">
+                    <div className="flex items-center gap-2 mb-1.5">
                   <span className="w-5 h-5 rounded-full bg-red-500 flex items-center justify-center flex-shrink-0">
                     <span className="text-white text-[10px] font-bold">✕</span>
                   </span>
-                  <span className="text-xs font-bold text-red-800">VIOLATED example</span>
+                      <span className="text-xs font-bold text-red-800">VIOLATED example</span>
+                    </div>
+                    <p className="text-[10px] text-red-700 leading-snug mb-2">
+                      Same intent — budget set to $0.00001, timeout 1s, topic blocks cover the actual content. Will breach constraints and fail.
+                    </p>
+                    <div className="flex flex-wrap gap-1">
+                      {['budget: $0.00001', 'retries: 0', 'timeout: 1s', 'drift: 0.01'].map(t => (
+                          <span key={t} className="text-[9px] px-1.5 py-0.5 rounded bg-red-200 text-red-800 font-medium">{t}</span>
+                      ))}
+                    </div>
+                  </button>
+
                 </div>
-                <p className="text-[10px] text-red-700 leading-snug mb-2">
-                  Same intent — budget set to $0.00001, timeout 1s, topic blocks cover the actual content. Will breach constraints and fail.
+              </div>
+
+              {/* ── Divider ── */}
+              <div className="border-t border-slate-100" />
+
+              {/* ── Other templates ── */}
+              <div>
+                <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide mb-2">
+                  Feature templates
                 </p>
-                <div className="flex flex-wrap gap-1">
-                  {['budget: $0.00001', 'retries: 0', 'timeout: 1s', 'drift: 0.01'].map(t => (
-                    <span key={t} className="text-[9px] px-1.5 py-0.5 rounded bg-red-200 text-red-800 font-medium">{t}</span>
-                  ))}
-                </div>
-              </button>
-
-            </div>
-          </div>
-
-          {/* ── Divider ── */}
-          <div className="border-t border-slate-100" />
-
-          {/* ── Other templates ── */}
-          <div>
-            <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide mb-2">
-              Feature templates
-            </p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              {Object.entries(TEMPLATES).map(([key, tmpl]) => (
-                <button key={key} type="button"
-                  onClick={() => { onLoad(tmpl.payload); setOpen(false); }}
-                  className="text-left p-3 rounded-lg border border-slate-200 hover:border-blue-300 hover:bg-blue-50 transition-all group">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="text-base">{tmpl.icon}</span>
-                    <span className="text-xs font-semibold text-slate-800 group-hover:text-blue-700">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {Object.entries(TEMPLATES).map(([key, tmpl]) => (
+                      <button key={key} type="button"
+                              onClick={() => { onLoad(tmpl.payload); setOpen(false); }}
+                              className="text-left p-3 rounded-lg border border-slate-200 hover:border-blue-300 hover:bg-blue-50 transition-all group">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="text-base">{tmpl.icon}</span>
+                          <span className="text-xs font-semibold text-slate-800 group-hover:text-blue-700">
                       {tmpl.label}
                     </span>
-                  </div>
-                  <p className="text-[10px] text-slate-500 leading-snug">{tmpl.description}</p>
-                </button>
-              ))}
-            </div>
-          </div>
+                        </div>
+                        <p className="text-[10px] text-slate-500 leading-snug">{tmpl.description}</p>
+                      </button>
+                  ))}
+                </div>
+              </div>
 
-          <p className="text-[10px] text-slate-400 text-center">
-            For domain-specific intent templates →{' '}
-            <button
-              onClick={() => window.location.href = '/fintech-intents'}
-              className="text-blue-500 underline">
-              browse 264 fintech intents
-            </button>
-          </p>
-        </CardContent>
-      )}
-    </Card>
+              <p className="text-[10px] text-slate-400 text-center">
+                For domain-specific intent templates →{' '}
+                <button
+                    onClick={() => window.location.href = '/fintech-intents'}
+                    className="text-blue-500 underline">
+                  browse 264 fintech intents
+                </button>
+              </p>
+            </CardContent>
+        )}
+      </Card>
   );
 }
 
@@ -873,15 +869,15 @@ function PolicyStrip({ json }) {
   if (!rules.length) return null;
 
   return (
-    <div className="flex flex-wrap gap-1.5 px-1">
-      {rules.map(r => (
-        <span key={r.label}
-          className="flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full border"
-          style={{ color: r.color, borderColor: r.color + '40', backgroundColor: r.color + '10' }}>
+      <div className="flex flex-wrap gap-1.5 px-1">
+        {rules.map(r => (
+            <span key={r.label}
+                  className="flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full border"
+                  style={{ color: r.color, borderColor: r.color + '40', backgroundColor: r.color + '10' }}>
           {r.icon} {r.label}
         </span>
-      ))}
-    </div>
+        ))}
+      </div>
   );
 }
 
@@ -920,8 +916,8 @@ function IntentTypeSelector({ json, onSelect }) {
   }, [matchedCategory]);
 
   const filtered = catFilter === 'All'
-    ? INTENT_SUGGESTIONS
-    : INTENT_SUGGESTIONS.filter(t => t.category === catFilter);
+      ? INTENT_SUGGESTIONS
+      : INTENT_SUGGESTIONS.filter(t => t.category === catFilter);
 
   function handleCustomSubmit(e) {
     e.preventDefault();
@@ -941,107 +937,107 @@ function IntentTypeSelector({ json, onSelect }) {
   // and the layout does not move.
   if (!expanded) {
     return (
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <CardTitle>Intent type</CardTitle>
-              <span className={`text-xs font-mono font-semibold px-2.5 py-0.5 rounded-full ${
-                currentType ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-400'
-              }`}>
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <CardTitle>Intent type</CardTitle>
+                <span className={`text-xs font-mono font-semibold px-2.5 py-0.5 rounded-full ${
+                    currentType ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-400'
+                }`}>
                 {currentType || '—'}
               </span>
+              </div>
+              <button
+                  onClick={() => setExpanded(true)}
+                  className="text-[10px] text-blue-500 hover:text-blue-700 font-medium transition-colors">
+                {currentType ? 'Change →' : 'Choose →'}
+              </button>
             </div>
-            <button
-              onClick={() => setExpanded(true)}
-              className="text-[10px] text-blue-500 hover:text-blue-700 font-medium transition-colors">
-              {currentType ? 'Change →' : 'Choose →'}
-            </button>
-          </div>
-        </CardHeader>
-      </Card>
+          </CardHeader>
+        </Card>
     );
   }
 
   // ── Expanded view — shown when no intentType set, or user clicked Change ────
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-center justify-between flex-wrap gap-2">
-          <div>
-            <CardTitle>Intent type</CardTitle>
-            <p className="text-[10px] text-slate-400 mt-0.5 font-normal">
-              Free-form string — type anything or pick a suggestion
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
-            {currentType && (
-              <button
-                onClick={() => setExpanded(false)}
-                className="text-[10px] text-slate-400 hover:text-slate-600 font-medium transition-colors">
-                ✕ Cancel
-              </button>
-            )}
-            <div className="flex gap-1">
-              {INTENT_CATEGORIES.map(c => (
-                <button key={c} onClick={() => setCatFilter(c)}
-                  className={`px-2 py-0.5 rounded-md text-[10px] font-medium transition-colors ${
-                    catFilter === c
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
-                  }`}>
-                  {c}
-                </button>
-              ))}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <div>
+              <CardTitle>Intent type</CardTitle>
+              <p className="text-[10px] text-slate-400 mt-0.5 font-normal">
+                Free-form string — type anything or pick a suggestion
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              {currentType && (
+                  <button
+                      onClick={() => setExpanded(false)}
+                      className="text-[10px] text-slate-400 hover:text-slate-600 font-medium transition-colors">
+                    ✕ Cancel
+                  </button>
+              )}
+              <div className="flex gap-1">
+                {INTENT_CATEGORIES.map(c => (
+                    <button key={c} onClick={() => setCatFilter(c)}
+                            className={`px-2 py-0.5 rounded-md text-[10px] font-medium transition-colors ${
+                                catFilter === c
+                                    ? 'bg-blue-600 text-white'
+                                    : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
+                            }`}>
+                      {c}
+                    </button>
+                ))}
+              </div>
             </div>
           </div>
-        </div>
-      </CardHeader>
-      <CardContent className="space-y-3">
-        {/* Suggestion chips */}
-        <div className="flex gap-1.5 flex-wrap">
-          {filtered.map(t => {
-            const sel = currentType === t.id;
-            return (
-              <button key={t.id} type="button" onClick={() => onSelect(t.id)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
-                  sel
-                    ? 'bg-blue-600 text-white border-blue-600'
-                    : 'bg-white text-slate-600 border-slate-200 hover:border-blue-300'
-                }`}>
-                {t.label}
-              </button>
-            );
-          })}
-        </div>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {/* Suggestion chips */}
+          <div className="flex gap-1.5 flex-wrap">
+            {filtered.map(t => {
+              const sel = currentType === t.id;
+              return (
+                  <button key={t.id} type="button" onClick={() => onSelect(t.id)}
+                          className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
+                              sel
+                                  ? 'bg-blue-600 text-white border-blue-600'
+                                  : 'bg-white text-slate-600 border-slate-200 hover:border-blue-300'
+                          }`}>
+                    {t.label}
+                  </button>
+              );
+            })}
+          </div>
 
-        {/* Free-form input */}
-        <form onSubmit={handleCustomSubmit} className="flex gap-2">
-          <input
-            type="text"
-            value={customVal}
-            onChange={e => setCustomVal(e.target.value)}
-            placeholder={currentType ? `Current: ${currentType}` : 'or type any intent type…'}
-            className="flex-1 text-xs font-mono border border-slate-200 rounded-lg px-3 py-1.5 bg-slate-50 focus:outline-none focus:border-blue-400 focus:bg-white transition-colors"
-            style={{ fontFamily: "'JetBrains Mono', monospace" }}
-          />
-          <button type="submit"
-            disabled={!customVal.trim()}
-            className="text-xs px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 disabled:opacity-40 transition-colors">
-            Set
-          </button>
-        </form>
+          {/* Free-form input */}
+          <form onSubmit={handleCustomSubmit} className="flex gap-2">
+            <input
+                type="text"
+                value={customVal}
+                onChange={e => setCustomVal(e.target.value)}
+                placeholder={currentType ? `Current: ${currentType}` : 'or type any intent type…'}
+                className="flex-1 text-xs font-mono border border-slate-200 rounded-lg px-3 py-1.5 bg-slate-50 focus:outline-none focus:border-blue-400 focus:bg-white transition-colors"
+                style={{ fontFamily: "'JetBrains Mono', monospace" }}
+            />
+            <button type="submit"
+                    disabled={!customVal.trim()}
+                    className="text-xs px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 disabled:opacity-40 transition-colors">
+              Set
+            </button>
+          </form>
 
-        <p className="text-[10px] text-slate-400 leading-relaxed">
-          The backend accepts any string. For domain-specific types used in your 264 fintech intents,{' '}
-          <button
-            onClick={() => window.location.href = '/fintech-intents'}
-            className="text-blue-500 underline">
-            browse the intent library →
-          </button>
-        </p>
-      </CardContent>
-    </Card>
+          <p className="text-[10px] text-slate-400 leading-relaxed">
+            The backend accepts any string. For domain-specific types used in your 264 fintech intents,{' '}
+            <button
+                onClick={() => window.location.href = '/fintech-intents'}
+                className="text-blue-500 underline">
+              browse the intent library →
+            </button>
+          </p>
+        </CardContent>
+      </Card>
   );
 }
 
@@ -1054,6 +1050,9 @@ export default function Playground({ keycloak }) {
 
   // Pre-fill from Intent Library "Try in Playground" navigation state
   const initialJson = location.state?.intentPayload ?? DEFAULT;
+
+  // Popup state for 409 errors
+  const [popupMessage, setPopupMessage] = useState(null);
 
   const [json,       setJson]       = useState(initialJson);
   const [jsonErr,    setJsonErr]    = useState(null);
@@ -1076,15 +1075,15 @@ export default function Playground({ keycloak }) {
     const intentName = searchParams.get('intent');
     if (!intentName || location.state?.intentPayload) return; // skip if already have payload
     request(keycloak, `/intent-library/fintech/search?q=${intentName}`)
-      .then(results => {
-        const match = Array.isArray(results)
-          ? results.find(r => r.name === intentName)
-          : null;
-        if (match?.examplePayload) {
-          setJson(JSON.stringify(match.examplePayload, null, 2));
-        }
-      })
-      .catch(() => {}); // silently fall back to DEFAULT
+        .then(results => {
+          const match = Array.isArray(results)
+              ? results.find(r => r.name === intentName)
+              : null;
+          if (match?.examplePayload) {
+            setJson(JSON.stringify(match.examplePayload, null, 2));
+          }
+        })
+        .catch(() => {}); // silently fall back to DEFAULT
   }, [searchParams, keycloak]);
 
   // ── Helpers ─────────────────────────────────────────────────────────────
@@ -1115,8 +1114,8 @@ export default function Playground({ keycloak }) {
       if (res?.examplePayload) {
         // Library payload found — load it fully, preserving model tier
         const payload = typeof res.examplePayload === 'string'
-          ? JSON.parse(res.examplePayload)
-          : res.examplePayload;
+            ? JSON.parse(res.examplePayload)
+            : res.examplePayload;
         setJson(JSON.stringify(payload, null, 2));
         setJsonErr(null);
         return;
@@ -1136,7 +1135,7 @@ export default function Playground({ keycloak }) {
 
   async function handleSubmit() {
     if (isEmpty) { setError('No credits remaining. Top up to continue.'); return; }
-    setError(null); setPaused(false); setResult(null); setCreditCost(null);
+    setError(null); setPaused(false); setResult(null); setCreditCost(null); setPopupMessage(null);
 
     let body;
     try   { body = JSON.parse(json); }
@@ -1172,7 +1171,7 @@ export default function Playground({ keycloak }) {
           ]);
           if (intentDetail) setIntentData(intentDetail);
           const completed = (execs ?? []).find(e =>
-            e.status === 'COMPLETED' || e.status === 'SUCCESS' || e.phase === 'COMPLETED'
+              e.status === 'COMPLETED' || e.status === 'SUCCESS' || e.phase === 'COMPLETED'
           ) ?? execs?.[0];
           if (completed?.responseText || completed?.response_text) {
             setExecResult(completed);
@@ -1190,9 +1189,9 @@ export default function Playground({ keycloak }) {
             clearInterval(pollRef.current);
             reload();
           } else if (
-            intentDetail?.terminal ||
-            (intentDetail?.satisfactionState === 'UNKNOWN' &&
-             intentDetail?.phase === 'COMPLETED')
+              intentDetail?.terminal ||
+              (intentDetail?.satisfactionState === 'UNKNOWN' &&
+                  intentDetail?.phase === 'COMPLETED')
           ) {
             // Intent is terminal OR parked for human review (UNKNOWN+COMPLETED).
             // terminal may be false for review-queue intents — catch both cases.
@@ -1205,30 +1204,62 @@ export default function Playground({ keycloak }) {
     } catch (e) {
       refundCredits(tier);
 
-      // Kill switch — a deliberate platform halt, not a user error.
-      // Checked BEFORE the message-sniffing below: a 503 halt matches none of those
-      // patterns and would otherwise surface as "Intent submission failed", blaming
-      // the user's constraints for a platform decision and inviting a doomed retry.
       if (e.code === 'KILL_SWITCH_ACTIVE') {
         setPaused(true);
-        return;                         // finally{} still clears loading
+        return;
       }
 
-      // Parse SLA / constraint violation errors into friendly messages
-      const msg = e.message ?? '';
-      if (msg.includes('SLAException') || msg.includes('Latency constraint violated')) {
-        const match = msg.match(/actual=(\d+)ms.*limit=(\d+)ms/);
+      let parsedError = null;
+      let rawMsg = typeof e === 'string'
+          ? e
+          : e?.message || (typeof e === 'object' ? JSON.stringify(e) : '');
+
+      // If the error message is a raw JSON string from backend response, parse it:
+      try {
+        const jsonStart = rawMsg.indexOf('{');
+        if (jsonStart !== -1) {
+          parsedError = JSON.parse(rawMsg.slice(jsonStart));
+        } else if (typeof e === 'object' && e !== null) {
+          parsedError = e.data || e.response?.data || e;
+        }
+      } catch {
+        /* ignore JSON parse fallback */
+      }
+
+      const code = parsedError?.code || e?.code || '';
+      const displayMsg =
+          parsedError?.message ||
+          'No active AI models are configured for this tenant.';
+
+      // ── 409 Conflict / NO_ACTIVE_MODELS Check ─────────────────────────────
+      if (
+          code === 'NO_ACTIVE_MODELS' ||
+          rawMsg.includes('NO_ACTIVE_MODELS') ||
+          rawMsg.includes('409') ||
+          e?.status === 409
+      ) {
+        // Trigger Popup
+        setPopupMessage({
+          title: 'No Active Models Available',
+          description: displayMsg,
+          details: parsedError?.details || null,
+          type: 'error',
+        });
+      }
+      // ── Other Errors ──────────────────────────────────────────────────────
+      else if (rawMsg.includes('SLAException') || rawMsg.includes('Latency constraint violated')) {
+        const match = rawMsg.match(/actual=(\d+)ms.*limit=(\d+)ms/);
         if (match) {
           setError(`Latency constraint violated — LLM took ${match[1]}ms but maxLatencyMs is ${match[2]}ms. Increase maxLatencyMs (e.g. 10000) to allow more time.`);
         } else {
           setError('Latency constraint violated — the LLM response exceeded your maxLatencyMs limit. Increase it to 10000ms or higher.');
         }
-      } else if (msg.includes('BudgetExceeded') || msg.includes('budget')) {
+      } else if (rawMsg.includes('BudgetExceeded') || rawMsg.includes('budget')) {
         setError('Budget exceeded — increase ceilingUsd in the intent payload.');
-      } else if (msg.includes('500') || msg.includes('Internal Server Error')) {
+      } else if (rawMsg.includes('500') || rawMsg.includes('Internal Server Error')) {
         setError('Intent submission failed — check your constraints (maxLatencyMs, budget ceiling). Try increasing maxLatencyMs to 10000.');
       } else {
-        setError(msg || 'Intent submission failed. Please try again.');
+        setError(rawMsg || 'Intent submission failed. Please try again.');
       }
     } finally {
       setLoading(false);
@@ -1254,401 +1285,442 @@ export default function Playground({ keycloak }) {
   // ── Render ───────────────────────────────────────────────────────────────
 
   return (
-    <>
-    <Page
-      title="Playground"
-      subtitle="Test budget enforcement, policy rules and adapter routing in real time"
-      action={result && (
-        <Button variant="secondary" size="sm"
-          onClick={() => { setResult(null); setCreditCost(null); setIKey(uuidv4()); }}>
-          <RefreshCw size={13} /> New intent
-        </Button>
-      )}>
+      <>
+        <Page
+            title="Playground"
+            subtitle="Test budget enforcement, policy rules and adapter routing in real time"
+            action={result && (
+                <Button variant="secondary" size="sm"
+                        onClick={() => { setResult(null); setCreditCost(null); setIKey(uuidv4()); }}>
+                  <RefreshCw size={13} /> New intent
+                </Button>
+            )}>
 
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
 
-        {/* ── Left column ── */}
-        <div className="space-y-4">
+            {/* ── Left column ── */}
+            <div className="space-y-4">
 
-          {/* Adapter tier */}
-          <ModelTierSelector selected={tier} onChange={setTier} navigate={navigate} />
+              {/* Adapter tier */}
+              <ModelTierSelector selected={tier} onChange={setTier} navigate={navigate} />
 
-          {/* Intent type */}
-          <IntentTypeSelector json={json} onSelect={setIntentType} />
+              {/* Intent type */}
+              <IntentTypeSelector json={json} onSelect={setIntentType} />
 
-          {/* Template browser */}
-          <TemplateBrowser onLoad={loadTemplate} />
+              {/* Template browser */}
+              <TemplateBrowser onLoad={loadTemplate} />
 
-          {/* Payload editor */}
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle>Intent payload</CardTitle>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-slate-400">JSON</span>
-                  <button
-                    onClick={() => setShowRaw(v => !v)}
-                    className="text-[10px] text-slate-400 hover:text-slate-600 border border-slate-200 rounded px-1.5 py-0.5">
-                    {showRaw ? 'Collapse' : 'Expand'}
-                  </button>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="p-0">
+              {/* Payload editor */}
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <CardTitle>Intent payload</CardTitle>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-slate-400">JSON</span>
+                      <button
+                          onClick={() => setShowRaw(v => !v)}
+                          className="text-[10px] text-slate-400 hover:text-slate-600 border border-slate-200 rounded px-1.5 py-0.5">
+                        {showRaw ? 'Collapse' : 'Expand'}
+                      </button>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent className="p-0">
               <textarea
-                value={json}
-                onChange={handleChange}
-                rows={showRaw ? 24 : 13}
-                className="w-full font-mono text-xs p-4 resize-none focus:outline-none rounded-b-xl text-slate-700 bg-slate-50"
-                style={{ fontFamily: "'JetBrains Mono', monospace" }}
+                  value={json}
+                  onChange={handleChange}
+                  rows={showRaw ? 24 : 13}
+                  className="w-full font-mono text-xs p-4 resize-none focus:outline-none rounded-b-xl text-slate-700 bg-slate-50"
+                  style={{ fontFamily: "'JetBrains Mono', monospace" }}
               />
-              {jsonErr && <p className="px-4 pb-3 text-xs text-red-500">{jsonErr}</p>}
-            </CardContent>
-          </Card>
+                  {jsonErr && <p className="px-4 pb-3 text-xs text-red-500">{jsonErr}</p>}
+                </CardContent>
+              </Card>
 
-          {/* Active governance rules — live preview from payload */}
-          <PolicyStrip json={json} />
+              {/* Active governance rules — live preview from payload */}
+              <PolicyStrip json={json} />
 
-          {/* Idempotency key */}
-          <Card>
-            <CardHeader><CardTitle>Request metadata</CardTitle></CardHeader>
-            <CardContent>
-              <div className="flex items-center justify-between mb-1.5">
-                <label className="text-xs font-medium text-slate-600">Idempotency key</label>
-                <button onClick={() => setIKey(uuidv4())}
-                  className="text-xs text-blue-600 flex items-center gap-1">
-                  <RefreshCw size={11} /> Regenerate
-                </button>
-              </div>
-              <input readOnly value={iKey}
-                className="w-full text-xs font-mono border border-slate-200 rounded-lg px-3 py-2 bg-slate-50 text-slate-500"
-                style={{ fontFamily: "'JetBrains Mono', monospace" }} />
-            </CardContent>
-          </Card>
+              {/* Idempotency key */}
+              <Card>
+                <CardHeader><CardTitle>Request metadata</CardTitle></CardHeader>
+                <CardContent>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="text-xs font-medium text-slate-600">Idempotency key</label>
+                    <button onClick={() => setIKey(uuidv4())}
+                            className="text-xs text-blue-600 flex items-center gap-1">
+                      <RefreshCw size={11} /> Regenerate
+                    </button>
+                  </div>
+                  <input readOnly value={iKey}
+                         className="w-full text-xs font-mono border border-slate-200 rounded-lg px-3 py-2 bg-slate-50 text-slate-500"
+                         style={{ fontFamily: "'JetBrains Mono', monospace" }} />
+                </CardContent>
+              </Card>
 
-          {/* Governance summary strip */}
-          <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 space-y-2">
-            <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide">
-              What DecisionMesh enforces on this intent
-            </p>
-            <div className="grid grid-cols-2 gap-2 text-[10px] text-slate-600">
-              {[
-                { icon: <Shield size={10} />,      label: 'Budget ceiling',       color: '#16a34a' },
-                { icon: <RotateCcw size={10} />,   label: 'Retry policy',         color: '#2563eb' },
-                { icon: <Clock size={10} />,        label: 'Latency constraint',   color: '#0d9488' },
-                { icon: <Shield size={10} />,       label: 'Policy rules',         color: '#7c3aed' },
-                { icon: <AlertTriangle size={10} />,label: 'Drift detection',      color: '#d97706' },
-                { icon: <BookOpen size={10} />,     label: 'Immutable audit log',  color: '#475569' },
-              ].map(({ icon, label, color }) => (
-                <div key={label} className="flex items-center gap-1.5">
-                  <span style={{ color }}>{icon}</span>
-                  <span>{label}</span>
+              {/* Governance summary strip */}
+              <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 space-y-2">
+                <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide">
+                  What DecisionMesh enforces on this intent
+                </p>
+                <div className="grid grid-cols-2 gap-2 text-[10px] text-slate-600">
+                  {[
+                    { icon: <Shield size={10} />,      label: 'Budget ceiling',       color: '#16a34a' },
+                    { icon: <RotateCcw size={10} />,   label: 'Retry policy',         color: '#2563eb' },
+                    { icon: <Clock size={10} />,        label: 'Latency constraint',   color: '#0d9488' },
+                    { icon: <Shield size={10} />,       label: 'Policy rules',         color: '#7c3aed' },
+                    { icon: <AlertTriangle size={10} />,label: 'Drift detection',      color: '#d97706' },
+                    { icon: <BookOpen size={10} />,     label: 'Immutable audit log',  color: '#475569' },
+                  ].map(({ icon, label, color }) => (
+                      <div key={label} className="flex items-center gap-1.5">
+                        <span style={{ color }}>{icon}</span>
+                        <span>{label}</span>
+                      </div>
+                  ))}
                 </div>
-              ))}
-            </div>
-          </div>
+              </div>
 
-          {/* Credit cost + submit — hidden when floating bar is visible */}
-          <div className="space-y-2" style={{ display: hasIntent && !result ? 'none' : 'block' }}>
-            <div className="flex items-center justify-between px-1">
-              <div className="flex items-center gap-2 text-sm">
-                <Zap size={13} style={{ color: tierData.color }} />
-                <span className="text-slate-600">
+              {/* Credit cost + submit — hidden when floating bar is visible */}
+              <div className="space-y-2" style={{ display: hasIntent && !result ? 'none' : 'block' }}>
+                <div className="flex items-center justify-between px-1">
+                  <div className="flex items-center gap-2 text-sm">
+                    <Zap size={13} style={{ color: tierData.color }} />
+                    <span className="text-slate-600">
                   Cost:{' '}
-                  <strong style={{ color: tierData.color }}>
+                      <strong style={{ color: tierData.color }}>
                     {tierData.credits} credit{tierData.credits !== 1 ? 's' : ''}
                   </strong>
                   <span className="text-xs text-slate-400 ml-1">({tierData.label})</span>
                 </span>
-              </div>
-              {balance !== null && (
-                <span className="text-xs text-slate-400">
+                  </div>
+                  {balance !== null && (
+                      <span className="text-xs text-slate-400">
                   Balance:{' '}
-                  <strong style={{
-                    color: balance <= 0 ? '#dc2626' : balance < 50 ? '#d97706' : '#16a34a',
-                  }}>
+                        <strong style={{
+                          color: balance <= 0 ? '#dc2626' : balance < 50 ? '#d97706' : '#16a34a',
+                        }}>
                     {balance?.toLocaleString()}
                   </strong>
                 </span>
+                  )}
+                </div>
+
+                <Button className="w-full" size="lg" loading={loading} disabled={!canSubmit} onClick={handleSubmit}>
+                  <Send size={14} />
+                  {isEmpty ? 'No credits — top up to submit' : 'Submit intent'}
+                </Button>
+
+                {isEmpty && (
+                    <button onClick={() => navigate('/billing')}
+                            className="w-full text-xs text-blue-600 underline text-center">
+                      Buy credits or upgrade plan →
+                    </button>
+                )}
+              </div>
+
+              {error && (
+                  <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-xs text-red-700">
+                    {error}
+                  </div>
               )}
             </div>
 
-            <Button className="w-full" size="lg" loading={loading} disabled={!canSubmit} onClick={handleSubmit}>
-              <Send size={14} />
-              {isEmpty ? 'No credits — top up to submit' : 'Submit intent'}
-            </Button>
-
-            {isEmpty && (
-              <button onClick={() => navigate('/billing')}
-                className="w-full text-xs text-blue-600 underline text-center">
-                Buy credits or upgrade plan →
-              </button>
-            )}
-          </div>
-
-          {error && (
-            <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-xs text-red-700">
-              {error}
-            </div>
-          )}
-        </div>
-
-        {/* ── Right column — execution result ── */}
-        <div>
-          {result ? (
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <CardTitle>Intent submitted</CardTitle>
-                  {creditCost && (
-                    <span className="text-xs font-semibold px-2 py-0.5 rounded-full"
-                      style={{ backgroundColor: tierData.bg, color: tierData.color }}>
+            {/* ── Right column — execution result ── */}
+            <div>
+              {result ? (
+                  <Card>
+                    <CardHeader className="flex flex-row items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <CardTitle>Intent submitted</CardTitle>
+                        {creditCost && (
+                            <span className="text-xs font-semibold px-2 py-0.5 rounded-full"
+                                  style={{ backgroundColor: tierData.bg, color: tierData.color }}>
                       -{creditCost} credit{creditCost !== 1 ? 's' : ''}
                     </span>
-                  )}
-                </div>
-                <div className="flex gap-2">
-                  <Button variant="secondary" size="sm" onClick={copy}>
-                    <Copy size={12} />{copied ? 'Copied!' : 'Copy ID'}
-                  </Button>
-                  <Button variant="secondary" size="sm"
-                    onClick={() => navigate(`/intents/${result}`)}>
-                    <ExternalLink size={12} /> Detail
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="mb-4 p-3 rounded-lg bg-green-50 border border-green-200 flex items-center justify-between">
-                  <div>
-                    <p className="text-xs text-green-700 font-medium mb-1">Intent ID</p>
-                    <p className="font-mono text-sm text-green-800 break-all"
-                      style={{ fontFamily: "'JetBrains Mono', monospace" }}>
-                      {result}
-                    </p>
-                  </div>
-                  {intentData && (
-                    <div className="flex items-center gap-1.5 ml-3">
+                        )}
+                      </div>
+                      <div className="flex gap-2">
+                        <Button variant="secondary" size="sm" onClick={copy}>
+                          <Copy size={12} />{copied ? 'Copied!' : 'Copy ID'}
+                        </Button>
+                        <Button variant="secondary" size="sm"
+                                onClick={() => navigate(`/intents/${result}`)}>
+                          <ExternalLink size={12} /> Detail
+                        </Button>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="mb-4 p-3 rounded-lg bg-green-50 border border-green-200 flex items-center justify-between">
+                        <div>
+                          <p className="text-xs text-green-700 font-medium mb-1">Intent ID</p>
+                          <p className="font-mono text-sm text-green-800 break-all"
+                             style={{ fontFamily: "'JetBrains Mono', monospace" }}>
+                            {result}
+                          </p>
+                        </div>
+                        {intentData && (
+                            <div className="flex items-center gap-1.5 ml-3">
                       <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
-                        intentData.satisfactionState === 'SATISFIED'
-                          ? 'bg-green-100 text-green-700'
-                          : intentData.satisfactionState === 'VIOLATED'
-                          ? 'bg-red-100 text-red-700'
-                          : 'bg-blue-100 text-blue-700'
+                          intentData.satisfactionState === 'SATISFIED'
+                              ? 'bg-green-100 text-green-700'
+                              : intentData.satisfactionState === 'VIOLATED'
+                                  ? 'bg-red-100 text-red-700'
+                                  : 'bg-blue-100 text-blue-700'
                       }`}>
                         {intentData.satisfactionState ?? intentData.phase ?? 'RUNNING'}
                       </span>
-                    </div>
-                  )}
-                </div>
-
-                {/* Model response — shown as soon as available */}
-                {execResult ? (
-                  <div className="mb-4 space-y-3">
-                    {/* Metrics row */}
-                    <div className="grid grid-cols-4 gap-2">
-                      {[
-                        { label: 'Quality', value: execResult.qualityScore != null ? (execResult.qualityScore * 100).toFixed(0) + '%' : '—', color: execResult.qualityScore >= 0.8 ? '#16a34a' : execResult.qualityScore >= 0.6 ? '#d97706' : '#94a3b8', bg: '#f8fafc' },
-                        { label: 'Halluc. risk', value: execResult.hallucinationRisk != null ? (execResult.hallucinationRisk * 100).toFixed(0) + '%' : '—', color: execResult.hallucinationRisk <= 0.2 ? '#16a34a' : execResult.hallucinationRisk <= 0.5 ? '#d97706' : '#dc2626', bg: '#f8fafc' },
-                        { label: 'Latency', value: execResult.latencyMs > 1 ? `${(execResult.latencyMs/1000).toFixed(2)}s` : execResult.latencyMs === 1 ? '< 1ms (cached)' : '—', color: '#2563eb', bg: '#eff6ff' },
-                        { label: 'Cost', value: (() => { const c = execResult.costUsd ?? execResult.cost; if (c == null) return '—'; const n = Number(c); return n === 0 ? (execResult.latencyMs === 1 ? '$0 (cached)' : '$0.000000') : `$${n.toFixed(6)}`; })(), color: '#475569', bg: '#f8fafc' },
-                      ].map(({ label, value, color, bg }) => (
-                        <div key={label} className="rounded-lg p-2 text-center border border-slate-100" style={{ backgroundColor: bg }}>
-                          <p className="text-[10px] text-slate-400 mb-0.5">{label}</p>
-                          <p className="text-sm font-bold" style={{ color }}>{value}</p>
-                        </div>
-                      ))}
-                    </div>
-
-                    {/* Response — smart renderer */}
-                    <SmartResponseRenderer
-                      responseText={execResult.responseText}
-                      intentType={(() => { try { return JSON.parse(json)?.intentType; } catch { return null; } })()}
-                    />
-
-                    {/* Model used */}
-                    {(execResult.adapterId || execResult.adapterName) && (
-                      <p className="text-[10px] text-slate-400 text-right">
-                        Model: {execResult.adapterId ?? execResult.adapterName}
-                      </p>
-                    )}
-                  </div>
-                ) : (
-                  <div className="mb-4 flex items-center gap-2 text-xs text-blue-600">
-                    <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
-                    Executing — response will appear here…
-                  </div>
-                )}
-
-                <p className="text-sm font-medium text-slate-700 mb-3">Execution timeline</p>
-                <ExecutionTimeline
-                  keycloak={keycloak} intentId={result}
-                  currentPhase={intentData?.phase ?? 'CREATED'}
-                  terminal={intentData?.terminal ?? false}
-                  satisfied={intentData?.satisfactionState === 'SATISFIED'}
-                />
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="space-y-4">
-              {/* Empty state */}
-              <Card className="flex items-center justify-center min-h-64 border-dashed border-slate-200 bg-transparent shadow-none">
-                <div className="text-center text-slate-400 p-8">
-                  <Send size={28} className="mx-auto mb-3 opacity-20" />
-                  <p className="text-sm font-medium">Submit an intent</p>
-                  <p className="text-xs mt-1 text-slate-300">
-                    The execution timeline appears here
-                  </p>
-                  <p className="text-xs mt-3 font-semibold" style={{ color: tierData.color }}>
-                    {tierData.credits} credit{tierData.credits !== 1 ? 's' : ''} per execution · {tierData.label} tier
-                  </p>
-                </div>
-              </Card>
-
-              {/* What gets enforced — right panel explainer */}
-              <Card>
-                <CardHeader><CardTitle>What happens when you submit</CardTitle></CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    {[
-                      {
-                        phase: 'Planning',
-                        color: '#2563eb',
-                        detail: 'DecisionMesh selects the adapter, validates budget ceiling, and builds the execution plan.',
-                      },
-                      {
-                        phase: 'Policy check',
-                        color: '#7c3aed',
-                        detail: 'Blocked topics, model allow-list, and HITL gate rules are evaluated before any LLM call.',
-                      },
-                      {
-                        phase: 'Execution',
-                        color: '#0d9488',
-                        detail: 'The intent is dispatched to the adapter. Budget is tracked live. Retries fire on failure.',
-                      },
-                      {
-                        phase: 'Quality scoring',
-                        color: '#d97706',
-                        detail: 'Output is scored for quality, drift from baseline, and policy compliance.',
-                      },
-                      {
-                        phase: 'Audit log',
-                        color: '#475569',
-                        detail: 'Every attempt, credit cost, policy outcome and response is written to the immutable ledger.',
-                      },
-                    ].map(({ phase, color, detail }) => (
-                      <div key={phase} className="flex gap-3">
-                        <div className="w-1 rounded-full flex-shrink-0 self-stretch" style={{ backgroundColor: color }} />
-                        <div>
-                          <p className="text-xs font-semibold" style={{ color }}>{phase}</p>
-                          <p className="text-xs text-slate-500 leading-relaxed">{detail}</p>
-                        </div>
+                            </div>
+                        )}
                       </div>
-                    ))}
-                  </div>
 
-                  <div className="mt-4 pt-4 border-t border-slate-100 flex items-start gap-2">
-                    <Key size={12} className="text-amber-500 shrink-0 mt-0.5" />
-                    <p className="text-[10px] text-slate-500 leading-relaxed">
-                      <strong className="text-slate-700">Using BYOK or BYOM?</strong>{' '}
-                      Your model or key handles execution — DecisionMesh enforces all of
-                      the above governance on top of it for 1 credit.{' '}
-                      <button onClick={() => navigate('/billing?tab=byok')}
-                        className="text-blue-500 underline">
-                        Configure keys →
-                      </button>
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
+                      {/* Model response — shown as soon as available */}
+                      {execResult ? (
+                          <div className="mb-4 space-y-3">
+                            {/* Metrics row */}
+                            <div className="grid grid-cols-4 gap-2">
+                              {[
+                                { label: 'Quality', value: execResult.qualityScore != null ? (execResult.qualityScore * 100).toFixed(0) + '%' : '—', color: execResult.qualityScore >= 0.8 ? '#16a34a' : execResult.qualityScore >= 0.6 ? '#d97706' : '#94a3b8', bg: '#f8fafc' },
+                                { label: 'Halluc. risk', value: execResult.hallucinationRisk != null ? (execResult.hallucinationRisk * 100).toFixed(0) + '%' : '—', color: execResult.hallucinationRisk <= 0.2 ? '#16a34a' : execResult.hallucinationRisk <= 0.5 ? '#d97706' : '#dc2626', bg: '#f8fafc' },
+                                { label: 'Latency', value: execResult.latencyMs > 1 ? `${(execResult.latencyMs/1000).toFixed(2)}s` : execResult.latencyMs === 1 ? '< 1ms (cached)' : '—', color: '#2563eb', bg: '#eff6ff' },
+                                { label: 'Cost', value: (() => { const c = execResult.costUsd ?? execResult.cost; if (c == null) return '—'; const n = Number(c); return n === 0 ? (execResult.latencyMs === 1 ? '$0 (cached)' : '$0.000000') : `$${n.toFixed(6)}`; })(), color: '#475569', bg: '#f8fafc' },
+                              ].map(({ label, value, color, bg }) => (
+                                  <div key={label} className="rounded-lg p-2 text-center border border-slate-100" style={{ backgroundColor: bg }}>
+                                    <p className="text-[10px] text-slate-400 mb-0.5">{label}</p>
+                                    <p className="text-sm font-bold" style={{ color }}>{value}</p>
+                                  </div>
+                              ))}
+                            </div>
 
-              {/* Quick links */}
-              <div className="grid grid-cols-2 gap-3">
-                {[
-                  { label: 'Browse 264 intent templates', icon: <BookOpen size={13} />, path: '/fintech-intents', color: '#2563eb' },
-                  { label: 'Configure BYOK / BYOM',       icon: <Key size={13} />,      path: '/billing?tab=byok', color: '#d97706' },
-                  { label: 'View execution history',      icon: <Clock size={13} />,    path: '/intents',          color: '#0d9488' },
-                  { label: 'Policy builder',              icon: <Shield size={13} />,   path: '/policies',         color: '#7c3aed' },
-                ].map(({ label, icon, path, color }) => (
-                  <button key={label}
-                    onClick={() => navigate(path)}
-                    className="flex items-center gap-2 p-3 rounded-xl border border-slate-200 hover:border-slate-300 bg-white text-left transition-colors group">
+                            {/* Response — smart renderer */}
+                            <SmartResponseRenderer
+                                responseText={execResult.responseText}
+                                intentType={(() => { try { return JSON.parse(json)?.intentType; } catch { return null; } })()}
+                            />
+
+                            {/* Model used */}
+                            {(execResult.adapterId || execResult.adapterName) && (
+                                <p className="text-[10px] text-slate-400 text-right">
+                                  Model: {execResult.adapterId ?? execResult.adapterName}
+                                </p>
+                            )}
+                          </div>
+                      ) : (
+                          <div className="mb-4 flex items-center gap-2 text-xs text-blue-600">
+                            <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
+                            Executing — response will appear here…
+                          </div>
+                      )}
+
+                      <p className="text-sm font-medium text-slate-700 mb-3">Execution timeline</p>
+                      <ExecutionTimeline
+                          keycloak={keycloak} intentId={result}
+                          currentPhase={intentData?.phase ?? 'CREATED'}
+                          terminal={intentData?.terminal ?? false}
+                          satisfied={intentData?.satisfactionState === 'SATISFIED'}
+                      />
+                    </CardContent>
+                  </Card>
+              ) : (
+                  <div className="space-y-4">
+                    {/* Empty state */}
+                    <Card className="flex items-center justify-center min-h-64 border-dashed border-slate-200 bg-transparent shadow-none">
+                      <div className="text-center text-slate-400 p-8">
+                        <Send size={28} className="mx-auto mb-3 opacity-20" />
+                        <p className="text-sm font-medium">Submit an intent</p>
+                        <p className="text-xs mt-1 text-slate-300">
+                          The execution timeline appears here
+                        </p>
+                        <p className="text-xs mt-3 font-semibold" style={{ color: tierData.color }}>
+                          {tierData.credits} credit{tierData.credits !== 1 ? 's' : ''} per execution · {tierData.label} tier
+                        </p>
+                      </div>
+                    </Card>
+
+                    {/* What gets enforced — right panel explainer */}
+                    <Card>
+                      <CardHeader><CardTitle>What happens when you submit</CardTitle></CardHeader>
+                      <CardContent>
+                        <div className="space-y-3">
+                          {[
+                            {
+                              phase: 'Planning',
+                              color: '#2563eb',
+                              detail: 'DecisionMesh selects the adapter, validates budget ceiling, and builds the execution plan.',
+                            },
+                            {
+                              phase: 'Policy check',
+                              color: '#7c3aed',
+                              detail: 'Blocked topics, model allow-list, and HITL gate rules are evaluated before any LLM call.',
+                            },
+                            {
+                              phase: 'Execution',
+                              color: '#0d9488',
+                              detail: 'The intent is dispatched to the adapter. Budget is tracked live. Retries fire on failure.',
+                            },
+                            {
+                              phase: 'Quality scoring',
+                              color: '#d97706',
+                              detail: 'Output is scored for quality, drift from baseline, and policy compliance.',
+                            },
+                            {
+                              phase: 'Audit log',
+                              color: '#475569',
+                              detail: 'Every attempt, credit cost, policy outcome and response is written to the immutable ledger.',
+                            },
+                          ].map(({ phase, color, detail }) => (
+                              <div key={phase} className="flex gap-3">
+                                <div className="w-1 rounded-full flex-shrink-0 self-stretch" style={{ backgroundColor: color }} />
+                                <div>
+                                  <p className="text-xs font-semibold" style={{ color }}>{phase}</p>
+                                  <p className="text-xs text-slate-500 leading-relaxed">{detail}</p>
+                                </div>
+                              </div>
+                          ))}
+                        </div>
+
+                        <div className="mt-4 pt-4 border-t border-slate-100 flex items-start gap-2">
+                          <Key size={12} className="text-amber-500 shrink-0 mt-0.5" />
+                          <p className="text-[10px] text-slate-500 leading-relaxed">
+                            <strong className="text-slate-700">Using BYOK or BYOM?</strong>{' '}
+                            Your model or key handles execution — DecisionMesh enforces all of
+                            the above governance on top of it for 1 credit.{' '}
+                            <button onClick={() => navigate('/billing?tab=byok')}
+                                    className="text-blue-500 underline">
+                              Configure keys →
+                            </button>
+                          </p>
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    {/* Quick links */}
+                    <div className="grid grid-cols-2 gap-3">
+                      {[
+                        { label: 'Browse 264 intent templates', icon: <BookOpen size={13} />, path: '/fintech-intents', color: '#2563eb' },
+                        { label: 'Configure BYOK / BYOM',       icon: <Key size={13} />,      path: '/billing?tab=byok', color: '#d97706' },
+                        { label: 'View execution history',      icon: <Clock size={13} />,    path: '/intents',          color: '#0d9488' },
+                        { label: 'Policy builder',              icon: <Shield size={13} />,   path: '/policies',         color: '#7c3aed' },
+                      ].map(({ label, icon, path, color }) => (
+                          <button key={label}
+                                  onClick={() => navigate(path)}
+                                  className="flex items-center gap-2 p-3 rounded-xl border border-slate-200 hover:border-slate-300 bg-white text-left transition-colors group">
                     <span className="p-1.5 rounded-lg flex-shrink-0"
-                      style={{ background: color + '15', color }}>
+                          style={{ background: color + '15', color }}>
                       {icon}
                     </span>
-                    <span className="text-xs font-medium text-slate-600 group-hover:text-slate-900 leading-tight">
+                            <span className="text-xs font-medium text-slate-600 group-hover:text-slate-900 leading-tight">
                       {label}
                     </span>
-                  </button>
-                ))}
-              </div>
+                          </button>
+                      ))}
+                    </div>
+                  </div>
+              )}
             </div>
-          )}
-        </div>
 
-      </div>
-    </Page>
-      {/* Kill switch — pinned above the floating bar.
-          The inline submit block is display:none once an intent is ready, so the user
-          submits from the fixed bottom bar. A notice rendered in the left column's
-          normal flow would appear above the fold, off-screen, and read as "nothing
-          happened". Feedback has to appear where the click happened. */}
-      {paused && (
-        <div className="fixed bottom-20 left-4 z-50" style={{ right: '120px' }}>
-          <KillSwitchNotice
-            keycloak={keycloak}
-            onResume={handleSubmit}
-            intentJson={json}
-            isAdmin={keycloak?.tokenParsed?.['urn:zitadel:iam:org:project:roles']?.sys_admin != null}
-          />
-        </div>
-      )}
+          </div>
+        </Page>
+        {/* Kill switch — pinned above the floating bar. */}
+        {paused && (
+            <div className="fixed bottom-20 left-4 z-50" style={{ right: '120px' }}>
+              <KillSwitchNotice
+                  keycloak={keycloak}
+                  onResume={handleSubmit}
+                  intentJson={json}
+                  isAdmin={keycloak?.tokenParsed?.['urn:zitadel:iam:org:project:roles']?.sys_admin != null}
+              />
+            </div>
+        )}
 
-      {/* Floating sticky submit bar — appears when intent is ready */}
-      {hasIntent && !result && (
-        <div
-          className="fixed bottom-3 left-4 z-40 flex items-center justify-between gap-4 px-5 py-2.5 shadow-xl border rounded-xl"
-          style={{
-            background: 'rgba(255,255,255,0.97)',
-            backdropFilter: 'blur(8px)',
-            borderColor: '#e2e8f0',
-            right: '120px',
-          }}
-        >
-          {/* Left — intent info */}
-          <div className="flex items-center gap-3 min-w-0">
-            <div className="w-2 h-2 rounded-full bg-blue-500 shrink-0 animate-pulse" />
-            <div className="min-w-0">
+        {/* Floating sticky submit bar — appears when intent is ready */}
+        {hasIntent && !result && (
+            <div
+                className="fixed bottom-3 left-4 z-40 flex items-center justify-between gap-4 px-5 py-2.5 shadow-xl border rounded-xl"
+                style={{
+                  background: 'rgba(255,255,255,0.97)',
+                  backdropFilter: 'blur(8px)',
+                  borderColor: '#e2e8f0',
+                  right: '120px',
+                }}
+            >
+              {/* Left — intent info */}
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-2 h-2 rounded-full bg-blue-500 shrink-0 animate-pulse" />
+                <div className="min-w-0">
               <span className="text-xs font-semibold text-slate-700 truncate">
                 {(() => { try { return JSON.parse(json)?.intentType?.replace(/_/g,' '); } catch { return 'Intent ready'; } })()}
               </span>
-              <span className="text-[10px] text-slate-400 ml-2">
+                  <span className="text-[10px] text-slate-400 ml-2">
                 {tierData.credits} cr · {balance} balance
               </span>
-            </div>
-          </div>
+                </div>
+              </div>
 
-          {/* Right — errors + submit */}
-          <div className="flex items-center gap-3 shrink-0">
-            {jsonErr && <span className="text-xs text-red-500 font-medium">⚠ Fix JSON</span>}
-            {isEmpty && <span className="text-xs text-red-500 font-medium">No credits</span>}
-            {paused  && <span className="text-xs text-amber-600 font-medium">Processing paused</span>}
-            {loading && <span className="text-xs text-blue-500 animate-pulse">Executing…</span>}
-            <button
-              onClick={handleSubmit}
-              disabled={!canSubmit}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-              style={{
-                background: canSubmit ? 'linear-gradient(135deg, #1d4ed8, #2563eb)' : '#94a3b8',
-                boxShadow: canSubmit ? '0 2px 8px rgba(37,99,235,0.35)' : 'none',
-              }}
-            >
-              <Send size={13} />
-              {isEmpty ? 'No credits' : loading ? 'Submitting…' : 'Submit Intent'}
-            </button>
-          </div>
-        </div>
-      )}
-    </>
+              {/* Right — errors + submit */}
+              <div className="flex items-center gap-3 shrink-0">
+                {error   && <span className="text-xs text-red-600 font-medium max-w-md truncate">⚠ {error}</span>}
+                {jsonErr && <span className="text-xs text-red-500 font-medium">⚠ Fix JSON</span>}
+                {isEmpty && <span className="text-xs text-red-500 font-medium">No credits</span>}
+                {paused  && <span className="text-xs text-amber-600 font-medium">Processing paused</span>}
+                {loading && <span className="text-xs text-blue-500 animate-pulse">Executing…</span>}
+                <button
+                    onClick={handleSubmit}
+                    disabled={!canSubmit}
+                    className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    style={{
+                      background: canSubmit ? 'linear-gradient(135deg, #1d4ed8, #2563eb)' : '#94a3b8',
+                      boxShadow: canSubmit ? '0 2px 8px rgba(37,99,235,0.35)' : 'none',
+                    }}
+                >
+                  <Send size={13} />
+                  {isEmpty ? 'No credits' : loading ? 'Submitting…' : 'Submit Intent'}
+                </button>
+              </div>
+            </div>
+        )}
+
+        {/* ── Error Popup Modal ────────────────────────────────────────── */}
+        {popupMessage && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+              <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-md w-full p-6 space-y-4 relative">
+                <div className="flex items-start gap-3">
+                  <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center shrink-0">
+                    <AlertTriangle className="w-5 h-5 text-red-600" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="text-base font-bold text-slate-900 leading-tight">
+                      {popupMessage.title}
+                    </h3>
+                    <p className="text-sm text-slate-600 mt-1 leading-relaxed">
+                      {popupMessage.description}
+                    </p>
+                    {popupMessage.details && (
+                        <p className="text-xs font-mono bg-slate-50 border border-slate-200 rounded-lg p-2.5 mt-3 text-slate-500 break-all leading-normal">
+                          {popupMessage.details}
+                        </p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
+                  <button
+                      onClick={() => setPopupMessage(null)}
+                      className="px-4 py-2 rounded-xl text-xs font-semibold bg-slate-100 text-slate-700 hover:bg-slate-200 transition-colors"
+                  >
+                    Dismiss
+                  </button>
+                  <button
+                      onClick={() => {
+                        setPopupMessage(null);
+                        navigate('/adapters');
+                      }}
+                      className="px-4 py-2 rounded-xl text-xs font-semibold bg-blue-600 text-white hover:bg-blue-700 transition-colors flex items-center gap-1.5 shadow-sm"
+                  >
+                    Configure Adapters →
+                  </button>
+                </div>
+              </div>
+            </div>
+        )}
+      </>
   );
 }
