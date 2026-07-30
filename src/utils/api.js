@@ -397,6 +397,49 @@ export async function adjustUserCredits(keycloak, userId, amount, note = '') {
   });
 }
 
+// ── Admin: tenants ────────────────────────────────────────────────────────────
+// AdminTenantResource.java (@RolesAllowed("sys_admin"), /api/admin/tenants,
+// /api/admin/organizations) — platform-wide tenant/org/team/project directory.
+
+export async function getAdminTenants(keycloak, params = {}) {
+  const qs = new URLSearchParams(
+      Object.fromEntries(Object.entries(params).filter(([, v]) => v != null && v !== ''))
+  ).toString();
+  return request(keycloak, `/admin/tenants${qs ? `?${qs}` : ''}`);
+}
+
+export async function getAdminTenant(keycloak, tenantId) {
+  return request(keycloak, `/admin/tenants/${tenantId}`);
+}
+
+export async function getTenantOrganizations(keycloak, tenantId) {
+  return request(keycloak, `/admin/tenants/${tenantId}/organizations`);
+}
+
+export async function getTenantTeams(keycloak, tenantId) {
+  return request(keycloak, `/admin/tenants/${tenantId}/teams`);
+}
+
+export async function getTenantProjects(keycloak, tenantId) {
+  return request(keycloak, `/admin/tenants/${tenantId}/projects`);
+}
+
+export async function suspendTenant(keycloak, tenantId) {
+  return request(keycloak, `/admin/tenants/${tenantId}/suspend`, { method: 'POST' });
+}
+
+export async function activateTenant(keycloak, tenantId) {
+  return request(keycloak, `/admin/tenants/${tenantId}/activate`, { method: 'POST' });
+}
+
+export async function suspendOrganization(keycloak, orgId) {
+  return request(keycloak, `/admin/organizations/${orgId}/suspend`, { method: 'POST' });
+}
+
+export async function activateOrganization(keycloak, orgId) {
+  return request(keycloak, `/admin/organizations/${orgId}/activate`, { method: 'POST' });
+}
+
 // ── Admin: credit ledger ─────────────────────────────────────────────────────
 
 export async function getAdminCredits(keycloak, params = {}) {
