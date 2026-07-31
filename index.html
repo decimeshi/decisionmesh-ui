@@ -162,6 +162,9 @@
           showDiag('[diag] 4s after load, #root is still empty (' + root.children.length + ' children). readyState=' + document.readyState + '. No error reported through window.error, unhandledrejection, or securitypolicyviolation.');
         }
       }, 4000);
+      window.__mark = function (name) {
+        showDiag('[mark] ' + name + ' @ ' + performance.now().toFixed(1) + 'ms');
+      };
     })();
   </script>
   <script type="module" src="/src/main.jsx"></script>

@@ -33,6 +33,8 @@ import { oidcConfig, createKeycloakShim, debugToken } from './auth/zitadel';
 import { INVITE_TOKEN_KEY } from './utils/inviteToken';
 import './index.css';
 
+window.__mark?.('main.jsx: imports resolved');
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -162,6 +164,7 @@ function AppWrapper() {
   // Public routes — checked FIRST, before any auth state, so they work
   // regardless of whether the user is logged in or not.
   const { pathname } = useLocation();
+  window.__mark?.('AppWrapper: rendering, pathname=' + pathname);
 
   // Security — public route
   if (pathname === '/security') {
@@ -267,6 +270,8 @@ function AppWrapper() {
     </BrandingProvider>
   );
 }
+
+window.__mark?.('main.jsx: about to call createRoot().render()');
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <AuthProvider
