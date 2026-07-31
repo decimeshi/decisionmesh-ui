@@ -30,11 +30,8 @@ import Onboarding   from './pages/Onboarding';
 import AcceptInvite from './pages/AcceptInvite';
 import { getMe, ensureUser } from './utils/api';
 import { oidcConfig, createKeycloakShim, debugToken } from './auth/zitadel';
+import { INVITE_TOKEN_KEY } from './utils/inviteToken';
 import './index.css';
-
-// Survives the Zitadel redirect round-trip — signinRedirect() navigates away
-// entirely, so React state can't carry the token; sessionStorage can.
-export const INVITE_TOKEN_KEY = 'dm_pending_invite_token';
 
 const queryClient = new QueryClient({
   defaultOptions: {
