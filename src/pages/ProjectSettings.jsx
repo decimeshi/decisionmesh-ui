@@ -82,11 +82,15 @@ function GeneralTab({ project, onSave }) {
   );
 }
 
-function MembersTab({ keycloak }) {
+function MembersTab({ keycloak, project }) {
+  const { projects } = useProject();
   const [members,    setMembers]    = useState([]);
   const [loading,    setLoading]    = useState(true);
   const [email,      setEmail]      = useState('');
   const [role,       setRole]       = useState('ANALYST');
+  // Defaults to the project whose settings page this is — the explicit,
+  // WYSIWYG-correct signal, rather than whatever's active in the sidebar.
+  const [inviteProjectId, setInviteProjectId] = useState(project?.id ?? '');
   const [inviting,   setInviting]   = useState(false);
   const [success,    setSuccess]    = useState(false);
   const [error,      setError]      = useState(null);
@@ -103,7 +107,7 @@ function MembersTab({ keycloak }) {
     if (!email.includes('@')) { setError('Enter a valid email'); return; }
     setInviting(true); setError(null);
     try {
-      await inviteMember(keycloak, email, role);
+      await inviteMember(keycloak, email, role, inviteProjectId || null);
       setEmail(''); setSuccess(true);
       setTimeout(() => setSuccess(false), 3000);
     } catch (err) { setError(err.message ?? 'Failed to send invitation'); }
@@ -160,6 +164,16 @@ function MembersTab({ keycloak }) {
                 {ROLES.map(r => <option key={r}>{r}</option>)}
               </select>
             </div>
+            {projects?.length > 0 && (
+              <div className="w-44">
+                <label className="block text-xs font-medium text-slate-600 mb-1.5">Project</label>
+                <select value={inviteProjectId} onChange={e => setInviteProjectId(e.target.value)}
+                  className="w-full py-2 px-3 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
+                  <option value="">— None —</option>
+                  {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                </select>
+              </div>
+            )}
             <Button type="submit" loading={inviting}><UserPlus size={13} /> Invite</Button>
           </form>
           {error   && <p className="mt-2 text-xs text-red-600">{error}</p>}
@@ -328,7 +342,7 @@ export default function ProjectSettings({ keycloak }) {
       </div>
 
       {tab === 'general' && <GeneralTab project={project} onSave={handleSave} />}
-      {tab === 'members' && <MembersTab keycloak={keycloak} />}
+      {tab === 'members' && <MembersTab keycloak={keycloak} project={project} />}
       {tab === 'budget'  && <BudgetTab  project={project} keycloak={keycloak} onSave={handleSave} />}
     </Page>
   );

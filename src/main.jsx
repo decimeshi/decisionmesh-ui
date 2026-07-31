@@ -27,9 +27,14 @@ import DocsPage     from './pages/DocsPage';
 import SecurityPage  from './pages/SecurityPage';
 import DemoPage     from './pages/DemoPage';
 import Onboarding   from './pages/Onboarding';
+import AcceptInvite from './pages/AcceptInvite';
 import { getMe, ensureUser } from './utils/api';
 import { oidcConfig, createKeycloakShim, debugToken } from './auth/zitadel';
 import './index.css';
+
+// Survives the Zitadel redirect round-trip — signinRedirect() navigates away
+// entirely, so React state can't carry the token; sessionStorage can.
+export const INVITE_TOKEN_KEY = 'dm_pending_invite_token';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -211,6 +216,31 @@ function AppWrapper() {
         <Route path="/blog/ai-governance-fintech-rbi-sebi-guidelines"      element={<AiGovernanceFintech />} />
         <Route path="/blog/rbac-llm-api-access-control"                    element={<RbacLlmApi />} />
       </Routes>
+    );
+  }
+
+  // Invite acceptance — public route, checked before the auth gate.
+  // The invitee is normally NOT logged in yet when they click the emailed
+  // link, so this can't sit behind `!auth.isAuthenticated -> <LandingPage />`
+  // below. It also has to come before the needsOnboard branch further down:
+  // a first-time invitee otherwise hits <Onboarding> (create-your-own-tenant)
+  // and never sees the option to join the inviting tenant instead.
+  //
+  // Token comes from either the URL (first visit, not logged in yet) or
+  // sessionStorage (returning from the Zitadel redirect — onSigninCallback
+  // below rewrites the URL to '/', so the path alone doesn't survive login).
+  const inviteTokenFromPath = pathname.startsWith('/invite/') ? pathname.slice('/invite/'.length) : null;
+  const pendingInviteToken = sessionStorage.getItem(INVITE_TOKEN_KEY);
+  const activeInviteToken = inviteTokenFromPath || pendingInviteToken;
+
+  if (activeInviteToken && !auth.isLoading) {
+    return (
+      <AcceptInvite
+        token={activeInviteToken}
+        auth={auth}
+        keycloak={keycloak}
+        onConsumed={() => sessionStorage.removeItem(INVITE_TOKEN_KEY)}
+      />
     );
   }
 

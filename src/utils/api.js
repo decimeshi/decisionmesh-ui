@@ -237,11 +237,28 @@ export async function listMembers(keycloak) {
   return request(keycloak, '/members');
 }
 
-export async function inviteMember(keycloak, email, role) {
+// projectId, when set, scopes the invite to that project (RoleGrantEntity.forProject
+// once accepted) rather than the whole tenant — see acceptInvitation below.
+export async function inviteMember(keycloak, email, role, projectId = null) {
   return request(keycloak, '/invitations', {
     method: 'POST',
-    body: JSON.stringify({ email, role }),
+    body: JSON.stringify({ email, role, projectId }),
   });
+}
+
+// Unauthenticated on purpose — shown before the invitee has logged in, when
+// they've just clicked the emailed link. Does not go through request()/keycloak.
+export async function previewInvitation(token) {
+  const res = await fetch(`${API_BASE}/invitations/preview/${token}`);
+  const text = await res.text();
+  let body = {};
+  try { body = JSON.parse(text); } catch { /* not JSON */ }
+  if (!res.ok) throw new ApiError(res.status, body.error ?? text);
+  return body;
+}
+
+export async function acceptInvitation(keycloak, token) {
+  return request(keycloak, `/invitations/accept/${token}`, { method: 'POST' });
 }
 
 export async function updateMemberRole(keycloak, userId, role) {
