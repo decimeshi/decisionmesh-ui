@@ -210,8 +210,66 @@ export async function listProjects(keycloak) {
   return request(keycloak, '/projects');
 }
 
+export async function createProject(keycloak, { name, description, environment }) {
+  return request(keycloak, '/projects', {
+    method: 'POST',
+    body: JSON.stringify({ name, description, environment }),
+  });
+}
+
+// Named distinctly from ProjectContext's updateProject (which only patches
+// local cached state) — this is the actual PATCH /api/projects/{id} call.
+export async function updateProjectDetails(keycloak, id, updates) {
+  return request(keycloak, `/projects/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(updates),
+  });
+}
+
 export async function getOrgBranding(keycloak) {
   return request(keycloak, '/org/branding');
+}
+
+// ── Members & invitations (tenant-wide — MemberResource/InvitationResource
+// have no project scoping; see ProjectSettings.jsx's MembersTab comment) ───────
+
+export async function listMembers(keycloak) {
+  return request(keycloak, '/members');
+}
+
+// projectId, when set, scopes the invite to that project (RoleGrantEntity.forProject
+// once accepted) rather than the whole tenant — see acceptInvitation below.
+export async function inviteMember(keycloak, email, role, projectId = null) {
+  return request(keycloak, '/invitations', {
+    method: 'POST',
+    body: JSON.stringify({ email, role, projectId }),
+  });
+}
+
+// Unauthenticated on purpose — shown before the invitee has logged in, when
+// they've just clicked the emailed link. Does not go through request()/keycloak.
+export async function previewInvitation(token) {
+  const res = await fetch(`${API_BASE}/invitations/preview/${token}`);
+  const text = await res.text();
+  let body = {};
+  try { body = JSON.parse(text); } catch { /* not JSON */ }
+  if (!res.ok) throw new ApiError(res.status, body.error ?? text);
+  return body;
+}
+
+export async function acceptInvitation(keycloak, token) {
+  return request(keycloak, `/invitations/accept/${token}`, { method: 'POST' });
+}
+
+export async function updateMemberRole(keycloak, userId, role) {
+  return request(keycloak, `/members/${userId}/role`, {
+    method: 'PATCH',
+    body: JSON.stringify({ role }),
+  });
+}
+
+export async function removeMember(keycloak, userId) {
+  return request(keycloak, `/members/${userId}`, { method: 'DELETE' });
 }
 
 // ── Credits ───────────────────────────────────────────────────────────────────
@@ -395,6 +453,49 @@ export async function adjustUserCredits(keycloak, userId, amount, note = '') {
     method: 'POST',
     body: JSON.stringify({ amount, note }),
   });
+}
+
+// ── Admin: tenants ────────────────────────────────────────────────────────────
+// AdminTenantResource.java (@RolesAllowed("sys_admin"), /api/admin/tenants,
+// /api/admin/organizations) — platform-wide tenant/org/team/project directory.
+
+export async function getAdminTenants(keycloak, params = {}) {
+  const qs = new URLSearchParams(
+      Object.fromEntries(Object.entries(params).filter(([, v]) => v != null && v !== ''))
+  ).toString();
+  return request(keycloak, `/admin/tenants${qs ? `?${qs}` : ''}`);
+}
+
+export async function getAdminTenant(keycloak, tenantId) {
+  return request(keycloak, `/admin/tenants/${tenantId}`);
+}
+
+export async function getTenantOrganizations(keycloak, tenantId) {
+  return request(keycloak, `/admin/tenants/${tenantId}/organizations`);
+}
+
+export async function getTenantTeams(keycloak, tenantId) {
+  return request(keycloak, `/admin/tenants/${tenantId}/teams`);
+}
+
+export async function getTenantProjects(keycloak, tenantId) {
+  return request(keycloak, `/admin/tenants/${tenantId}/projects`);
+}
+
+export async function suspendTenant(keycloak, tenantId) {
+  return request(keycloak, `/admin/tenants/${tenantId}/suspend`, { method: 'POST' });
+}
+
+export async function activateTenant(keycloak, tenantId) {
+  return request(keycloak, `/admin/tenants/${tenantId}/activate`, { method: 'POST' });
+}
+
+export async function suspendOrganization(keycloak, orgId) {
+  return request(keycloak, `/admin/organizations/${orgId}/suspend`, { method: 'POST' });
+}
+
+export async function activateOrganization(keycloak, orgId) {
+  return request(keycloak, `/admin/organizations/${orgId}/activate`, { method: 'POST' });
 }
 
 // ── Admin: credit ledger ─────────────────────────────────────────────────────

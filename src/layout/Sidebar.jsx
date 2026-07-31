@@ -8,7 +8,7 @@ import {
   ChevronDown, Check, Plus, Palette, CreditCard, Receipt,
   Bug, Library, MessageSquarePlus, TestTube2,
   Users, Coins, Webhook, HeartPulse, Zap, BookOpen, ShieldAlert, DollarSign,
-  Trash2, Globe2,
+  Trash2, Globe2, Building2,
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { useProject } from '../context/ProjectContext';
@@ -75,6 +75,7 @@ const NAV = [
 // it in the nav, because the whole Admin section was invisible to them.
 // Rendered separately below, gated on the same capability the route checks.
 const ADMIN_ITEMS = [
+  { label: 'Tenants',         icon: Building2,         to: '/admin/tenants'          },
   { label: 'Users',           icon: Users,             to: '/admin/users'            },
   { label: 'Credits',         icon: Coins,             to: '/admin/credits'          },
   { label: 'Webhooks',        icon: Webhook,           to: '/admin/webhooks'         },

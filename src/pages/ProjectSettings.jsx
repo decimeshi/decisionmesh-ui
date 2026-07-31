@@ -5,33 +5,30 @@ import Page from '../components/shared/Page';
 import { Card, CardHeader, CardTitle, CardContent, Button, Spinner } from '../components/shared';
 import { useProject } from '../context/ProjectContext';
 import { formatRelative } from '../lib/utils';
+import { updateProjectDetails, listMembers, inviteMember, updateMemberRole, removeMember } from '../utils/api';
 
 const ROLES       = ['ADMIN', 'ANALYST', 'VIEWER'];
 const ROLE_COLORS = { ADMIN: 'bg-purple-100 text-purple-700', ANALYST: 'bg-blue-100 text-blue-700', VIEWER: 'bg-slate-100 text-slate-600' };
 const ENV_OPTS    = ['Production', 'Staging', 'Dev'];
-
-// ── helpers ───────────────────────────────────────────────────────────────────
-async function api(keycloak, path, options = {}) {
-  if (keycloak?.token) await keycloak.updateToken(30).catch(() => {});
-  const res = await fetch(`http://localhost:8080/api${path}`, {
-    ...options,
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${keycloak?.token}`, ...(options.headers ?? {}) },
-  });
-  if (!res.ok || res.status === 204) return null;
-  return res.json().catch(() => null);
-}
 
 // ── Tabs ──────────────────────────────────────────────────────────────────────
 function GeneralTab({ project, onSave }) {
   const [form,    setForm]    = useState({ name: project.name, description: project.description ?? '', environment: project.environment ?? 'Production' });
   const [saving,  setSaving]  = useState(false);
   const [saved,   setSaved]   = useState(false);
+  const [error,   setError]   = useState(null);
 
   async function handleSave() {
-    setSaving(true);
-    await onSave(form);
-    setSaving(false); setSaved(true);
-    setTimeout(() => setSaved(false), 2500);
+    setSaving(true); setError(null);
+    try {
+      await onSave(form);
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2500);
+    } catch (e) {
+      setError(e.message ?? 'Failed to save changes');
+    } finally {
+      setSaving(false);
+    }
   }
 
   return (
@@ -59,6 +56,11 @@ function GeneralTab({ project, onSave }) {
           <Button loading={saving} onClick={handleSave}>
             {saved ? <><Check size={13} /> Saved</> : 'Save changes'}
           </Button>
+          {error && (
+            <p className="text-xs text-red-600 flex items-center gap-1.5">
+              <AlertTriangle size={12} /> {error}
+            </p>
+          )}
         </CardContent>
       </Card>
 
@@ -80,45 +82,58 @@ function GeneralTab({ project, onSave }) {
   );
 }
 
-function MembersTab({ project, keycloak }) {
+function MembersTab({ keycloak, project }) {
+  const { projects } = useProject();
   const [members,    setMembers]    = useState([]);
   const [loading,    setLoading]    = useState(true);
   const [email,      setEmail]      = useState('');
   const [role,       setRole]       = useState('ANALYST');
+  // Defaults to the project whose settings page this is — the explicit,
+  // WYSIWYG-correct signal, rather than whatever's active in the sidebar.
+  const [inviteProjectId, setInviteProjectId] = useState(project?.id ?? '');
   const [inviting,   setInviting]   = useState(false);
   const [success,    setSuccess]    = useState(false);
   const [error,      setError]      = useState(null);
 
   useEffect(() => {
-    api(keycloak, `/projects/${project.id}/members`)
+    listMembers(keycloak)
       .then(d => setMembers(d ?? []))
+      .catch(() => setMembers([]))
       .finally(() => setLoading(false));
-  }, [project.id]);
+  }, [keycloak]);
 
   async function handleInvite(e) {
     e.preventDefault();
     if (!email.includes('@')) { setError('Enter a valid email'); return; }
     setInviting(true); setError(null);
     try {
-      await api(keycloak, `/projects/${project.id}/invitations`, {
-        method: 'POST', body: JSON.stringify({ email, role }),
-      });
+      await inviteMember(keycloak, email, role, inviteProjectId || null);
       setEmail(''); setSuccess(true);
       setTimeout(() => setSuccess(false), 3000);
-    } catch (err) { setError('Failed to send invitation'); }
+    } catch (err) { setError(err.message ?? 'Failed to send invitation'); }
     finally { setInviting(false); }
   }
 
   async function handleRoleChange(userId, newRole) {
-    await api(keycloak, `/projects/${project.id}/members/${userId}/role`, {
-      method: 'PATCH', body: JSON.stringify({ role: newRole }),
-    });
+    const prev = members;
     setMembers(ms => ms.map(m => m.userId === userId ? { ...m, role: newRole } : m));
+    try {
+      await updateMemberRole(keycloak, userId, newRole);
+    } catch (err) {
+      setMembers(prev); // revert the optimistic update — the change didn't actually persist
+      setError(err.message ?? 'Failed to change role');
+    }
   }
 
   async function handleRemove(userId) {
-    await api(keycloak, `/projects/${project.id}/members/${userId}`, { method: 'DELETE' });
+    const prev = members;
     setMembers(ms => ms.filter(m => m.userId !== userId));
+    try {
+      await removeMember(keycloak, userId);
+    } catch (err) {
+      setMembers(prev);
+      setError(err.message ?? 'Failed to remove member');
+    }
   }
 
   return (
@@ -126,7 +141,10 @@ function MembersTab({ project, keycloak }) {
       {/* Invite form */}
       <Card>
         <CardHeader>
-          <div className="flex items-center gap-2"><UserPlus size={13} className="text-blue-600" /><CardTitle>Invite to project</CardTitle></div>
+          <div className="flex items-center gap-2"><UserPlus size={13} className="text-blue-600" /><CardTitle>Invite team member</CardTitle></div>
+          <p className="text-xs text-slate-400 mt-1">
+            Members and roles are shared across your whole workspace, not just this project.
+          </p>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleInvite} className="flex gap-3 flex-wrap items-end">
@@ -146,6 +164,16 @@ function MembersTab({ project, keycloak }) {
                 {ROLES.map(r => <option key={r}>{r}</option>)}
               </select>
             </div>
+            {projects?.length > 0 && (
+              <div className="w-44">
+                <label className="block text-xs font-medium text-slate-600 mb-1.5">Project</label>
+                <select value={inviteProjectId} onChange={e => setInviteProjectId(e.target.value)}
+                  className="w-full py-2 px-3 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
+                  <option value="">— None —</option>
+                  {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                </select>
+              </div>
+            )}
             <Button type="submit" loading={inviting}><UserPlus size={13} /> Invite</Button>
           </form>
           {error   && <p className="mt-2 text-xs text-red-600">{error}</p>}
@@ -215,12 +243,19 @@ function BudgetTab({ project, keycloak, onSave }) {
   const [ceiling, setCeiling] = useState(project.budgetCeilingUsd ?? '');
   const [saving,  setSaving]  = useState(false);
   const [saved,   setSaved]   = useState(false);
+  const [error,   setError]   = useState(null);
 
   async function handleSave() {
-    setSaving(true);
-    await onSave({ budgetCeilingUsd: parseFloat(ceiling) || null });
-    setSaving(false); setSaved(true);
-    setTimeout(() => setSaved(false), 2500);
+    setSaving(true); setError(null);
+    try {
+      await onSave({ budgetCeilingUsd: parseFloat(ceiling) || null });
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2500);
+    } catch (e) {
+      setError(e.message ?? 'Failed to save budget');
+    } finally {
+      setSaving(false);
+    }
   }
 
   return (
@@ -242,6 +277,11 @@ function BudgetTab({ project, keycloak, onSave }) {
         <Button loading={saving} onClick={handleSave}>
           {saved ? <><Check size={13} /> Saved</> : 'Save budget'}
         </Button>
+        {error && (
+          <p className="text-xs text-red-600 flex items-center gap-1.5">
+            <AlertTriangle size={12} /> {error}
+          </p>
+        )}
       </CardContent>
     </Card>
   );
@@ -263,12 +303,12 @@ export default function ProjectSettings({ keycloak }) {
   );
 
   async function handleSave(updates) {
-    try {
-      await api(keycloak, `/projects/${project.id}`, {
-        method: 'PATCH', body: JSON.stringify(updates),
-      });
-    } catch { /* API not ready */ }
-    updateProject({ id: project.id, ...updates });
+    // Throws ApiError on a non-2xx response (unlike the local api() helper
+    // MembersTab still uses below, which swallows failed requests as null) —
+    // let it propagate so GeneralTab can show the failure instead of updating
+    // local-only state that the next reload would silently overwrite.
+    const saved = await updateProjectDetails(keycloak, project.id, updates);
+    updateProject(saved ?? { id: project.id, ...updates });
   }
 
   const TABS = [
@@ -302,7 +342,7 @@ export default function ProjectSettings({ keycloak }) {
       </div>
 
       {tab === 'general' && <GeneralTab project={project} onSave={handleSave} />}
-      {tab === 'members' && <MembersTab project={project} keycloak={keycloak} />}
+      {tab === 'members' && <MembersTab keycloak={keycloak} project={project} />}
       {tab === 'budget'  && <BudgetTab  project={project} keycloak={keycloak} onSave={handleSave} />}
     </Page>
   );
