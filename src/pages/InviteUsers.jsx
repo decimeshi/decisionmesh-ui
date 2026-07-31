@@ -4,6 +4,7 @@ import Page from '../components/shared/Page';
 import { Card, CardHeader, CardTitle, CardContent, Button, Spinner, EmptyState } from '../components/shared';
 import { formatDate, formatRelative } from '../lib/utils';
 import { request } from '../utils/api';
+import { useProject } from '../context/ProjectContext';
 
 async function listInvitations(keycloak) {
   return request(keycloak, '/invitations');
@@ -73,8 +74,13 @@ function StatusBadge({ status }) {
 }
 
 function InviteForm({ keycloak, onInvited }) {
+  const { projects, activeProject } = useProject();
   const [email, setEmail]     = useState('');
   const [role, setRole]       = useState('ANALYST');
+  // 'proj-default' is ProjectContext's placeholder before the real list resolves —
+  // don't default to an id no real project will ever have.
+  const [projectId, setProjectId] = useState(() =>
+      activeProject && activeProject.id !== 'proj-default' ? activeProject.id : '');
   const [loading, setLoading] = useState(false);
   const [error, setError]     = useState(null);
   const [success, setSuccess] = useState(false);
@@ -88,7 +94,7 @@ function InviteForm({ keycloak, onInvited }) {
     setLoading(true);
     setError(null);
     try {
-      await sendInvitation(keycloak, { email: email.trim(), role });
+      await sendInvitation(keycloak, { email: email.trim(), role, projectId: projectId || null });
       setEmail('');
       setSuccess(true);
       setTimeout(() => setSuccess(false), 3000);
@@ -146,6 +152,25 @@ function InviteForm({ keycloak, onInvited }) {
               </select>
             </div>
 
+            {/* Project — record-keeping tag only; access stays tenant-wide */}
+            {projects?.length > 0 && (
+              <div className="w-48">
+                <label className="block text-xs font-medium text-slate-600 mb-1.5">
+                  Project
+                </label>
+                <select
+                  value={projectId}
+                  onChange={e => setProjectId(e.target.value)}
+                  className="w-full py-2 px-3 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                >
+                  <option value="">— None —</option>
+                  {projects.map(p => (
+                    <option key={p.id} value={p.id}>{p.name}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+
             {/* Submit */}
             <div className="flex items-end">
               <Button type="submit" loading={loading} className="whitespace-nowrap">
@@ -157,6 +182,7 @@ function InviteForm({ keycloak, onInvited }) {
           {/* Role description */}
           <p className="text-xs text-slate-400">
             {ROLES.find(r => r.value === role)?.desc}
+            {projects?.length > 0 && ' Project is a record-keeping tag — the role above applies tenant-wide, not just to that project.'}
           </p>
 
           {error && (
@@ -178,6 +204,8 @@ function InviteForm({ keycloak, onInvited }) {
 // ── Main page ─────────────────────────────────────────────────────────────────
 
 export default function InviteUsers({ keycloak }) {
+  const { projects } = useProject();
+  const projectNameById = Object.fromEntries((projects ?? []).map(p => [p.id, p.name]));
   const [members,     setMembers]     = useState([]);
   const [invitations, setInvitations] = useState([]);
   const [loading,     setLoading]     = useState(true);
@@ -252,7 +280,7 @@ export default function InviteUsers({ keycloak }) {
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-slate-100">
-                      {['Email', 'Role', 'Status', 'Sent', 'Expires', ''].map(h => (
+                      {['Email', 'Role', 'Project', 'Status', 'Sent', 'Expires', ''].map(h => (
                         <th key={h} className="px-5 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wide whitespace-nowrap">{h}</th>
                       ))}
                     </tr>
@@ -269,6 +297,7 @@ export default function InviteUsers({ keycloak }) {
                           </div>
                         </td>
                         <td className="px-5 py-3"><RoleBadge role={inv.role} /></td>
+                        <td className="px-5 py-3 text-xs text-slate-500">{projectNameById[inv.projectId] ?? '—'}</td>
                         <td className="px-5 py-3"><StatusBadge status={inv.status} /></td>
                         <td className="px-5 py-3 text-xs text-slate-400" title={formatDate(inv.createdAt)}>
                           {formatRelative(inv.createdAt)}

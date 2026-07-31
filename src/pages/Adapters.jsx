@@ -7,6 +7,7 @@ import Page from '../components/shared/Page';
 import { Card, Button, EmptyState, Spinner, cn } from '../components/shared';
 import { listAdapters, toggleAdapter, createAdapter, updateAdapter, getAdapterPerformance, ApiError } from '../utils/api';
 import { formatDate, formatRelative } from '../lib/utils';
+import { useProject } from '../context/ProjectContext';
 
 // ─── Provider catalogue ────────────────────────────────────────────────────────
 //
@@ -252,7 +253,7 @@ function PerformancePanel({ perf }) {
 
 // ─── Adapter card ─────────────────────────────────────────────────────────────
 
-function AdapterCard({ adapter, perf, onToggle, onEdit }) {
+function AdapterCard({ adapter, perf, projectName, onToggle, onEdit }) {
   const meta = providerMeta(adapter.provider);
   const allowedTypes = Array.isArray(adapter.allowedIntentTypes)
       ? adapter.allowedIntentTypes
@@ -282,6 +283,9 @@ function AdapterCard({ adapter, perf, onToggle, onEdit }) {
                 {adapter.region}
               </span>
               )}
+              <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded ${projectName ? 'bg-violet-50 text-violet-600' : 'bg-slate-100 text-slate-500'}`}>
+                {projectName ?? 'Shared'}
+              </span>
             </div>
           </div>
           {/* Active toggle */}
@@ -356,6 +360,7 @@ const DEFAULT_FORM = {
   modelId:            'gpt-4o',
   adapterType:        'LLM',
   region:             '',
+  projectId:          null, // display/filter tag only — see AdapterEntity.projectId
   allowedIntentTypes: [],  // [] = all intent types — AdapterRegistry WHERE allowed_intent_types = '[]'::jsonb
   config:             JSON.stringify(PROVIDER_META.OPENAI.defaultConfig, null, 2),
   // capabilityFlags is a real nullable=false jsonb column on AdapterEntity.
@@ -364,10 +369,10 @@ const DEFAULT_FORM = {
   isActive:           true,
 };
 
-function AdapterModal({ adapter, onSave, onClose }) {
+function AdapterModal({ adapter, projects, defaultProjectId, onSave, onClose }) {
   const isEdit = !!adapter;
   const [form, setForm] = useState(() => {
-    if (!adapter) return DEFAULT_FORM;
+    if (!adapter) return { ...DEFAULT_FORM, projectId: defaultProjectId ?? null };
     return {
       ...adapter,
       allowedIntentTypes: Array.isArray(adapter.allowedIntentTypes)
@@ -533,6 +538,23 @@ function AdapterModal({ adapter, onSave, onClose }) {
                   <span className="text-sm text-slate-700">Active</span>
                 </label>
               </div>
+            </div>
+
+            {/* ── Row 1.5: Project ── */}
+            <div>
+              <label className="block text-xs font-medium text-slate-600 mb-1.5">Project</label>
+              <select
+                  value={form.projectId ?? ''}
+                  onChange={e => setForm(f => ({ ...f, projectId: e.target.value || null }))}
+                  className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
+                <option value="">— Unassigned / Shared —</option>
+                {(projects ?? []).map(p => (
+                    <option key={p.id} value={p.id}>{p.name}</option>
+                ))}
+              </select>
+              <p className="text-[10px] text-slate-400 mt-1">
+                Leave unassigned to share this adapter across every project in the tenant, or assign it to restrict it to one project only.
+              </p>
             </div>
 
             {/* ── Row 2: Provider + Adapter type ── */}
@@ -766,10 +788,25 @@ function AdapterModal({ adapter, onSave, onClose }) {
 // ─── Main page ────────────────────────────────────────────────────────────────
 
 export default function Adapters({ keycloak }) {
+  const { projects, activeProject } = useProject();
   const [adapters, setAdapters] = useState([]);
   const [perfMap,  setPerfMap]  = useState({});   // adapterId → performance profile
   const [loading,  setLoading]  = useState(true);
   const [modal,    setModal]    = useState(null);  // null | 'new' | adapter obj
+  // Defaults to the sidebar's active project — 'all' and 'unassigned' are always
+  // reachable via the dropdown, nothing is hidden by surprise. 'proj-default' is
+  // ProjectContext's placeholder before the real project list resolves (e.g. a
+  // hard refresh landing directly on this page) — falls back to 'all' rather
+  // than filtering to an id no real adapter will ever have.
+  const [projectFilter, setProjectFilter] = useState(() =>
+      activeProject && activeProject.id !== 'proj-default' ? activeProject.id : 'all');
+
+  const projectNameById = Object.fromEntries((projects ?? []).map(p => [p.id, p.name]));
+  const filteredAdapters = adapters.filter(a => {
+    if (projectFilter === 'all') return true;
+    if (projectFilter === 'unassigned') return !a.projectId;
+    return a.projectId === projectFilter;
+  });
 
   // ── Load adapters + their performance profiles ─────────────────────────────
 
@@ -872,6 +909,21 @@ export default function Adapters({ keycloak }) {
             </div>
         )}
 
+        {/* ── Project filter ── */}
+        {!loading && projects?.length > 0 && (
+            <div className="flex items-center gap-2">
+              <label className="text-xs font-medium text-slate-500">Project</label>
+              <select
+                  value={projectFilter}
+                  onChange={e => setProjectFilter(e.target.value)}
+                  className="text-xs border border-slate-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
+                <option value="all">All projects</option>
+                <option value="unassigned">Unassigned / Shared</option>
+                {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+              </select>
+            </div>
+        )}
+
         {/* ── Provider breakdown chips ── */}
         {!loading && Object.keys(providerCounts).length > 0 && (
             <div className="flex flex-wrap gap-2">
@@ -922,13 +974,27 @@ export default function Adapters({ keycloak }) {
                   }
               />
             </Card>
+        ) : filteredAdapters.length === 0 ? (
+            <Card>
+              <EmptyState
+                  icon={<Puzzle size={22} />}
+                  title="No adapters in this project"
+                  description="No adapter is tagged to this project yet. Switch the project filter above, or add one and assign it here."
+                  action={
+                    <Button onClick={() => setModal('new')}>
+                      <Plus size={14} /> Add adapter
+                    </Button>
+                  }
+              />
+            </Card>
         ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-              {adapters.map(a => (
+              {filteredAdapters.map(a => (
                   <AdapterCard
                       key={a.id}
                       adapter={a}
                       perf={perfMap[a.id] ?? null}
+                      projectName={a.projectId ? projectNameById[a.projectId] : null}
                       onToggle={handleToggle}
                       onEdit={adapter => setModal(adapter)}
                   />
@@ -949,6 +1015,8 @@ export default function Adapters({ keycloak }) {
         {modal && (
             <AdapterModal
                 adapter={modal === 'new' ? null : modal}
+                projects={projects}
+                defaultProjectId={activeProject?.id !== 'proj-default' ? activeProject?.id : null}
                 onSave={handleSave}
                 onClose={() => setModal(null)}
             />

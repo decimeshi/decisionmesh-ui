@@ -4,6 +4,7 @@ import { v4 as uuidv4 } from 'uuid';
 import Page from '../components/shared/Page';
 import { Card, CardHeader, CardTitle, CardContent, Button, EmptyState, Spinner } from '../components/shared';
 import { listPolicies, savePolicy, deletePolicy } from '../utils/api';
+import { useProject } from '../context/ProjectContext';
 
 const METRICS   = ['cost', 'latency', 'risk'];
 const OPERATORS = ['>', '<', '='];
@@ -162,8 +163,13 @@ function RuleRow({ rule, onChange, onDelete }) {
 }
 
 // ── Policy card ───────────────────────────────────────────────────────────────
-function PolicyCard({ policy, onSave, onDelete }) {
-  const [form, setForm]     = useState({ ...policy, rules: [...(policy.rules ?? [])] });
+function PolicyCard({ policy, projects, onSave, onDelete }) {
+  const [form, setForm]     = useState({
+    ...policy,
+    scope: policy.scope ?? 'TENANT',
+    projectId: policy.projectId ?? null,
+    rules: [...(policy.rules ?? [])],
+  });
   const [saving, setSaving] = useState(false);
   const [dirty, setDirty]   = useState(false);
 
@@ -171,18 +177,35 @@ function PolicyCard({ policy, onSave, onDelete }) {
   function addRule()               { setForm(f => ({ ...f, rules: [...f.rules, NEW_RULE()] })); setDirty(true); }
   function removeRule(id)          { setForm(f => ({ ...f, rules: f.rules.filter(r => r.id !== id) })); setDirty(true); }
 
+  function updateScope(value) {
+    // '' = organization-wide (TENANT, no project); anything else is a project id.
+    setForm(f => ({ ...f, scope: value ? 'PROJECT' : 'TENANT', projectId: value || null }));
+    setDirty(true);
+  }
+
   async function handleSave() {
     setSaving(true);
     try { await onSave(form); setDirty(false); }
     finally { setSaving(false); }
   }
 
+  const scopeLabel = form.scope === 'PROJECT'
+      ? (projects.find(p => p.id === form.projectId)?.name ?? 'Project')
+      : 'Organization-wide';
+
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
-        <input value={form.name} onChange={e => { setForm(f => ({...f, name: e.target.value})); setDirty(true); }}
-          placeholder="Policy name…"
-          className="text-sm font-semibold text-slate-800 bg-transparent focus:outline-none border-b border-transparent focus:border-blue-400 pb-0.5"/>
+        <div className="flex items-center gap-2 flex-1 min-w-0">
+          <input value={form.name} onChange={e => { setForm(f => ({...f, name: e.target.value})); setDirty(true); }}
+            placeholder="Policy name…"
+            className="text-sm font-semibold text-slate-800 bg-transparent focus:outline-none border-b border-transparent focus:border-blue-400 pb-0.5"/>
+          <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full shrink-0 ${
+            form.scope === 'PROJECT' ? 'bg-purple-50 text-purple-700' : 'bg-slate-100 text-slate-600'
+          }`}>
+            {scopeLabel}
+          </span>
+        </div>
         <div className="flex gap-2">
           {dirty && <Button size="sm" loading={saving} onClick={handleSave}>Save</Button>}
           <Button variant="ghost" size="sm" onClick={() => onDelete(policy.policyId)}>
@@ -191,6 +214,16 @@ function PolicyCard({ policy, onSave, onDelete }) {
         </div>
       </CardHeader>
       <CardContent className="space-y-3">
+        <div>
+          <label className="block text-[11px] font-medium text-slate-500 mb-1">Applies to</label>
+          <select value={form.scope === 'PROJECT' ? (form.projectId ?? '') : ''}
+            onChange={e => updateScope(e.target.value)}
+            className="text-xs border border-slate-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
+            <option value="">Organization-wide — every project</option>
+            {projects.map(p => <option key={p.id} value={p.id}>{p.name} only</option>)}
+          </select>
+        </div>
+
         <p className="text-xs text-slate-400 font-medium uppercase tracking-wide">Rules (all apply)</p>
         {form.rules.map(r => (
           <RuleRow key={r.id} rule={r} onChange={u => updateRule(r.id, u)} onDelete={() => removeRule(r.id)}/>
@@ -208,6 +241,10 @@ export default function PolicyBuilder({ keycloak }) {
   const [policies, setPolicies]     = useState([]);
   const [loading, setLoading]       = useState(true);
   const [showTemplates, setShowTemplates] = useState(false);
+  const { projects } = useProject();
+  // 'proj-default' is ProjectContext's placeholder before the real list loads —
+  // never a selectable project (same guard Adapters.jsx uses).
+  const realProjects = (projects ?? []).filter(p => p.id !== 'proj-default');
 
   async function load() {
     try { const d = await listPolicies(keycloak); setPolicies(d ?? []); }
@@ -276,7 +313,7 @@ export default function PolicyBuilder({ keycloak }) {
       ) : (
         <div className="space-y-4">
           {policies.map((p, i) => (
-            <PolicyCard key={p.policyId ?? i} policy={p} onSave={handleSave} onDelete={handleDelete}/>
+            <PolicyCard key={p.policyId ?? i} policy={p} projects={realProjects} onSave={handleSave} onDelete={handleDelete}/>
           ))}
         </div>
       )}

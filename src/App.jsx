@@ -49,6 +49,7 @@ const ReviewQueue      = lazy(() => import('./pages/ReviewQueue'));
 const AdminPaymentTesting = lazy(() => import('./pages/AdminPaymentTesting'));
 const AdminFeedback       = lazy(() => import('./pages/AdminFeedback'));
 const AdminUsers          = lazy(() => import('./pages/AdminUsers'));
+const AdminTenants        = lazy(() => import('./pages/AdminTenants'));
 const AdminCredits        = lazy(() => import('./pages/AdminCredits'));
 const AdminWebhooks       = lazy(() => import('./pages/AdminWebhooks'));
 const AdminHealth         = lazy(() => import('./pages/AdminHealth'));
@@ -199,6 +200,11 @@ export default function App({ keycloak }) {
                 <Route path="/admin/users" element={
                   <RequireCapability capability="isPlatformOperator">
                     <AdminUsers keycloak={keycloak} />
+                  </RequireCapability>
+                } />
+                <Route path="/admin/tenants" element={
+                  <RequireCapability capability="isPlatformOperator">
+                    <AdminTenants keycloak={keycloak} />
                   </RequireCapability>
                 } />
                 <Route path="/admin/credits" element={
