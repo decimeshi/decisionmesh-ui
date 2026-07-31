@@ -3,6 +3,8 @@ import { Loader2, Mail, CheckCircle2, XCircle } from 'lucide-react';
 import { previewInvitation, acceptInvitation } from '../utils/api';
 import { INVITE_TOKEN_KEY } from '../utils/inviteToken';
 
+window.__mark?.('AcceptInvite.jsx: top');
+
 // Rendered whenever there's an active invite token — either from the URL
 // (/invite/:token, first visit, not logged in yet) or sessionStorage
 // (returning from the Zitadel login redirect). See main.jsx's AppWrapper for

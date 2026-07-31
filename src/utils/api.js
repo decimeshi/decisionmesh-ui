@@ -1,5 +1,7 @@
 import { v4 as uuidv4 } from 'uuid';
 
+window.__mark?.('api.js: top');
+
 // Single source of truth for the API base URL — reads from the Vite env var
 // set in .env.development / .env.production so the app works outside localhost.
 // Typed error so callers can distinguish auth failures (401/403) from

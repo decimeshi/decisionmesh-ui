@@ -2,6 +2,8 @@ import React from 'react';
 import BlogSeo from '../../components/BlogSeo';
 import { Link } from 'react-router-dom';
 
+window.__mark?.('BlogIndex.jsx: top');
+
 const ARTICLES = [
   {
     slug: 'eu-ai-act-compliance-checklist-llm',

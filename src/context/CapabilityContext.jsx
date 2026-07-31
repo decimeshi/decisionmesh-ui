@@ -2,6 +2,8 @@ import { createContext, useContext, useState, useEffect, useCallback } from 'rea
 import { ShieldOff } from 'lucide-react';
 import { getCapabilities } from '../utils/api';
 
+window.__mark?.('CapabilityContext.jsx: top');
+
 const CapabilityContext = createContext(null);
 
 /**

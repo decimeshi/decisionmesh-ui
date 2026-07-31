@@ -1,6 +1,8 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { getCreditBalance } from '../utils/api';
 
+window.__mark?.('CreditContext.jsx: top');
+
 const CreditContext = createContext(null);
 
 export const MODEL_TIERS = {

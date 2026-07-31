@@ -1,6 +1,8 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import { getOrgBranding, API_BASE } from '../utils/api';
 
+window.__mark?.('BrandingContext.jsx: top');
+
 
 const DEFAULT_BRANDING = {
   orgName:      'DecisionMesh',
