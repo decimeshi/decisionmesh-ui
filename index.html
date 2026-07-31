@@ -168,6 +168,22 @@
       // script isn't something to assume. Order-independent instead: the
       // module always pushes onto a plain array (creating it if needed),
       // and this polls that array so it works regardless of which runs first.
+      // <script type="module"> load/parse failures (bad MIME type, network
+      // error, syntax error in the module or one of its static imports) fire
+      // an 'error' EVENT ON THE SCRIPT ELEMENT — not an ErrorEvent on window.
+      // Every prior check here only listened on window, which would miss
+      // exactly this failure mode. Attach directly to every module script.
+      var moduleScripts = document.querySelectorAll('script[type="module"]');
+      moduleScripts.forEach(function (s, i) {
+        showDiag('[probe] found module script #' + i + ': ' + (s.src || '(inline)'));
+        s.addEventListener('error', function (e) {
+          showDiag('[script.error] module script #' + i + ' (' + (s.src || '(inline)') + ') failed to load/parse.');
+        });
+        s.addEventListener('load', function () {
+          showDiag('[script.load] module script #' + i + ' (' + (s.src || '(inline)') + ') loaded+evaluated OK.');
+        });
+      });
+
       window.__marks = window.__marks || [];
       var shown = 0;
       setInterval(function () {
