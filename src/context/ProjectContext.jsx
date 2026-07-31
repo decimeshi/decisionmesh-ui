@@ -1,7 +1,6 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import { getOrg, listProjects, setCurrentProject } from '../utils/api';
 
-(window.__marks = window.__marks || []).push('ProjectContext.jsx: top' + ' @ ' + performance.now().toFixed(1) + 'ms');
 
 // ── Default data ──────────────────────────────────────────────────────────────
 // Used as fallback when the API hasn't returned yet or isn't available.

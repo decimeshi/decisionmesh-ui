@@ -2,7 +2,6 @@ import React from 'react';
 import BlogSeo from '../../components/BlogSeo';
 import { Link } from 'react-router-dom';
 
-(window.__marks = window.__marks || []).push('BlogIndex.jsx: top' + ' @ ' + performance.now().toFixed(1) + 'ms');
 
 const ARTICLES = [
   {
