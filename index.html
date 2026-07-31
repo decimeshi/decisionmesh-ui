@@ -162,9 +162,20 @@
           showDiag('[diag] 4s after load, #root is still empty (' + root.children.length + ' children). readyState=' + document.readyState + '. No error reported through window.error, unhandledrejection, or securitypolicyviolation.');
         }
       }, 4000);
-      window.__mark = function (name) {
-        showDiag('[mark] ' + name + ' @ ' + performance.now().toFixed(1) + 'ms');
-      };
+      // window.__mark?.() from the module script silently no-ops if this
+      // script hasn't defined __mark yet by the time the module runs — and
+      // module scripts are deferred, so their relative order vs this classic
+      // script isn't something to assume. Order-independent instead: the
+      // module always pushes onto a plain array (creating it if needed),
+      // and this polls that array so it works regardless of which runs first.
+      window.__marks = window.__marks || [];
+      var shown = 0;
+      setInterval(function () {
+        var marks = window.__marks;
+        for (; shown < marks.length; shown++) {
+          showDiag('[mark] ' + marks[shown]);
+        }
+      }, 200);
     })();
   </script>
   <script type="module" src="/src/main.jsx"></script>

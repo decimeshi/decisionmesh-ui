@@ -3,7 +3,7 @@ import { Loader2, Mail, CheckCircle2, XCircle } from 'lucide-react';
 import { previewInvitation, acceptInvitation } from '../utils/api';
 import { INVITE_TOKEN_KEY } from '../utils/inviteToken';
 
-window.__mark?.('AcceptInvite.jsx: top');
+(window.__marks = window.__marks || []).push('AcceptInvite.jsx: top' + ' @ ' + performance.now().toFixed(1) + 'ms');
 
 // Rendered whenever there's an active invite token — either from the URL
 // (/invite/:token, first visit, not logged in yet) or sessionStorage

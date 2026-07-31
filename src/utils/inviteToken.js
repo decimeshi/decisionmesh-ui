@@ -7,6 +7,6 @@
 //
 // Survives the Zitadel redirect round-trip — signinRedirect() navigates away
 // entirely, so React state can't carry the token; sessionStorage can.
-window.__mark?.('inviteToken.js: top');
+(window.__marks = window.__marks || []).push('inviteToken.js: top' + ' @ ' + performance.now().toFixed(1) + 'ms');
 
 export const INVITE_TOKEN_KEY = 'dm_pending_invite_token';

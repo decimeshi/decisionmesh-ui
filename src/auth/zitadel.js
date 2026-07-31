@@ -29,7 +29,7 @@
 
 import { WebStorageStateStore } from 'oidc-client-ts';
 
-window.__mark?.('zitadel.js: top');
+(window.__marks = window.__marks || []).push('zitadel.js: top' + ' @ ' + performance.now().toFixed(1) + 'ms');
 
 const AUTHORITY = import.meta.env.VITE_ZITADEL_AUTHORITY
     ?? 'https://decisionmesh-1pgrry.eu1.zitadel.cloud';

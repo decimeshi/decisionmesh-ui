@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import { getOrgBranding, API_BASE } from '../utils/api';
 
-window.__mark?.('BrandingContext.jsx: top');
+(window.__marks = window.__marks || []).push('BrandingContext.jsx: top' + ' @ ' + performance.now().toFixed(1) + 'ms');
 
 
 const DEFAULT_BRANDING = {

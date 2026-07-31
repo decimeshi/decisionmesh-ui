@@ -1,7 +1,7 @@
 import { Component, useState, Suspense, lazy } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 
-window.__mark?.('App.jsx: top');
+(window.__marks = window.__marks || []).push('App.jsx: top' + ' @ ' + performance.now().toFixed(1) + 'ms');
 import Sidebar from './layout/Sidebar';
 import TopBar from './layout/TopBar';
 import { Spinner } from './components/shared';

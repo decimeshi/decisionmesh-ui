@@ -1,6 +1,6 @@
 import { v4 as uuidv4 } from 'uuid';
 
-window.__mark?.('api.js: top');
+(window.__marks = window.__marks || []).push('api.js: top' + ' @ ' + performance.now().toFixed(1) + 'ms');
 
 // Single source of truth for the API base URL — reads from the Vite env var
 // set in .env.development / .env.production so the app works outside localhost.

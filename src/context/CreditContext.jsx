@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { getCreditBalance } from '../utils/api';
 
-window.__mark?.('CreditContext.jsx: top');
+(window.__marks = window.__marks || []).push('CreditContext.jsx: top' + ' @ ' + performance.now().toFixed(1) + 'ms');
 
 const CreditContext = createContext(null);
 
