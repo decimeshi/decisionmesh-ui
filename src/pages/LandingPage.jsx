@@ -1,5 +1,6 @@
 import { useAuth } from 'react-oidc-context';
 import { useState, useEffect, useRef } from 'react';
+import { INVITE_TOKEN_KEY } from '../utils/inviteToken';
 
 // ── Design tokens — Deep Ocean theme (Tailwind UI · Planetscale · Clerk) ─────
 // Rich navy base · electric cyan accents · authoritative & calm
@@ -1261,8 +1262,19 @@ function Footer() {
 // ── Main ──────────────────────────────────────────────────────────────────────
 export default function LandingPage() {
   const auth = useAuth();
-  const handleRegister = () => auth.signinRedirect({ extraQueryParams: { prompt: 'create' } });
-  const handleLogin = () => auth.signinRedirect();
+  // A stale invite token can be left in sessionStorage if someone previewed
+  // an invite link, abandoned it, then came back here to register or log in
+  // directly — without this, AppWrapper would route their fresh signup into
+  // the old invite instead of normal onboarding. Direct registration/login
+  // from this page always means "ignore any pending invite."
+  const handleRegister = () => {
+    sessionStorage.removeItem(INVITE_TOKEN_KEY);
+    auth.signinRedirect({ extraQueryParams: { prompt: 'create' } });
+  };
+  const handleLogin = () => {
+    sessionStorage.removeItem(INVITE_TOKEN_KEY);
+    auth.signinRedirect();
+  };
 
   return (
     <>
