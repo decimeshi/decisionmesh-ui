@@ -32,12 +32,18 @@ export default function AcceptInvite({ token, auth, keycloak, onConsumed }) {
   // hijacking every future app load until it happened to succeed.
   useEffect(() => { onConsumed?.(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  function handleLogin() {
+  // Most invitees are brand-new to the product — they have no account to log
+  // into. This used to only offer a plain signinRedirect() (Zitadel's LOGIN
+  // form), which left a new invitee stuck with nothing to sign in with.
+  // register=true adds prompt=create, the same param LandingPage.jsx's
+  // "Get started free" uses to send Zitadel straight to its registration
+  // form instead of login.
+  function handleLogin(register) {
     // The redirect navigates away entirely, so stash the token in
     // sessionStorage — onSigninCallback rewrites the URL on return, and
     // React state doesn't survive a full navigation either way.
     sessionStorage.setItem(INVITE_TOKEN_KEY, token);
-    auth?.signinRedirect?.();
+    auth?.signinRedirect?.(register ? { extraQueryParams: { prompt: 'create' } } : undefined);
   }
 
   async function handleAccept() {
@@ -125,9 +131,17 @@ export default function AcceptInvite({ token, auth, keycloak, onConsumed }) {
                 {acceptError && <p style={styles.error}>{acceptError}</p>}
 
                 {!auth?.isAuthenticated ? (
-                  <button style={styles.btn} onClick={handleLogin}>
-                    Log in to accept
-                  </button>
+                  <>
+                    <button style={styles.btn} onClick={() => handleLogin(true)}>
+                      Create account &amp; accept
+                    </button>
+                    <p style={styles.subtitle}>
+                      Already have a DecisionMesh account?{' '}
+                      <a href="#" onClick={e => { e.preventDefault(); handleLogin(false); }} style={{ color: '#2563eb', fontWeight: 600 }}>
+                        Log in instead
+                      </a>
+                    </p>
+                  </>
                 ) : (
                   <button style={styles.btn} onClick={handleAccept} disabled={accepting}>
                     {accepting ? <Loader2 size={16} style={{ animation: 'spin 0.8s linear infinite' }} /> : null}
