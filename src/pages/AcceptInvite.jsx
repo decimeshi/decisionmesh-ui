@@ -21,16 +21,28 @@ export default function AcceptInvite({ token, auth, keycloak, onConsumed }) {
     let cancelled = false;
     previewInvitation(token)
       .then(p => { if (!cancelled) setPreview(p); })
-      .catch(err => { if (!cancelled) setLoadError(err?.message || 'This invitation link is invalid.'); })
+      .catch(err => {
+        if (cancelled) return;
+        const msg = err?.message || '';
+        setLoadError(msg || 'This invitation link is invalid.');
+        // A genuinely dead invite (bad token, expired, already used) should
+        // stop hijacking every future app load via the sessionStorage flag —
+        // but a still-valid invite must NOT be cleared here. This used to run
+        // unconditionally on every mount regardless of outcome, which raced
+        // with the Zitadel login/registration round-trip: if this component
+        // remounted more than once while auth.isLoading settled (normal
+        // during OIDC's loading-state transitions), the token could be
+        // cleared before AppWrapper got a chance to route back into this
+        // flow, silently dropping a brand-new invitee into the generic
+        // "create your own workspace" onboarding instead of joining the
+        // tenant they were actually invited to.
+        if (/invitation-not-found|invitation-expired|invitation-already-accepted/.test(msg)) {
+          onConsumed?.();
+        }
+      })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
-  }, [token]);
-
-  // Consume the sessionStorage flag (if this render came from one) right
-  // away rather than only on successful accept — otherwise a token that
-  // turns out invalid/expired after the login round-trip would keep
-  // hijacking every future app load until it happened to succeed.
-  useEffect(() => { onConsumed?.(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [token]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Most invitees are brand-new to the product — they have no account to log
   // into. This used to only offer a plain signinRedirect() (Zitadel's LOGIN
