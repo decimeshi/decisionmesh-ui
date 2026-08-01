@@ -6,26 +6,26 @@ export default defineConfig({
   build: {
     rollupOptions: {
       output: {
-        // Root cause of the prod-only blank page, found via extensive live
-        // bisection on decimeshi.com: Rollup's automatic chunking split each
-        // lucide-react icon into its own ~300-400 byte chunk file, all
-        // importing a shared tiny "copy" chunk. Confirmed by direct testing
-        // that importing any ONE of these chunks works fine, and importing
-        // TWO unrelated ones together works fine, but importing certain
-        // pairs that both depend on the same tiny shared chunk (e.g.
-        // book-open + shield-off, both importing copy-*.js) reproducibly
-        // fails to load as a module graph — every dependency file fetches
-        // successfully on its own (confirmed via fetch() and individual
-        // import()), yet the combined graph throws "Failed to fetch
-        // dynamically imported module" with zero console/CSP/window error
-        // of any kind. experimentalMinChunkSize alone didn't merge these
-        // (still emitted as separate files), so force it explicitly: every
-        // lucide-react module (every icon plus its shared createLucideIcon
-        // helper) goes into one chunk, eliminating the diamond-dependency
-        // pattern between them entirely rather than working around whatever
-        // triggers it.
+        // Root cause of a recurring prod-only blank page, found via extensive
+        // live bisection on decimeshi.com: certain PAIRS of small auto-split
+        // chunks that share a common tiny dependency (a diamond-dependency
+        // pattern — e.g. two lucide-react icons both importing a shared
+        // createLucideIcon helper chunk) reproducibly fail to load as a
+        // combined module graph in the browser, even though every chunk in
+        // the pair fetches and imports fine on its own. No console, window,
+        // CSP, or script-element error of any kind — just a silently blank
+        // page. First hit with lucide-react icons; recurred with the shared
+        // Page layout component once the codebase grew enough for the
+        // bundler (this project builds with Vite's Rolldown bundler) to
+        // split it out too — narrowly scoping the first fix to
+        // "lucide-react" wasn't enough, since the actual trigger is the
+        // small-shared-chunk pattern in general, not any specific module.
+        // Consolidating all vendor code and shared UI into one chunk each
+        // removes the possibility of this pattern recurring with some other
+        // module in the future, rather than chasing it module-by-module.
         manualChunks(id) {
-          if (id.includes('lucide-react')) return 'icons';
+          if (id.includes('node_modules')) return 'vendor';
+          if (id.includes('/src/components/shared/')) return 'vendor';
         },
       },
     },

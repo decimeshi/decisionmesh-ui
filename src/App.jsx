@@ -149,14 +149,34 @@ export default function App({ keycloak }) {
                   </RequireCapability>
                 } />
                 <Route path="/analytics/drift"        element={<DriftDashboard   keycloak={keycloak} />} />
-                <Route path="/api-keys"               element={<ApiKeys          keycloak={keycloak} />} />
+                {/* API Keys/Invite/Branding/Billing: no partial-visibility case for
+                    MEMBER/VIEWER/AUDITOR — same isTenantAdmin capability the
+                    Sidebar uses to hide these nav items, applied here too so
+                    the pages aren't reachable by URL even if not linked. */}
+                <Route path="/api-keys" element={
+                  <RequireCapability capability="isTenantAdmin">
+                    <ApiKeys keycloak={keycloak} />
+                  </RequireCapability>
+                } />
                 <Route path="/audit"                  element={<AuditLog         keycloak={keycloak} />} />
-                <Route path="/invite"                 element={<InviteUsers      keycloak={keycloak} />} />
+                <Route path="/invite" element={
+                  <RequireCapability capability="isTenantAdmin">
+                    <InviteUsers keycloak={keycloak} />
+                  </RequireCapability>
+                } />
                 <Route path="/projects"               element={<Projects         keycloak={keycloak} />} />
                 <Route path="/projects/:id/settings"  element={<ProjectSettings  keycloak={keycloak} />} />
                 <Route path="/profile"                element={<UserProfile      keycloak={keycloak} />} />
-                <Route path="/org/branding"           element={<OrgBranding      keycloak={keycloak} />} />
-                <Route path="/billing"                element={<Billing          keycloak={keycloak} />} />
+                <Route path="/org/branding" element={
+                  <RequireCapability capability="isTenantAdmin">
+                    <OrgBranding keycloak={keycloak} />
+                  </RequireCapability>
+                } />
+                <Route path="/billing" element={
+                  <RequireCapability capability="isTenantAdmin">
+                    <Billing keycloak={keycloak} />
+                  </RequireCapability>
+                } />
                 <Route path="/credits"                element={<CreditLedger     keycloak={keycloak} />} />
                 <Route path="/debug/token"            element={<TokenDebugPage   keycloak={keycloak} />} />
                 <Route path="/intent-library"         element={<FintechIntents   keycloak={keycloak} />} />

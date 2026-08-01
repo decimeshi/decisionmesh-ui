@@ -52,12 +52,18 @@ const NAV = [
   {
     label: 'ORGANISATION',
     items: [
-      { label: 'API Keys',      icon: KeyRound,        to: '/api-keys'       },
+      // API Keys/Billing/Invite/Branding: no partial-visibility case for a
+      // regular tenant_user (MEMBER/VIEWER/AUDITOR) — tenantAdminOnly hides
+      // them entirely rather than showing controls that would just 403.
+      // Audit Log/Credits stay visible to everyone — MEMBER/VIEWER hold
+      // read access to both (see Role.java), and Credits is informational
+      // usage tracking, not a configuration surface.
+      { label: 'API Keys',      icon: KeyRound,        to: '/api-keys',      tenantAdminOnly: true },
       { label: 'Audit Log',     icon: ScrollText,      to: '/audit'          },
       { label: 'Credits',       icon: Receipt,         to: '/credits'        },
-      { label: 'Billing',       icon: CreditCard,      to: '/billing'        },
-      { label: 'Invite Team',   icon: UserPlus,        to: '/invite'         },
-      { label: 'Branding',      icon: Palette,         to: '/org/branding'   },
+      { label: 'Billing',       icon: CreditCard,      to: '/billing',       tenantAdminOnly: true },
+      { label: 'Invite Team',   icon: UserPlus,        to: '/invite',        tenantAdminOnly: true },
+      { label: 'Branding',      icon: Palette,         to: '/org/branding',  tenantAdminOnly: true },
     ],
   },
   {
@@ -321,7 +327,7 @@ export default function Sidebar({ collapsed, onToggle, onHide, keycloak }) {
   // below for tenant_admin.
   const {
     canViewSpend: isCxo, canManageKillSwitches, canLiftKillSwitches,
-    isPlatformOperator: isAdmin,
+    isPlatformOperator: isAdmin, isTenantAdmin,
   } = useCapabilities();
   // isAdmin included so a sys_admin without an explicit KILLSWITCH_ENGAGE/LIFT
   // grant (platform authority bypasses the permission check server-side too,
@@ -389,6 +395,7 @@ export default function Sidebar({ collapsed, onToggle, onHide, keycloak }) {
             <div className="space-y-0.5">
               {section.items
                 .filter(item => !item.cxoOnly || isCxo)
+                .filter(item => !item.tenantAdminOnly || isTenantAdmin)
                 .map(item => (
                   <NavItem key={item.to} item={item} collapsed={collapsed} />
                 ))}
