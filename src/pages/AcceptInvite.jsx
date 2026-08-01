@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Loader2, Mail, CheckCircle2, XCircle } from 'lucide-react';
-import { previewInvitation, acceptInvitation } from '../utils/api';
+import { previewInvitation, acceptInvitation, ensureUser } from '../utils/api';
 import { INVITE_TOKEN_KEY } from '../utils/inviteToken';
 
 
@@ -76,6 +76,14 @@ export default function AcceptInvite({ token, auth, keycloak, onConsumed }) {
     setAccepting(true);
     setAcceptError('');
     try {
+      // acceptInvitation requires a UserEntity row to already exist
+      // (InvitationService.acceptInvitation does UserEntity.findById(userId),
+      // failing with user-not-provisioned if it's missing). AppWrapper's own
+      // ensureUser() call races this independently on the same auth state
+      // change — a manual second click used to hide the race by giving it
+      // time to finish; auto-firing on return from Zitadel does not.
+      // ensureUser is idempotent, so awaiting it here first is safe.
+      await ensureUser(keycloak);
       await acceptInvitation(keycloak, token);
       onConsumed?.();
       setAccepted(true);
