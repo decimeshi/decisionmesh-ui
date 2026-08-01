@@ -7,8 +7,12 @@ import { useProject } from '../context/ProjectContext';
 import { formatRelative } from '../lib/utils';
 import { updateProjectDetails, listMembers, inviteMember, updateMemberRole, removeMember } from '../utils/api';
 
-const ROLES       = ['ADMIN', 'ANALYST', 'VIEWER'];
-const ROLE_COLORS = { ADMIN: 'bg-purple-100 text-purple-700', ANALYST: 'bg-blue-100 text-blue-700', VIEWER: 'bg-slate-100 text-slate-600' };
+// ANALYST isn't a real role — matches neither chk_invitation_role nor
+// security.authz.Role — and 500'd on submit with a check-constraint
+// violation. MEMBER is the real role InviteUsers.jsx now uses for the same
+// "Analyst" tier.
+const ROLES       = ['ADMIN', 'MEMBER', 'VIEWER'];
+const ROLE_COLORS = { ADMIN: 'bg-purple-100 text-purple-700', MEMBER: 'bg-blue-100 text-blue-700', VIEWER: 'bg-slate-100 text-slate-600' };
 const ENV_OPTS    = ['Production', 'Staging', 'Dev'];
 
 // ── Tabs ──────────────────────────────────────────────────────────────────────
@@ -87,7 +91,7 @@ function MembersTab({ keycloak, project }) {
   const [members,    setMembers]    = useState([]);
   const [loading,    setLoading]    = useState(true);
   const [email,      setEmail]      = useState('');
-  const [role,       setRole]       = useState('ANALYST');
+  const [role,       setRole]       = useState('MEMBER');
   // Defaults to the project whose settings page this is — the explicit,
   // WYSIWYG-correct signal, rather than whatever's active in the sidebar.
   const [inviteProjectId, setInviteProjectId] = useState(project?.id ?? '');

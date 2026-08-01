@@ -13,6 +13,20 @@ const CAT_COLOR = {
 };
 const catColor = (c) => CAT_COLOR[c] ?? '#475569';
 
+// ── Verticals available in the standalone library page ─────────────────────
+// FINTECH stays first/default — this page's original behaviour is unchanged
+// when no other vertical is picked. Picker mode (onSelect, used inside the
+// Playground panel) doesn't show this switcher — it stays scoped to whatever
+// vertical prop the caller passes.
+const VERTICALS = [
+  { key: 'FINTECH',    label: 'Fintech & Banking' },
+  { key: 'HEALTHCARE', label: 'Healthcare' },
+  { key: 'INSURANCE',  label: 'Insurance' },
+  { key: 'LEGAL',      label: 'Legal Services' },
+  { key: 'GOVERNMENT', label: 'Government' },
+  { key: 'ENTERPRISE', label: 'Enterprise SaaS' },
+];
+
 // ── Risk config ───────────────────────────────────────────────────────────────
 const RISK = {
   HIGH:   { bg:'#fef2f2', text:'#991b1b', dot:'#dc2626', label:'High'   },
@@ -161,7 +175,11 @@ function CategoryPill({ cat, selected, onClick }) {
 //   onSelect  — callback(intent) — enables picker mode for Playground panel
 //   compact   — hides descriptions for tight layout
 //   vertical  — "FINTECH" (default); future: "LEGAL", "HEALTHCARE"
-export default function FintechIntents({ keycloak, onSelect, compact = false, vertical = 'FINTECH' }) {
+export default function FintechIntents({ keycloak, onSelect, compact = false, vertical: verticalProp = 'FINTECH' }) {
+  // Standalone page manages its own vertical so users can switch industries
+  // without leaving the page. Picker mode (onSelect) stays locked to
+  // whatever vertical the caller passed — no switcher shown there.
+  const [vertical, setVertical] = useState(verticalProp);
   // categories is List<CategoryResponse>: [{ category, categoryLabel, count, ... }]
   const [categories,   setCategories]   = useState([]);
   // selected is a CategoryResponse object (or null)
@@ -177,6 +195,9 @@ export default function FintechIntents({ keycloak, onSelect, compact = false, ve
   useEffect(() => {
     setLoadingCats(true);
     setError(null);
+    setCategories([]);
+    setSelected(null);
+    setIntents([]);
     request(keycloak, `/intent-library/${vertical.toLowerCase()}/meta/categories`)
       .then(async cats => {
         const list = cats ?? [];
@@ -249,12 +270,9 @@ export default function FintechIntents({ keycloak, onSelect, compact = false, ve
             {loadingCats ? '…' : `${total} intents — click one to pre-fill the Playground`}
           </p>
         ) : (
-          <div>
-            <h1 className="text-xl font-semibold text-slate-900">Fintech intent library</h1>
-            <p className="text-sm text-slate-500 mt-0.5">
-              {loadingCats ? '…' : `${total || intents.length || '266'} intents across ${categories.length} categories`}
-            </p>
-          </div>
+          <p className="text-sm text-slate-500">
+            {loadingCats ? '…' : `${total || intents.length} intents across ${categories.length} categories`}
+          </p>
         )}
 
         {/* Risk filter */}
@@ -277,6 +295,27 @@ export default function FintechIntents({ keycloak, onSelect, compact = false, ve
           })}
         </div>
       </div>
+
+      {/* Industry switcher — standalone page only; picker mode stays locked
+          to whatever vertical the caller (e.g. Playground panel) passed. */}
+      {!onSelect && (
+        <div className="flex gap-1.5 overflow-x-auto pb-1" style={{ scrollbarWidth:'none' }}>
+          {VERTICALS.map(v => {
+            const active = v.key === vertical;
+            return (
+              <button key={v.key} onClick={() => v.key !== vertical && setVertical(v.key)}
+                className="px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all"
+                style={{
+                  border: active ? '1.5px solid #2563eb' : '1px solid #e2e8f0',
+                  background: active ? '#eff6ff' : 'white',
+                  color: active ? '#2563eb' : '#64748b',
+                }}>
+                {v.label}
+              </button>
+            );
+          })}
+        </div>
+      )}
 
       {error && (
         <div className="px-3 py-2 rounded-lg bg-red-50 border border-red-200 text-xs text-red-700">{error}</div>
@@ -348,8 +387,9 @@ export default function FintechIntents({ keycloak, onSelect, compact = false, ve
   if (onSelect) return body;
 
   // Standalone page — wrap in Page layout
+  const verticalLabel = VERTICALS.find(v => v.key === vertical)?.label ?? vertical;
   return (
-    <Page title="Intent Library" subtitle="Browse 264 fintech AI decision templates">
+    <Page title="Intent Library" subtitle={`Browse demoable ${verticalLabel} AI decision templates`}>
       {body}
     </Page>
   );

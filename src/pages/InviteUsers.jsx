@@ -35,16 +35,21 @@ async function updateMemberRole(keycloak, userId, role) {
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
+// value must match one of the roles the DB actually accepts (chk_invitation_role /
+// security.authz.Role) — ANALYST doesn't exist in either, and previously slipped
+// through the UI only to 500 with a check-constraint violation on submit. MEMBER
+// is the closest real role to "Analyst"'s description (can run intents, unlike
+// read-only VIEWER) — kept the display label as-is, only the wire value changed.
 const ROLES = [
-  { value: 'ADMIN',   label: 'Admin',   desc: 'Full access — manage adapters, policies, members' },
-  { value: 'ANALYST', label: 'Analyst', desc: 'View all data, run intents, export audit logs' },
-  { value: 'VIEWER',  label: 'Viewer',  desc: 'Read-only access to dashboards and intents' },
+  { value: 'ADMIN',  label: 'Admin',   desc: 'Full access — manage adapters, policies, members' },
+  { value: 'MEMBER', label: 'Analyst', desc: 'View all data, run intents, export audit logs' },
+  { value: 'VIEWER', label: 'Viewer',  desc: 'Read-only access to dashboards and intents' },
 ];
 
 const ROLE_COLORS = {
-  ADMIN:   'bg-purple-100 text-purple-700',
-  ANALYST: 'bg-blue-100 text-blue-700',
-  VIEWER:  'bg-slate-100 text-slate-600',
+  ADMIN:  'bg-purple-100 text-purple-700',
+  MEMBER: 'bg-blue-100 text-blue-700',
+  VIEWER: 'bg-slate-100 text-slate-600',
 };
 
 const STATUS_COLORS = {
@@ -76,7 +81,7 @@ function StatusBadge({ status }) {
 function InviteForm({ keycloak, onInvited }) {
   const { projects, activeProject } = useProject();
   const [email, setEmail]     = useState('');
-  const [role, setRole]       = useState('ANALYST');
+  const [role, setRole]       = useState('MEMBER');
   // 'proj-default' is ProjectContext's placeholder before the real list resolves —
   // don't default to an id no real project will ever have.
   const [projectId, setProjectId] = useState(() =>
