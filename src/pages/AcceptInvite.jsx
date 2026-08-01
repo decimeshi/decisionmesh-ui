@@ -44,6 +44,20 @@ export default function AcceptInvite({ token, auth, keycloak, onConsumed }) {
     return () => { cancelled = true; };
   }, [token]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Auto-accept the moment the user returns from Zitadel authenticated —
+  // this used to require a second manual "Accept invitation" click after
+  // "Create account & accept", which is easy to miss after the multi-step
+  // Zitadel registration + email-verification + MFA-setup round trip a
+  // brand-new invitee has just been through. Guarded on !acceptError so a
+  // genuine failure (already-in-workspace, email-mismatch, ...) shows the
+  // message and the manual retry button instead of looping.
+  useEffect(() => {
+    if (auth?.isAuthenticated && preview && !preview.expired && preview.status === 'PENDING'
+        && !accepted && !accepting && !acceptError) {
+      handleAccept();
+    }
+  }, [auth?.isAuthenticated, preview]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Most invitees are brand-new to the product — they have no account to log
   // into. This used to only offer a plain signinRedirect() (Zitadel's LOGIN
   // form), which left a new invitee stuck with nothing to sign in with.
