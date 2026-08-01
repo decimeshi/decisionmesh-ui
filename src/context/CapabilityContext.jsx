@@ -25,6 +25,7 @@ const DEFAULT_CAPS = {
   canManageKillSwitches: false,
   canLiftKillSwitches:   false,
   isPlatformOperator:    false,
+  isTenantAdmin:         false,
 };
 
 export function CapabilityProvider({ keycloak, children }) {

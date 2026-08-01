@@ -8,6 +8,7 @@ import { Card, Button, EmptyState, Spinner, cn } from '../components/shared';
 import { listAdapters, toggleAdapter, createAdapter, updateAdapter, getAdapterPerformance, ApiError } from '../utils/api';
 import { formatDate, formatRelative } from '../lib/utils';
 import { useProject } from '../context/ProjectContext';
+import { useCapabilities } from '../context/CapabilityContext';
 
 // ─── Provider catalogue ────────────────────────────────────────────────────────
 //
@@ -253,7 +254,7 @@ function PerformancePanel({ perf }) {
 
 // ─── Adapter card ─────────────────────────────────────────────────────────────
 
-function AdapterCard({ adapter, perf, projectName, onToggle, onEdit }) {
+function AdapterCard({ adapter, perf, projectName, onToggle, onEdit, canEdit }) {
   const meta = providerMeta(adapter.provider);
   const allowedTypes = Array.isArray(adapter.allowedIntentTypes)
       ? adapter.allowedIntentTypes
@@ -288,13 +289,23 @@ function AdapterCard({ adapter, perf, projectName, onToggle, onEdit }) {
               </span>
             </div>
           </div>
-          {/* Active toggle */}
-          <button
-              onClick={() => onToggle(adapter)}
-              title={adapter.isActive ? 'Disable adapter' : 'Enable adapter'}
-              className={`w-9 h-5 rounded-full transition-colors relative shrink-0 ml-2 ${adapter.isActive ? 'bg-blue-600' : 'bg-slate-200'}`}>
-            <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${adapter.isActive ? 'translate-x-4' : 'translate-x-0.5'}`} />
-          </button>
+          {/* Active toggle — read-only indicator for non-admins, same as the
+              Edit button below: MEMBER holds ADAPTER_READ but not
+              ADAPTER_WRITE, so the backend would 403 the toggle anyway. */}
+          {canEdit ? (
+            <button
+                onClick={() => onToggle(adapter)}
+                title={adapter.isActive ? 'Disable adapter' : 'Enable adapter'}
+                className={`w-9 h-5 rounded-full transition-colors relative shrink-0 ml-2 ${adapter.isActive ? 'bg-blue-600' : 'bg-slate-200'}`}>
+              <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${adapter.isActive ? 'translate-x-4' : 'translate-x-0.5'}`} />
+            </button>
+          ) : (
+            <div
+                title={adapter.isActive ? 'Active' : 'Inactive'}
+                className={`w-9 h-5 rounded-full relative shrink-0 ml-2 opacity-60 ${adapter.isActive ? 'bg-blue-600' : 'bg-slate-200'}`}>
+              <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow ${adapter.isActive ? 'translate-x-4' : 'translate-x-0.5'}`} />
+            </div>
+          )}
         </div>
 
         {/* Key fields */}
@@ -343,11 +354,13 @@ function AdapterCard({ adapter, perf, projectName, onToggle, onEdit }) {
         <PerformancePanel perf={perf} />
 
         {/* Footer */}
-        <div className="mt-4 flex justify-end">
-          <Button variant="ghost" size="sm" onClick={() => onEdit(adapter)}>
-            <Edit2 size={13} /> Edit config
-          </Button>
-        </div>
+        {canEdit && (
+          <div className="mt-4 flex justify-end">
+            <Button variant="ghost" size="sm" onClick={() => onEdit(adapter)}>
+              <Edit2 size={13} /> Edit config
+            </Button>
+          </div>
+        )}
       </Card>
   );
 }
@@ -789,6 +802,7 @@ function AdapterModal({ adapter, projects, defaultProjectId, onSave, onClose }) 
 
 export default function Adapters({ keycloak }) {
   const { projects, activeProject } = useProject();
+  const { isTenantAdmin } = useCapabilities();
   const [adapters, setAdapters] = useState([]);
   const [perfMap,  setPerfMap]  = useState({});   // adapterId → performance profile
   const [loading,  setLoading]  = useState(true);
@@ -882,9 +896,11 @@ export default function Adapters({ keycloak }) {
           title="Adapters"
           subtitle="Manage LLM provider adapters — the execution engine selects via adaptive scoring"
           action={
-            <Button onClick={() => setModal('new')}>
-              <Plus size={14} /> Add adapter
-            </Button>
+            isTenantAdmin && (
+              <Button onClick={() => setModal('new')}>
+                <Plus size={14} /> Add adapter
+              </Button>
+            )
           }
       >
         {/* ── Summary stats ── */}
@@ -968,9 +984,11 @@ export default function Adapters({ keycloak }) {
                   title="No adapters configured"
                   description="Add at least one LLM adapter so the execution engine can route intents. The AdapterRegistry query requires is_active=true and adapter_type='LLM'."
                   action={
-                    <Button onClick={() => setModal('new')}>
-                      <Plus size={14} /> Add first adapter
-                    </Button>
+                    isTenantAdmin && (
+                      <Button onClick={() => setModal('new')}>
+                        <Plus size={14} /> Add first adapter
+                      </Button>
+                    )
                   }
               />
             </Card>
@@ -981,9 +999,11 @@ export default function Adapters({ keycloak }) {
                   title="No adapters in this project"
                   description="No adapter is tagged to this project yet. Switch the project filter above, or add one and assign it here."
                   action={
-                    <Button onClick={() => setModal('new')}>
-                      <Plus size={14} /> Add adapter
-                    </Button>
+                    isTenantAdmin && (
+                      <Button onClick={() => setModal('new')}>
+                        <Plus size={14} /> Add adapter
+                      </Button>
+                    )
                   }
               />
             </Card>
@@ -997,6 +1017,7 @@ export default function Adapters({ keycloak }) {
                       projectName={a.projectId ? projectNameById[a.projectId] : null}
                       onToggle={handleToggle}
                       onEdit={adapter => setModal(adapter)}
+                      canEdit={isTenantAdmin}
                   />
               ))}
             </div>
