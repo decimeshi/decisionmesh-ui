@@ -25,6 +25,8 @@ const VERTICALS = [
   { key: 'LEGAL',      label: 'Legal Services' },
   { key: 'GOVERNMENT', label: 'Government' },
   { key: 'ENTERPRISE', label: 'Enterprise SaaS' },
+  { key: 'RETAIL',     label: 'Retail & E-commerce' },
+  { key: 'EDUCATION',  label: 'Education' },
 ];
 
 // ── Risk config ───────────────────────────────────────────────────────────────
