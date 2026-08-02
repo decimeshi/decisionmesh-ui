@@ -203,8 +203,9 @@ export default function FintechIntents({ keycloak, onSelect, compact = false, ve
     request(keycloak, `/intent-library/${vertical.toLowerCase()}/meta/categories`)
       .then(async cats => {
         const list = cats ?? [];
-        // Auto-select first category
-        if (list.length > 0) setSelected(list[0]);
+        // Auto-select first category — tagged with the vertical it was
+        // selected under (see the by-category effect below for why).
+        if (list.length > 0) setSelected({ ...list[0], _vertical: vertical });
 
         // If counts are all 0 (backend bug), fetch each category count in parallel
         const allZero = list.every(c => (c.count ?? 0) === 0);
@@ -229,8 +230,18 @@ export default function FintechIntents({ keycloak, onSelect, compact = false, ve
 
   // Load intents for selected category
   // selected is a CategoryResponse object — use selected.category for the path
+  //
+  // Guarded on selected._vertical === vertical, not just selected.category:
+  // switching verticals changes `vertical` and (separately, in the effect
+  // above) resets `selected` to null — but React runs both effects in the
+  // same pass using this render's still-stale `selected` before that reset
+  // commits, so without the tag this fired one request per vertical switch
+  // for the PREVIOUS vertical's category under the NEW vertical's path
+  // (e.g. /intent-library/healthcare/by-category/CLAIMS_AND_UNDERWRITING,
+  // a category that only exists under insurance). Two genuinely concurrent
+  // requests hitting the backend on every single switch, not occasionally.
   useEffect(() => {
-    if (!selected?.category) return;
+    if (!selected?.category || selected._vertical !== vertical) return;
     setLoadingItems(true);
     setSearch('');
     setRiskFilter('ALL');
@@ -334,7 +345,7 @@ export default function FintechIntents({ keycloak, onSelect, compact = false, ve
                 key={cat.category}
                 cat={cat}
                 selected={selected}
-                onClick={() => setSelected(cat)}
+                onClick={() => setSelected({ ...cat, _vertical: vertical })}
               />
             ))
         }
