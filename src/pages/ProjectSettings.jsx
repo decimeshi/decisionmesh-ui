@@ -11,8 +11,8 @@ import { updateProjectDetails, listMembers, inviteMember, updateMemberRole, remo
 // security.authz.Role — and 500'd on submit with a check-constraint
 // violation. MEMBER is the real role InviteUsers.jsx now uses for the same
 // "Analyst" tier.
-const ROLES       = ['ADMIN', 'MEMBER', 'VIEWER'];
-const ROLE_COLORS = { ADMIN: 'bg-purple-100 text-purple-700', MEMBER: 'bg-blue-100 text-blue-700', VIEWER: 'bg-slate-100 text-slate-600' };
+const ROLES       = ['ADMIN', 'MEMBER', 'VIEWER', 'AUDITOR'];
+const ROLE_COLORS = { ADMIN: 'bg-purple-100 text-purple-700', MEMBER: 'bg-blue-100 text-blue-700', VIEWER: 'bg-slate-100 text-slate-600', AUDITOR: 'bg-amber-100 text-amber-700' };
 const ENV_OPTS    = ['Production', 'Staging', 'Dev'];
 
 // ── Tabs ──────────────────────────────────────────────────────────────────────

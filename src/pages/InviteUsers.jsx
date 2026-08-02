@@ -41,15 +41,17 @@ async function updateMemberRole(keycloak, userId, role) {
 // is the closest real role to "Analyst"'s description (can run intents, unlike
 // read-only VIEWER) — kept the display label as-is, only the wire value changed.
 const ROLES = [
-  { value: 'ADMIN',  label: 'Admin',   desc: 'Full access — manage adapters, policies, members' },
-  { value: 'MEMBER', label: 'Analyst', desc: 'View all data, run intents, export audit logs' },
-  { value: 'VIEWER', label: 'Viewer',  desc: 'Read-only access to dashboards and intents' },
+  { value: 'ADMIN',   label: 'Admin',   desc: 'Full access — manage adapters, policies, members' },
+  { value: 'MEMBER',  label: 'Analyst', desc: 'View all data, run intents, export audit logs' },
+  { value: 'VIEWER',  label: 'Viewer',  desc: 'Read-only access to dashboards and intents' },
+  { value: 'AUDITOR', label: 'Auditor', desc: 'Read-only plus audit trail export — no intent execution' },
 ];
 
 const ROLE_COLORS = {
-  ADMIN:  'bg-purple-100 text-purple-700',
-  MEMBER: 'bg-blue-100 text-blue-700',
-  VIEWER: 'bg-slate-100 text-slate-600',
+  ADMIN:   'bg-purple-100 text-purple-700',
+  MEMBER:  'bg-blue-100 text-blue-700',
+  VIEWER:  'bg-slate-100 text-slate-600',
+  AUDITOR: 'bg-amber-100 text-amber-700',
 };
 
 const STATUS_COLORS = {
