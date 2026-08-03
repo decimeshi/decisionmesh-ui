@@ -30,16 +30,27 @@
     --sidebar-collapsed: 52px;
 
     /* ── Content ────────────────────────────────────────────────────────────── */
-    --content-bg:     #f8fafc;
+    /* Was #f8fafc (slate-50), then #eef1f5 — both still read as "white" next
+       to a white card at normal screen brightness. #e4e9ef is a clear step
+       into slate-200 territory: cards now visibly float on the page instead
+       of blending into it, confirmed against real screenshots where the
+       lighter values were indistinguishable. */
+    --content-bg:     #e4e9ef;
     --topbar-bg:      #ffffff;
     --topbar-border:  #e2e8f0;
     --topbar-h:       52px;
 
     /* ── Card ───────────────────────────────────────────────────────────────── */
     --card-bg:        #ffffff;
-    --card-border:    #e2e8f0;
+    /* Darker than --content-bg on purpose — a border equal to (or lighter
+       than) the page background disappears into it; the boundary has to be
+       the darkest line at the seam to read as a border at all. */
+    --card-border:    #d3dae3;
     --card-radius:    12px;
-    --card-shadow:    0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+    /* Was two lighter passes that stayed too faint against a still-pale
+       page. Heavier, wider spread gives real elevation without the page
+       itself needing to go dark. */
+    --card-shadow:    0 1px 2px rgba(15,23,42,0.06), 0 8px 20px rgba(15,23,42,0.10);
 
     /* ── Text ───────────────────────────────────────────────────────────────── */
     /* --text-muted was #94a3b8 (slate-400), which is ~2.5:1 against white and

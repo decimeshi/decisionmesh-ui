@@ -38,11 +38,11 @@ const LABELS = {
 
 function useBreadcrumbs() {
   const { pathname } = useLocation();
-  if (LABELS[pathname]) return [{ label: LABELS[pathname] }];
+  if (LABELS[pathname]) return [{ label: LABELS[pathname], path: pathname }];
   const parts = pathname.split('/').filter(Boolean);
   return parts.map((part, i) => {
     const path = '/' + parts.slice(0, i + 1).join('/');
-    return { label: LABELS[path] ?? (part.length === 36 ? shortId(part) : part) };
+    return { label: LABELS[path] ?? (part.length === 36 ? shortId(part) : part), path };
   });
 }
 
@@ -206,7 +206,11 @@ export default function TopBar({ keycloak, sidebarHidden, onToggleSidebar }) {
           {crumbs.map((c, i) => (
             <span key={i} className="flex items-center gap-1 min-w-0">
               {i > 0 && <ChevronRight size={10} className="text-slate-300 shrink-0" />}
-              <span className={`truncate text-[13px] ${i === crumbs.length - 1 ? 'font-semibold text-slate-900' : 'font-medium text-slate-500'}`}>
+              <span className={`truncate text-[13px] ${
+                  i === crumbs.length - 1
+                      ? (c.path === '/playground' ? 'font-semibold text-blue-600' : 'font-semibold text-slate-900')
+                      : 'font-medium text-slate-500'
+              }`}>
                 {c.label}
               </span>
             </span>

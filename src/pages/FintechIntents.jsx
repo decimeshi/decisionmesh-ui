@@ -309,10 +309,12 @@ export default function FintechIntents({ keycloak, onSelect, compact = false, ve
         </div>
       </div>
 
-      {/* Industry switcher — standalone page only; picker mode stays locked
-          to whatever vertical the caller (e.g. Playground panel) passed. */}
-      {!onSelect && (
-        <div className="flex gap-1.5 overflow-x-auto pb-1" style={{ scrollbarWidth:'none' }}>
+      {/* Industry switcher — shown in both modes. Picker mode (Playground's
+          landing view) needs this at least as much as the standalone page:
+          the whole point of a multi-domain library is browsing across it,
+          not staying locked to whatever vertical happened to be passed in. */}
+      {(
+        <div className="flex gap-1.5 flex-wrap pb-1">
           {VERTICALS.map(v => {
             const active = v.key === vertical;
             return (
@@ -334,8 +336,12 @@ export default function FintechIntents({ keycloak, onSelect, compact = false, ve
         <div className="px-3 py-2 rounded-lg bg-red-50 border border-red-200 text-xs text-red-700">{error}</div>
       )}
 
-      {/* Category pills — each cat is a CategoryResponse object */}
-      <div className="flex gap-1.5 overflow-x-auto pb-1 border-b border-slate-100" style={{ scrollbarWidth:'none' }}>
+      {/* Category pills — each cat is a CategoryResponse object. Wraps rather
+          than scrolling: fintech alone has 14 categories, and overflow-x-auto
+          with a hidden scrollbar means anything past the fold (Procurement,
+          Reconciliation, ...) just looks missing at normal zoom levels — no
+          visual hint that more exists off-screen. */}
+      <div className="flex gap-1.5 flex-wrap pb-1 border-b border-slate-100">
         {loadingCats
           ? Array.from({ length:7 }).map((_,i) => (
               <div key={i} className="h-7 rounded-full bg-slate-100 shrink-0 animate-pulse" style={{ width: 80+i*12 }} />

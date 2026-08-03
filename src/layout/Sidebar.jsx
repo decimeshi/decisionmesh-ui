@@ -8,7 +8,7 @@ import {
   ChevronDown, Check, Plus, Palette, CreditCard, Receipt,
   Bug, Library, MessageSquarePlus, TestTube2,
   Users, Coins, Webhook, HeartPulse, Zap, BookOpen, ShieldAlert, DollarSign,
-  Trash2, Globe2, Building2,
+  Trash2, Globe2, Building2, Plug,
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { useProject } from '../context/ProjectContext';
@@ -59,6 +59,11 @@ const NAV = [
       // read access to both (see Role.java), and Credits is informational
       // usage tracking, not a configuration surface.
       { label: 'API Keys',      icon: KeyRound,        to: '/api-keys',      tenantAdminOnly: true },
+      // BYOK/BYOM config lives inside Billing (tab=byok) — a distinct
+      // destination from "API Keys" above (DecisionMesh's own platform
+      // keys, unrelated to bring-your-own-key/model). Previously only
+      // reachable via a Playground quick-link card; now a real nav item.
+      { label: 'BYOK / BYOM',   icon: Plug,            to: '/billing?tab=byok', tenantAdminOnly: true },
       { label: 'Audit Log',     icon: ScrollText,      to: '/audit'          },
       { label: 'Credits',       icon: Receipt,         to: '/credits'        },
       { label: 'Billing',       icon: CreditCard,      to: '/billing',       tenantAdminOnly: true },

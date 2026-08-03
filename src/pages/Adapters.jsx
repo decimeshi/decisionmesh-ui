@@ -40,19 +40,23 @@ const PROVIDER_META = {
     color:       '#c8522a',
     bg:          '#fff7f5',
     border:      '#fed7aa',
-    // Models from AnthropicLlmAdapter javadoc
+    // BUG FIX: this list was every retired Claude 3.x model ID — Anthropic
+    // 404s ("not_found_error") on all of them, so any adapter created from
+    // this form failed on every execution attempt (and still got charged
+    // credits for the attempt — see ViolationHandler/CreditLedgerService).
+    // Replaced with the current Claude family; claude-haiku-4-5-20251001 is
+    // verified working end-to-end in this exact app.
     models:      [
-      'claude-3-5-sonnet-20241022',
-      'claude-3-5-haiku-20241022',
-      'claude-3-opus-20240229',
-      'claude-3-haiku-20240307',
+      'claude-haiku-4-5-20251001',
+      'claude-sonnet-5',
+      'claude-opus-5',
     ],
-    defaultModel:'claude-3-5-sonnet-20241022',
+    defaultModel:'claude-haiku-4-5-20251001',
     authNote:    'x-api-key + anthropic-version headers — configure llm.anthropic.api-key',
     endpoint:    'https://api.anthropic.com/v1/messages',
     // AnthropicLlmAdapter has no temperature param — omit from template
     defaultConfig: {
-      model:      'claude-3-5-sonnet-20241022',
+      model:      'claude-haiku-4-5-20251001',
       max_tokens: 1024,
       timeout_ms: 30000,
     },
