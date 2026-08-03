@@ -1,29 +1,29 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
-  ArrowLeft, RefreshCw, DollarSign, Target, Hash, Clock,
+  ArrowLeft, RefreshCw, DollarSign, Target, Hash,
   Cpu, Shield, MessageSquare, AlertTriangle, CheckCircle,
-  XCircle, ChevronDown, ChevronUp, Copy, Zap, BarChart2,
-  Eye, EyeOff, RotateCcw,
+  XCircle, Copy, Zap,
+  CheckCircle2, Loader2, Circle,
+  Lock, Link2, Download, Library, GitBranch, Gauge,
 } from 'lucide-react';
 import Page from '../components/shared/Page';
 import {
   Card, CardHeader, CardTitle, CardContent,
   Button, PhaseBadge, SatisfactionBadge, Spinner,
 } from '../components/shared';
-import ExecutionTimeline from '../components/timeline/ExecutionTimeline';
 import { getIntent, getIntentEvents, getExecutionsByIntent, getPolicyEvaluations, listAdapters } from '../utils/api';
-import { formatCost, formatDate, formatLatency, shortId, cn } from '../lib/utils';
+import { formatCost, formatDate, formatTime, formatLatency, shortId, cn, PHASE_ORDER, describeAdapterError } from '../lib/utils';
 import ReplayPanel from '../components/replay/ReplayPanel';
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 
 function Row({ label, value, mono = false }) {
   return (
-    <div className="flex items-start py-2 border-b border-slate-50 last:border-0">
-      <span className="text-sm text-slate-400 w-40 shrink-0 pt-0.5">{label}</span>
-      <span className={cn('text-sm text-slate-700 font-medium flex-1 break-all',
-        mono && 'font-mono bg-slate-100 px-1.5 py-0.5 rounded text-xs')}
+    <div className="flex items-start py-2.5 border-b border-slate-100 last:border-0">
+      <span className="text-xs font-medium text-slate-500 w-36 shrink-0 pt-0.5">{label}</span>
+      <span className={cn('text-sm text-slate-800 font-semibold flex-1 break-all',
+        mono && 'font-mono bg-slate-100 px-1.5 py-0.5 rounded text-xs font-medium text-slate-600')}
         style={mono ? { fontFamily: "'JetBrains Mono', monospace" } : {}}>
         {value}
       </span>
@@ -46,7 +46,7 @@ function SectionHeader({ icon, title, badge }) {
 }
 
 // ── Policy outcome card ───────────────────────────────────────────────────────
-function PolicyOutcomeCard({ policyEvals, events, satisfactionState, violationReason, constraints }) {
+function PolicyOutcomeCard({ policyEvals, events, satisfactionState, violationReason, constraints, bare = false }) {
   const isViolated = satisfactionState === 'VIOLATED';
   const isSatisfied = satisfactionState === 'SATISFIED';
 
@@ -66,6 +66,8 @@ function PolicyOutcomeCard({ policyEvals, events, satisfactionState, violationRe
   function deriveViolationHint() {
     const r = (violationReason ?? '').toLowerCase();
     const hints = [];
+    const adapterHint = describeAdapterError(violationReason);
+    if (adapterHint) hints.push(adapterHint);
     if (r.includes('retry') || r.includes('sla')) {
       const max = constraints?.maxRetries;
       hints.push(max === 0
@@ -109,22 +111,8 @@ function PolicyOutcomeCard({ policyEvals, events, satisfactionState, violationRe
     ALLOWED: <CheckCircle size={12} />,
   };
 
-  return (
-    <Card>
-      <CardHeader>
-        <SectionHeader
-          icon={<Shield size={13} className="text-slate-400" />}
-          title="Policy outcome"
-          badge={
-            !hasEvals && !isViolated ? 'No evaluations' :
-            wasBlocked ? `${blocked.length} blocked` :
-            warnings.length > 0 ? `${warnings.length} warning${warnings.length !== 1 ? 's' : ''}` :
-            isSatisfied ? 'All passed' : undefined
-          }
-        />
-      </CardHeader>
-      <CardContent>
-
+  const body = (
+      <>
         {/* Overall verdict banner */}
         <div className={cn(
           'flex items-start gap-2.5 p-3 rounded-lg mb-3 border',
@@ -240,8 +228,26 @@ function PolicyOutcomeCard({ policyEvals, events, satisfactionState, violationRe
             Policy evaluations appear when the intent reaches EXECUTING phase.
           </p>
         )}
+      </>
+  );
 
-      </CardContent>
+  if (bare) return body;
+
+  return (
+    <Card>
+      <CardHeader>
+        <SectionHeader
+          icon={<Shield size={13} className="text-slate-400" />}
+          title="Policy outcome"
+          badge={
+            !hasEvals && !isViolated ? 'No evaluations' :
+            wasBlocked ? `${blocked.length} blocked` :
+            warnings.length > 0 ? `${warnings.length} warning${warnings.length !== 1 ? 's' : ''}` :
+            isSatisfied ? 'All passed' : undefined
+          }
+        />
+      </CardHeader>
+      <CardContent>{body}</CardContent>
     </Card>
   );
 }
@@ -285,37 +291,27 @@ function AdapterCard({ events, adapters, executions }) {
   return (
     <Card>
       <CardHeader>
-        <SectionHeader
-          icon={<Cpu size={13} className="text-slate-400" />}
-          title="Adapter"
-        />
-      </CardHeader>
-      <CardContent>
-        {hasAnyInfo ? (
-          <>
-            <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg mb-3 border border-slate-200">
-              <div className="p-2 rounded-lg bg-blue-50">
-                <Cpu size={14} className="text-blue-600" />
-              </div>
-              <div>
-                <p className="text-sm font-semibold text-slate-800">
-                  {displayName ?? 'Adapter'}
-                </p>
-                {displayProvider && (
-                  <p className="text-xs text-slate-500">
-                    {displayProvider}{displayModel ? ` · ${displayModel}` : ''}
-                  </p>
-                )}
-              </div>
+        <div className="flex items-center justify-between">
+          <SectionHeader
+            icon={<Cpu size={13} className="text-slate-400" />}
+            title="Adapter"
+            badge={displayName ?? undefined}
+          />
+          {hasAnyInfo && (
               <span className={cn(
-                'ml-auto text-xs font-medium px-2 py-0.5 rounded-full',
+                'text-xs font-medium px-2 py-0.5 rounded-full',
                 displayActive
                   ? 'bg-green-50 text-green-700'
                   : 'bg-slate-100 text-slate-500'
               )}>
                 {displayActive ? 'Active' : 'Inactive'}
               </span>
-            </div>
+          )}
+        </div>
+      </CardHeader>
+      <CardContent>
+        {hasAnyInfo ? (
+          <>
             {adapterId && <Row label="Adapter ID" value={shortId(adapterId)} mono />}
             {displayProvider && <Row label="Provider" value={displayProvider} />}
             {displayModel    && <Row label="Model"    value={displayModel} />}
@@ -380,6 +376,12 @@ function tryParseJson(text) {
   try { return JSON.parse(cleaned); } catch { return null; }
 }
 
+// Shared column styling — used by every multi-column smart response view
+// (Decision/Reason/Evidence, Fraud risk/recommendation/factors, etc.) so they
+// all read as the same visual language instead of each view inventing its own.
+const RESPONSE_COL_STYLE = { background: '#f8fafc', borderRadius: 10, border: '1px solid #e2e8f0', padding: 16 };
+const RESPONSE_HEAD_STYLE = { fontSize: 10, fontWeight: 700, color: '#2563eb', textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: 10 };
+
 function RiskGauge({ score }) {
   const pct = Math.round((score ?? 0) * 100);
   const color = score >= 0.8 ? '#dc2626' : score >= 0.6 ? '#d97706' : score >= 0.3 ? '#f59e0b' : '#16a34a';
@@ -402,13 +404,27 @@ function RiskGauge({ score }) {
   );
 }
 
+// Only APPROVE/REVIEW/DECLINE (and close synonyms) get the compact colored
+// badge treatment — that styling assumes a short label. A longer free-text
+// recommendation (a full sentence, as some adapters return) is rendered as
+// plain prose instead of being forced into the small pill, which previously
+// produced an oversized, alarming-looking uppercase warning box for what was
+// really just an instructional note.
+const RECOMMENDATION_STYLES = {
+  APPROVE:  { bg: '#f0fdf4', color: '#16a34a', border: '#bbf7d0', icon: '✓' },
+  APPROVED: { bg: '#f0fdf4', color: '#16a34a', border: '#bbf7d0', icon: '✓' },
+  REVIEW:   { bg: '#fffbeb', color: '#d97706', border: '#fde68a', icon: '!' },
+  DECLINE:  { bg: '#fef2f2', color: '#dc2626', border: '#fecaca', icon: '✗' },
+  DECLINED: { bg: '#fef2f2', color: '#dc2626', border: '#fecaca', icon: '✗' },
+  REJECT:   { bg: '#fef2f2', color: '#dc2626', border: '#fecaca', icon: '✗' },
+};
+
 function RecommendationBadge({ value }) {
-  const styles = {
-    APPROVE: { bg: '#f0fdf4', color: '#16a34a', border: '#bbf7d0', icon: '✓' },
-    REVIEW:  { bg: '#fffbeb', color: '#d97706', border: '#fde68a', icon: '!' },
-    DECLINE: { bg: '#fef2f2', color: '#dc2626', border: '#fecaca', icon: '✗' },
-  };
-  const s = styles[value?.toUpperCase()] ?? styles.REVIEW;
+  const s = RECOMMENDATION_STYLES[value?.toUpperCase()];
+  if (!s) {
+    // Not a recognised short label — show as plain text, not a forced badge.
+    return <p style={{ fontSize: 13, color: '#374151', lineHeight: 1.5 }}>{value}</p>;
+  }
   return (
     <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 14px', borderRadius: 8, background: s.bg, border: `1.5px solid ${s.border}` }}>
       <span style={{ fontSize: 14, fontWeight: 800, color: s.color }}>{s.icon}</span>
@@ -417,43 +433,39 @@ function RecommendationBadge({ value }) {
   );
 }
 
+// Same 3-column visual language as DecisionColumnsView — Risk / Recommendation
+// & reasoning / Risk factors — so every smart response view reads consistently.
 function FraudDetectionView({ data }) {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-      {/* Score + recommendation row */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-        <div style={{ background: '#f8fafc', borderRadius: 10, border: '1px solid #e2e8f0', padding: 16, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-          <p style={{ fontSize: 10, color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: 4 }}>Risk Score</p>
-          <RiskGauge score={data.riskScore} />
-        </div>
-        <div style={{ background: '#f8fafc', borderRadius: 10, border: '1px solid #e2e8f0', padding: 16, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-          <p style={{ fontSize: 10, color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.8px' }}>Recommendation</p>
-          <RecommendationBadge value={data.recommendation} />
-        </div>
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12 }}>
+      <div style={RESPONSE_COL_STYLE}>
+        <p style={RESPONSE_HEAD_STYLE}>Risk</p>
+        <RiskGauge score={data.riskScore} />
       </div>
 
-      {/* Risk factors */}
-      {data.riskFactors?.length > 0 && (
-        <div>
-          <p style={{ fontSize: 11, fontWeight: 600, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: 8 }}>Risk Factors ({data.riskFactors.length})</p>
+      <div style={RESPONSE_COL_STYLE}>
+        <p style={RESPONSE_HEAD_STYLE}>Recommendation</p>
+        {data.recommendation ? <RecommendationBadge value={data.recommendation} /> : <p style={{ fontSize: 12, color: '#94a3b8' }}>—</p>}
+        {data.reasoning && (
+          <p style={{ fontSize: 13, color: '#374151', lineHeight: 1.6, marginTop: 10 }}>{data.reasoning}</p>
+        )}
+      </div>
+
+      <div style={RESPONSE_COL_STYLE}>
+        <p style={RESPONSE_HEAD_STYLE}>Risk factors</p>
+        {data.riskFactors?.length > 0 ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             {data.riskFactors.map((f, i) => (
-              <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, padding: '7px 10px', background: '#fef2f2', borderRadius: 7, border: '1px solid #fecaca' }}>
+              <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 6 }}>
                 <span style={{ fontSize: 11, color: '#dc2626', fontWeight: 700, flexShrink: 0, marginTop: 1 }}>⚠</span>
-                <span style={{ fontSize: 13, color: '#374151', lineHeight: 1.5 }}>{f}</span>
+                <span style={{ fontSize: 12, color: '#374151', lineHeight: 1.5 }}>{f}</span>
               </div>
             ))}
           </div>
-        </div>
-      )}
-
-      {/* Reasoning */}
-      {data.reasoning && (
-        <div style={{ background: '#f8fafc', borderRadius: 8, border: '1px solid #e2e8f0', padding: 12 }}>
-          <p style={{ fontSize: 10, fontWeight: 600, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: 6 }}>AI Reasoning</p>
-          <p style={{ fontSize: 13, color: '#374151', lineHeight: 1.6 }}>{data.reasoning}</p>
-        </div>
-      )}
+        ) : (
+          <p style={{ fontSize: 12, color: '#94a3b8' }}>No risk factors flagged</p>
+        )}
+      </div>
     </div>
   );
 }
@@ -579,6 +591,99 @@ function ComplianceView({ data }) {
   );
 }
 
+// ── Decision / Reason / Evidence highlights — 3-column layout matching the
+// reference mockup. Decision + confidence + risk are real top-level fields;
+// Reason renders the real reasoning text/array; Evidence highlights lists
+// whatever OTHER real fields the response actually carries (not a fabricated
+// checklist — there's no separate "evidence" endpoint or field, so this
+// column is exactly what's left of the real payload after Decision/Reason
+// are pulled out).
+function DecisionColumnsView({ data }) {
+  const decision   = data.decision ?? data.verdict ?? (data.recommendation && data.decision === undefined ? data.recommendation : null);
+  const confidence = data.confidence ?? data.confidenceScore ?? null;
+  const riskLevel  = data.risk_level ?? data.riskLevel ?? null;
+  const reasonText = data.reasoning ?? data.reason ?? null;
+  const reasonsList = Array.isArray(data.reasons) ? data.reasons : null;
+
+  const usedKeys = ['decision','verdict','recommendation','confidence','confidenceScore','risk_level','riskLevel','reasoning','reason','reasons'];
+  const remaining = Object.entries(data).filter(([k]) => !usedKeys.includes(k));
+
+  const DECISION_STYLE = {
+    APPROVE: { bg: '#f0fdf4', color: '#16a34a', border: '#bbf7d0', icon: '✓' },
+    APPROVED: { bg: '#f0fdf4', color: '#16a34a', border: '#bbf7d0', icon: '✓' },
+    REVIEW: { bg: '#fffbeb', color: '#d97706', border: '#fde68a', icon: '!' },
+    DECLINE: { bg: '#fef2f2', color: '#dc2626', border: '#fecaca', icon: '✗' },
+    REJECT: { bg: '#fef2f2', color: '#dc2626', border: '#fecaca', icon: '✗' },
+    REJECTED: { bg: '#fef2f2', color: '#dc2626', border: '#fecaca', icon: '✗' },
+  };
+  const dStyle = DECISION_STYLE[String(decision ?? '').toUpperCase()] ?? { bg: '#f8fafc', color: '#475569', border: '#e2e8f0', icon: '•' };
+  const confPct = confidence != null ? (confidence <= 1 ? confidence * 100 : confidence) : null;
+
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12 }}>
+      <div style={RESPONSE_COL_STYLE}>
+        <p style={RESPONSE_HEAD_STYLE}>Decision</p>
+        {decision && (
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 14px', borderRadius: 8, background: dStyle.bg, border: `1.5px solid ${dStyle.border}`, marginBottom: 12 }}>
+            <span style={{ fontSize: 14, fontWeight: 800, color: dStyle.color }}>{dStyle.icon}</span>
+            <span style={{ fontSize: 14, fontWeight: 700, color: dStyle.color }}>{String(decision).toUpperCase()}</span>
+          </div>
+        )}
+        {confPct != null && (
+          <div style={{ marginBottom: 12 }}>
+            <p style={{ fontSize: 11, color: '#94a3b8', marginBottom: 2 }}>Confidence score</p>
+            <p style={{ fontSize: 22, fontWeight: 800, color: '#1e293b' }}>{confPct.toFixed(0)}%</p>
+            <div style={{ height: 5, background: '#e2e8f0', borderRadius: 4, overflow: 'hidden', marginTop: 4 }}>
+              <div style={{ height: '100%', width: `${confPct}%`, background: confPct >= 80 ? '#16a34a' : confPct >= 50 ? '#d97706' : '#dc2626', borderRadius: 4 }} />
+            </div>
+          </div>
+        )}
+        {riskLevel && (
+          <div>
+            <p style={{ fontSize: 11, color: '#94a3b8', marginBottom: 2 }}>Risk level</p>
+            <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 999, background: '#f1f5f9', color: '#475569' }}>{String(riskLevel)}</span>
+          </div>
+        )}
+        {!decision && confPct == null && !riskLevel && <p style={{ fontSize: 12, color: '#94a3b8' }}>—</p>}
+      </div>
+
+      <div style={RESPONSE_COL_STYLE}>
+        <p style={RESPONSE_HEAD_STYLE}>Reason</p>
+        {reasonText && <p style={{ fontSize: 13, color: '#374151', lineHeight: 1.6, marginBottom: reasonsList ? 10 : 0 }}>{reasonText}</p>}
+        {reasonsList && (
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+            {reasonsList.map((r, i) => (
+              <span key={i} style={{ fontSize: 11, padding: '4px 8px', borderRadius: 6, background: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe' }}>
+                {String(r).replace(/_/g, ' ')}
+              </span>
+            ))}
+          </div>
+        )}
+        {!reasonText && !reasonsList && <p style={{ fontSize: 12, color: '#94a3b8' }}>No reasoning provided</p>}
+      </div>
+
+      <div style={RESPONSE_COL_STYLE}>
+        <p style={RESPONSE_HEAD_STYLE}>Evidence highlights</p>
+        {remaining.length > 0 ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            {remaining.map(([k, v]) => (
+              <div key={k} style={{ display: 'flex', alignItems: 'flex-start', gap: 6 }}>
+                <span style={{ fontSize: 11, color: '#16a34a', fontWeight: 700, flexShrink: 0, marginTop: 1 }}>✓</span>
+                <span style={{ fontSize: 12, color: '#374151' }}>
+                  <span style={{ color: '#64748b' }}>{k.replace(/_/g, ' ')}:</span>{' '}
+                  {Array.isArray(v) ? v.join(', ') : typeof v === 'object' ? JSON.stringify(v) : String(v)}
+                </span>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p style={{ fontSize: 12, color: '#94a3b8' }}>No additional detail beyond decision and reason</p>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function SmartResponseRenderer({ responseText, intentType, showRawOverride }) {
   const [showRaw, setShowRaw] = useState(false);
 
@@ -594,15 +699,16 @@ function SmartResponseRenderer({ responseText, intentType, showRawOverride }) {
   // Determine intent category for smart rendering
   const type = (intentType ?? '').toLowerCase();
   const isFraud      = type.includes('fraud') || (parsed?.riskScore !== undefined && parsed?.recommendation !== undefined);
-  const isSentiment  = type.includes('sentiment') || (parsed?.sentiment !== undefined);
-  const isClassify   = type.includes('classif') || (parsed?.label !== undefined && parsed?.confidence !== undefined);
-  const isCompliance = type.includes('compliance') || type.includes('audit') || (parsed?.passed !== undefined || parsed?.compliant !== undefined);
+  const isDecision   = !isFraud && (parsed?.decision !== undefined || parsed?.verdict !== undefined);
+  const isSentiment  = !isDecision && (type.includes('sentiment') || (parsed?.sentiment !== undefined));
+  const isClassify   = !isDecision && (type.includes('classif') || (parsed?.label !== undefined && parsed?.confidence !== undefined));
+  const isCompliance = !isDecision && (type.includes('compliance') || type.includes('audit') || (parsed?.passed !== undefined || parsed?.compliant !== undefined));
 
   return (
     <div>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
         <p style={{ fontSize: 10, fontWeight: 600, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.8px' }}>
-          {isJson ? (isFraud ? 'Fraud Risk Assessment' : isSentiment ? 'Sentiment Analysis' : isClassify ? 'Classification Result' : isCompliance ? 'Compliance Check' : 'Structured Response') : 'Adapter Response'}
+          {isJson ? (isFraud ? 'Fraud Risk Assessment' : isDecision ? 'Decision' : isSentiment ? 'Sentiment Analysis' : isClassify ? 'Classification Result' : isCompliance ? 'Compliance Check' : 'Structured Response') : 'Adapter Response'}
         </p>
         {isJson && (
           <span onClick={(e) => { e.stopPropagation(); setShowRaw(v => !v); }}
@@ -619,17 +725,18 @@ function SmartResponseRenderer({ responseText, intentType, showRawOverride }) {
       ) : (
         <div>
           {isFraud      && <FraudDetectionView data={parsed} />}
-          {isSentiment  && !isFraud && <SentimentView data={parsed} />}
-          {isClassify   && !isFraud && !isSentiment && <ClassificationView data={parsed} />}
-          {isCompliance && !isFraud && !isSentiment && !isClassify && <ComplianceView data={parsed} />}
-          {!isFraud && !isSentiment && !isClassify && !isCompliance && <GenericJsonView data={parsed} />}
+          {isDecision   && <DecisionColumnsView data={parsed} />}
+          {isSentiment  && <SentimentView data={parsed} />}
+          {isClassify   && <ClassificationView data={parsed} />}
+          {isCompliance && <ComplianceView data={parsed} />}
+          {!isFraud && !isDecision && !isSentiment && !isClassify && !isCompliance && <GenericJsonView data={parsed} />}
         </div>
       )}
     </div>
   );
 }
 
-function DecisionOutputCard({ executions }) {
+function DecisionOutputCard({ executions, stepper }) {
   const [showRaw,    setShowRaw]    = useState(false);
   const [copiedText, setCopiedText] = useState(false);
 
@@ -640,17 +747,12 @@ function DecisionOutputCard({ executions }) {
   if (!exec) {
     return (
       <Card>
-        <CardHeader>
-          <SectionHeader
-            icon={<MessageSquare size={13} className="text-slate-400" />}
-            title="Decision output"
-          />
-        </CardHeader>
-        <CardContent>
+        <ExecutionStepper {...stepper} />
+        <div className="px-5 pb-5">
           <p className="text-sm text-slate-400 text-center py-4">
             No execution record yet — output appears when execution completes.
           </p>
-        </CardContent>
+        </div>
       </Card>
     );
   }
@@ -669,22 +771,17 @@ function DecisionOutputCard({ executions }) {
 
   return (
     <Card>
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <SectionHeader
-            icon={<MessageSquare size={13} className="text-slate-400" />}
-            title="Decision output"
-            badge={exec.status}
-          />
-          {hasResponse && (
-            <button onClick={copyResponse}
-              className="text-xs text-slate-400 hover:text-slate-600 flex items-center gap-1">
-              <Copy size={10} />{copiedText ? 'Copied!' : 'Copy'}
-            </button>
-          )}
-        </div>
-      </CardHeader>
-      <CardContent className="space-y-4">
+      <ExecutionStepper {...stepper} />
+      <CardContent className="space-y-4 pt-4">
+
+        {hasResponse && (
+            <div className="flex justify-end -mt-2 -mb-1">
+              <button onClick={copyResponse}
+                className="text-xs text-slate-400 hover:text-slate-600 flex items-center gap-1">
+                <Copy size={10} />{copiedText ? 'Copied!' : 'Copy response'}
+              </button>
+            </div>
+        )}
 
         {/* Quality metrics row */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -775,6 +872,383 @@ function DecisionOutputCard({ executions }) {
   );
 }
 
+// ── Execution stepper — real phases, real per-phase timestamps ───────────────
+// Same PHASE_ORDER/status logic as the vertical ExecutionTimeline, laid out
+// horizontally with a timestamp under each step where an event recorded one.
+// "Received" is CREATED under a friendlier label — no invented phases (the
+// backend has no separate Policy Evaluation/Adapter Selection/Prompt Assembly
+// phases, so those aren't shown as distinct steps).
+const STEP_META = [
+  { phase: 'CREATED',    label: 'Received'  },
+  { phase: 'PLANNING',   label: 'Planning'  },
+  { phase: 'PLANNED',    label: 'Planned'   },
+  { phase: 'EXECUTING',  label: 'Executing' },
+  { phase: 'EVALUATING', label: 'Validation'},
+  { phase: 'COMPLETED',  label: 'Completed' },
+];
+
+function stepStatus(phase, currentPhase, terminal, satisfied) {
+  const cur = PHASE_ORDER.indexOf(currentPhase);
+  const idx = PHASE_ORDER.indexOf(phase);
+  if (terminal) {
+    if (idx < PHASE_ORDER.length - 1) return 'done';
+    return satisfied ? 'done' : 'failed';
+  }
+  if (idx < cur)   return 'done';
+  if (idx === cur) return 'active';
+  return 'pending';
+}
+
+function phaseTimestamp(events, phase, isFirst) {
+  const found = (events ?? []).find(e => e.phaseTo === phase);
+  if (found?.occurredAt) return found.occurredAt;
+  if (isFirst && events?.[0]?.occurredAt) return events[0].occurredAt;
+  return null;
+}
+
+// Real inline sub-detail per step, sourced from the execution record —
+// no invented "Adapter Selection"/"Prompt Assembly" phases, just real facts
+// (adapter used, token count, latency, quality) attached to the closest real
+// phase that actually produced them.
+function stepDetail(phase, exec, satisfied, terminal) {
+  if (phase === 'EXECUTING') {
+    const bits = [];
+    if (exec?.adapterName) bits.push(exec.adapterName);
+    if (exec?.latencyMs) bits.push(formatLatency(exec.latencyMs));
+    return bits.join(' · ') || null;
+  }
+  if (phase === 'EVALUATING') {
+    const bits = [];
+    if (exec?.qualityScore != null) bits.push(`Quality ${(exec.qualityScore * 100).toFixed(0)}%`);
+    if (exec?.totalTokens) bits.push(`${exec.totalTokens.toLocaleString()} tokens`);
+    return bits.join(' · ') || null;
+  }
+  if (phase === 'COMPLETED' && terminal) {
+    return satisfied ? 'Satisfied' : 'Violated';
+  }
+  return null;
+}
+
+function ExecutionStepper({ events, currentPhase, terminal, satisfied, exec }) {
+  return (
+    <div className="p-5 pb-4">
+      <div className="flex items-stretch overflow-x-auto">
+        {STEP_META.map(({ phase, label }, i) => {
+          const status = stepStatus(phase, currentPhase, terminal, satisfied);
+          const isLast = i === STEP_META.length - 1;
+          const ts = phaseTimestamp(events, phase, i === 0);
+          const detail = stepDetail(phase, exec, satisfied, terminal);
+          const Icon = status === 'done' ? CheckCircle2
+            : status === 'active' ? Loader2
+            : status === 'failed' ? XCircle
+            : Circle;
+          return (
+            <div key={phase} className="flex items-center flex-1 min-w-[110px]">
+              <div className="flex flex-col items-center gap-1.5 px-1 text-center">
+                <Icon size={18} className={cn(
+                  status === 'done'   && 'text-green-500',
+                  status === 'active' && 'text-blue-600 animate-spin',
+                  status === 'failed' && 'text-red-500',
+                  status === 'pending' && 'text-slate-300',
+                )} />
+                <span className={cn('text-xs font-medium', {
+                  done: 'text-slate-700', active: 'text-blue-700',
+                  pending: 'text-slate-400', failed: 'text-red-600',
+                }[isLast && terminal && !satisfied ? 'failed' : status])}>
+                  {label}
+                </span>
+                <span className="text-[10px] text-slate-400">{ts ? formatTime(ts) : '—'}</span>
+                {detail && (
+                    <span className={cn('text-[10px] font-medium',
+                        isLast && terminal ? (satisfied ? 'text-green-600' : 'text-red-600') : 'text-blue-600')}>
+                      {detail}
+                    </span>
+                )}
+              </div>
+              {!isLast && (
+                <div className={cn('h-px flex-1 mx-1', status === 'done' ? 'bg-green-200' : 'bg-slate-100')} />
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ── Execution flow — same real phase/timestamp/detail data as the stepper
+// above, rendered as the mockup's blue icon-row. Replaces the Adapter card
+// here; adapter ID/provider/model/region/attempt-history data that card
+// showed is no longer surfaced anywhere on this page.
+function ExecutionFlowRow({ events, currentPhase, terminal, satisfied, exec }) {
+  const ICONS = { CREATED: Hash, PLANNING: Target, PLANNED: Target, EXECUTING: Cpu, EVALUATING: Shield, COMPLETED: CheckCircle2 };
+  return (
+      <Card className="p-5">
+        <p className="text-xs font-semibold text-blue-600 uppercase tracking-wide mb-3">Execution flow</p>
+        <div className="flex items-center overflow-x-auto gap-1">
+          {STEP_META.map(({ phase, label }, i) => {
+            const status = stepStatus(phase, currentPhase, terminal, satisfied);
+            const isLast = i === STEP_META.length - 1;
+            const ts = phaseTimestamp(events, phase, i === 0);
+            const detail = stepDetail(phase, exec, satisfied, terminal);
+            const StepIcon = ICONS[phase] ?? Circle;
+            return (
+                <div key={phase} className="flex items-center flex-1 min-w-[110px]">
+                  <div className="flex flex-col items-center gap-1.5 text-center">
+                    <div className={cn('w-9 h-9 rounded-full flex items-center justify-center',
+                        status === 'done' ? 'bg-green-50 text-green-600'
+                        : status === 'active' ? 'bg-blue-50 text-blue-600'
+                        : status === 'failed' ? 'bg-red-50 text-red-600'
+                        : 'bg-slate-50 text-slate-300')}>
+                      <StepIcon size={16} />
+                    </div>
+                    <span className="text-xs font-medium text-slate-700">{label}</span>
+                    <span className={cn('text-[10px]', isLast && terminal ? (satisfied ? 'text-green-600 font-medium' : 'text-red-600 font-medium') : 'text-slate-400')}>
+                      {detail || (ts ? formatTime(ts) : '—')}
+                    </span>
+                  </div>
+                  {!isLast && <div className="h-px flex-1 bg-slate-100 mx-1" />}
+                </div>
+            );
+          })}
+        </div>
+      </Card>
+  );
+}
+
+// ── Execution trace tab — real event stream with distributed-trace IDs ───────
+function ExecutionTraceTab({ events }) {
+  if (!events?.length) {
+    return <p className="text-sm text-slate-400 text-center py-6">No events recorded yet.</p>;
+  }
+  return (
+    <div className="space-y-1.5 max-h-96 overflow-y-auto">
+      {events.map((e, i) => (
+        <div key={e.id ?? i} className="flex items-start justify-between gap-3 py-2 px-3 rounded-lg border border-slate-100 bg-slate-50 text-xs">
+          <div className="min-w-0">
+            <span className="font-medium text-slate-700">
+              {e.eventType}
+              {(e.phaseFrom || e.phaseTo) && (
+                <span className="text-slate-400 font-normal ml-1.5">
+                  {e.phaseFrom ?? '—'} → {e.phaseTo ?? '—'}
+                </span>
+              )}
+            </span>
+            {(e.traceId || e.spanId) && (
+              <p className="text-[10px] font-mono text-slate-400 mt-0.5 truncate">
+                {e.traceId && `trace ${shortId(e.traceId)}`}{e.traceId && e.spanId && ' · '}{e.spanId && `span ${shortId(e.spanId)}`}
+              </p>
+            )}
+          </div>
+          <span className="text-slate-400 shrink-0">{formatTime(e.occurredAt)}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ── Tabbed detail — Response/JSON/Policy Evaluation/Execution Trace are real;
+// Prompt/Audit Trail/Attachments are disabled — no backend to invoke yet
+// (prompts aren't persisted, there's no per-intent audit-log filter, and
+// there's no document/attachment model at all). Greyed out, not hidden.
+function DetailTabs({ executions, policyEvals, events, intent }) {
+  const [tab, setTab] = useState('response');
+  const exec = (executions ?? []).find(e => e.status === 'COMPLETED' || e.status === 'SUCCESS') ?? executions?.[0];
+  const parsed = exec?.responseText ? tryParseJson(exec.responseText) : null;
+
+  const TABS = [
+    { key: 'response', label: 'Response' },
+    { key: 'json',     label: 'JSON' },
+    { key: 'policy',   label: 'Policy Evaluation', count: policyEvals?.length || undefined },
+    { key: 'trace',    label: 'Execution Trace' },
+    { key: 'prompt',   label: 'Prompt',       disabled: true, reason: 'Prompts are not persisted after execution' },
+    { key: 'audit',    label: 'Audit Trail',  disabled: true, reason: 'No per-intent audit-log endpoint yet' },
+    { key: 'files',    label: 'Attachments',  disabled: true, reason: 'Document attachments are not supported yet' },
+  ];
+
+  return (
+    <Card>
+      <div className="flex items-center gap-1 px-3 pt-3 border-b border-slate-100 overflow-x-auto">
+        {TABS.map(t => (
+          <button
+            key={t.key}
+            disabled={t.disabled}
+            title={t.disabled ? t.reason : undefined}
+            onClick={() => !t.disabled && setTab(t.key)}
+            className={cn(
+              'flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-t-lg whitespace-nowrap transition-colors',
+              t.disabled
+                ? 'text-slate-300 cursor-not-allowed'
+                : tab === t.key
+                  ? 'text-blue-700 border-b-2 border-blue-600'
+                  : 'text-slate-500 hover:text-slate-700'
+            )}>
+            {t.disabled && <Lock size={10} />}
+            {t.label}
+            {t.count != null && (
+              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-400">{t.count}</span>
+            )}
+          </button>
+        ))}
+      </div>
+      <CardContent>
+        {tab === 'response' && <SmartResponseRenderer responseText={exec?.responseText} intentType={exec?.intentType ?? intent?.intentType} />}
+        {tab === 'json' && (
+          <div style={{ fontFamily: "'JetBrains Mono', monospace" }}
+            className="text-xs text-slate-700 bg-slate-50 border border-slate-200 rounded-lg p-3 whitespace-pre-wrap break-words max-h-96 overflow-y-auto">
+            {parsed ? JSON.stringify(parsed, null, 2) : (exec?.responseText || 'No response yet')}
+          </div>
+        )}
+        {tab === 'policy' && (
+          <PolicyOutcomeCard
+            policyEvals={policyEvals} events={events}
+            satisfactionState={intent.satisfactionState}
+            violationReason={intent.violationReason}
+            constraints={intent.constraints}
+            bare
+          />
+        )}
+        {tab === 'trace' && <ExecutionTraceTab events={events} />}
+      </CardContent>
+    </Card>
+  );
+}
+
+// ── Execution summary — real fields from the execution record; Model Version
+// and Region are not tracked per-execution anywhere (adapters only carry a
+// model name, no pinned version; region lives on the adapter, not joined
+// into ExecutionRecordResponse) — shown greyed rather than invented.
+function ExecutionSummaryCard({ exec }) {
+  return (
+    <Card>
+      <CardHeader><CardTitle>Execution summary</CardTitle></CardHeader>
+      <CardContent className="space-y-0">
+        <Row label="Execution ID" value={exec ? shortId(exec.id) : '—'} mono />
+        <Row label="Timestamp"    value={exec?.executedAt ? formatDate(exec.executedAt) : '—'} />
+        <Row label="Duration"     value={exec ? formatLatency(exec.latencyMs) : '—'} />
+        <Row label="Total tokens" value={exec?.totalTokens != null ? exec.totalTokens.toLocaleString() : '—'} />
+        <Row label="Total cost"   value={exec?.costUsd != null ? formatCost(exec.costUsd) : '—'} />
+        <Row label="Adapter used" value={exec?.adapterName ?? '—'} />
+        <div className="flex items-start py-2 opacity-40" title="Not tracked — adapters store a model name, not a pinned version">
+          <span className="text-sm text-slate-400 w-40 shrink-0 pt-0.5">Model version</span>
+          <span className="text-sm text-slate-400 flex-1 flex items-center gap-1"><Lock size={10} /> Unavailable</span>
+        </div>
+        <div className="flex items-start py-2 opacity-40" title="Region is not recorded on the execution record">
+          <span className="text-sm text-slate-400 w-40 shrink-0 pt-0.5">Region</span>
+          <span className="text-sm text-slate-400 flex-1 flex items-center gap-1"><Lock size={10} /> Unavailable</span>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+// ── Governance status — Policy Compliant / No Policy Violations are derived
+// from real policy_evaluations rows; Audit Enabled, PII Protection Applied
+// and Explainability Enabled have no per-intent flag anywhere in the domain
+// model, so they're shown greyed rather than always-on decoration.
+function GovernanceStatusCard({ policyEvals, satisfactionState }) {
+  const blocked = (policyEvals ?? []).filter(e => e.result === 'BLOCKED');
+  const items = [
+    { label: 'Policy compliant',    real: true,  ok: satisfactionState !== 'VIOLATED' },
+    { label: 'No policy violations',real: true,  ok: blocked.length === 0 },
+    { label: 'Audit enabled',       real: false },
+    { label: 'PII protection applied', real: false },
+    { label: 'Explainability enabled', real: false },
+  ];
+  return (
+    <Card>
+      <CardHeader><CardTitle>Governance status</CardTitle></CardHeader>
+      <CardContent className="space-y-2">
+        {items.map(it => (
+          <div key={it.label} className={cn('flex items-center gap-2 text-sm', !it.real && 'opacity-40')}
+            title={!it.real ? 'No per-intent field for this yet' : undefined}>
+            {it.real
+              ? (it.ok ? <CheckCircle2 size={14} className="text-green-500 shrink-0" /> : <XCircle size={14} className="text-red-500 shrink-0" />)
+              : <Lock size={12} className="text-slate-300 shrink-0" />}
+            <span className={it.real ? 'text-slate-800 font-medium' : 'text-slate-400'}>{it.label}</span>
+          </div>
+        ))}
+      </CardContent>
+    </Card>
+  );
+}
+
+// ── Performance — Latency is real (execution record). Time to First Token
+// and Throughput (tokens/sec) aren't computed or stored anywhere.
+function PerformanceCard({ exec }) {
+  return (
+    <Card>
+      <CardHeader><CardTitle>Performance</CardTitle></CardHeader>
+      <CardContent className="space-y-2">
+        <div className="flex items-center justify-between text-sm">
+          <span className="text-slate-500 font-medium flex items-center gap-1.5"><Gauge size={12} />Latency</span>
+          <span className="font-semibold text-slate-800">{exec ? formatLatency(exec.latencyMs) : '—'}</span>
+        </div>
+        <div className="flex items-center justify-between text-sm opacity-40" title="Not measured — adapters don't report first-token timing">
+          <span className="text-slate-400 flex items-center gap-1.5"><Lock size={11} />Time to first token</span>
+          <span className="text-slate-400">Unavailable</span>
+        </div>
+        <div className="flex items-center justify-between text-sm opacity-40" title="Not measured — no tokens/sec instrumentation">
+          <span className="text-slate-400 flex items-center gap-1.5"><Lock size={11} />Throughput</span>
+          <span className="text-slate-400">Unavailable</span>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+// ── Next actions — Share Result and Create Follow-up Intent are genuinely
+// wireable with zero/existing backend (clipboard copy; Playground already
+// accepts a pre-fill payload via navigation state). Download Report and Add
+// to Library have no backing endpoint (no report generator, no POST on the
+// intent-library resource) — disabled rather than faked.
+function NextActionsCard({ intent, navigate }) {
+  const [copied, setCopied] = useState(false);
+
+  function shareResult() {
+    navigator.clipboard.writeText(window.location.href);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }
+
+  function createFollowUp() {
+    navigate('/playground', {
+      state: {
+        intentPayload: JSON.stringify({
+          intentType:  intent.intentType,
+          objective:   intent.objective,
+          constraints: intent.constraints,
+          budget:      intent.budget,
+        }, null, 2),
+      },
+    });
+  }
+
+  return (
+    <Card>
+      <CardHeader><CardTitle>Next actions</CardTitle></CardHeader>
+      <CardContent className="space-y-2">
+        <button onClick={shareResult}
+          className="w-full flex items-center gap-2 px-3 py-2 text-sm rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 transition-colors">
+          <Link2 size={13} />{copied ? 'Link copied!' : 'Share result'}
+        </button>
+        <button onClick={createFollowUp}
+          className="w-full flex items-center gap-2 px-3 py-2 text-sm rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 transition-colors">
+          <GitBranch size={13} />Create follow-up intent
+        </button>
+        <button disabled title="No report generator yet"
+          className="w-full flex items-center gap-2 px-3 py-2 text-sm rounded-lg border border-slate-100 bg-slate-50 text-slate-300 cursor-not-allowed">
+          <Lock size={11} /><Download size={13} />Download report
+        </button>
+        <button disabled title="No endpoint to add an intent to the library yet"
+          className="w-full flex items-center gap-2 px-3 py-2 text-sm rounded-lg border border-slate-100 bg-slate-50 text-slate-300 cursor-not-allowed">
+          <Lock size={11} /><Library size={13} />Add to library
+        </button>
+      </CardContent>
+    </Card>
+  );
+}
+
 // ── Main component ────────────────────────────────────────────────────────────
 export default function IntentDetail({ keycloak }) {
   const { id: intentId } = useParams();
@@ -838,224 +1312,140 @@ export default function IntentDetail({ keycloak }) {
     </Page>
   );
 
-  const spentPct = (intent.budget?.ceilingUsd > 0)
-    ? Math.min(100, (intent.budget.spentUsd / intent.budget.ceilingUsd) * 100)
-    : 0;
+  const exec = (executions ?? []).find(e => e.status === 'COMPLETED' || e.status === 'SUCCESS') ?? executions?.[0];
+
+  // Real outcome sentence — derived from satisfactionState/terminal, not
+  // hardcoded — mirrors the mockup's "executed successfully" tone for
+  // whatever the actual outcome is, good or bad.
+  const outcome = intent.satisfactionState === 'SATISFIED' ? 'executed successfully'
+    : intent.satisfactionState === 'VIOLATED' ? 'violated policy constraints'
+    : intent.terminal ? 'completed'
+    : 'is executing…';
 
   return (
     <Page
-      title={`Intent ${shortId(intent.id)}`}
-      subtitle={`Created ${formatDate(intent.createdAt)}`}
+      title={
+        <span className="inline-flex items-center gap-2">
+          Intent Execution
+          <PhaseBadge phase={intent.phase} />
+          <SatisfactionBadge state={intent.satisfactionState} />
+        </span>
+      }
+      subtitle={`${intent.intentType} ${outcome} · ${shortId(intent.id)} · Created ${formatDate(intent.createdAt)}`}
       action={
-        <div className="flex gap-2">
+        <div className="flex items-center gap-2">
+          {!intent.terminal && (
+            <span className="flex items-center gap-1.5 text-xs text-blue-600">
+              <span className="w-1.5 h-1.5 rounded-full bg-blue-600 animate-pulse" />Live
+            </span>
+          )}
           <Button variant="ghost" size="sm" onClick={() => navigate('/intents')}>
-            <ArrowLeft size={13} /> Back
+            <ArrowLeft size={13} /> View in history
           </Button>
           <Button variant="secondary" size="sm" loading={fetching} onClick={load}>
             <RefreshCw size={13} /> Refresh
           </Button>
+          <Button size="sm" onClick={() => navigate('/playground')}>
+            New execution
+          </Button>
         </div>
       }
     >
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+      <div className="space-y-5">
 
-        {/* ── Left column ── */}
-        <div className="space-y-4">
+        {/* Stepper + Decision output — merged into one card */}
+        <DecisionOutputCard
+            executions={executions}
+            stepper={{
+              events,
+              currentPhase: intent.phase,
+              terminal: intent.terminal,
+              satisfied: intent.satisfactionState === 'SATISFIED',
+              exec,
+            }}
+        />
 
-          {/* Status */}
-          <Card className="p-5">
-            <div className="flex items-center gap-2 mb-4">
-              <PhaseBadge phase={intent.phase} />
-              <SatisfactionBadge state={intent.satisfactionState} />
-              {!intent.terminal && (
-                <span className="ml-auto flex items-center gap-1.5 text-xs text-blue-600">
-                  <span className="w-1.5 h-1.5 rounded-full bg-blue-600 animate-pulse" />Live
-                </span>
-              )}
-            </div>
-            <Row label="Intent ID" value={
-              <span className="font-mono text-xs bg-slate-100 px-1.5 py-0.5 rounded break-all"
-                style={{ fontFamily: "'JetBrains Mono', monospace" }}>
-                {intent.id}
-              </span>
-            } />
-            <Row label="Type"     value={intent.intentType} />
-            <Row label="Version"  value={`v${intent.version}`} />
-            <Row label="Retries"  value={`${intent.retryCount ?? 0} / ${intent.maxRetries ?? 0}`} />
-            <Row label="Terminal" value={intent.terminal ? 'Yes' : 'No'} />
-            <Row label="Drift"    value={(intent.driftScore ?? 0).toFixed(4)} />
-          </Card>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+          <div className="lg:col-span-2 space-y-4">
+            <DetailTabs executions={executions} policyEvals={policyEvals} events={events} intent={intent} />
+            <ReplayPanel intentId={intentId} keycloak={keycloak} satisfactionState={intent?.satisfactionState} />
 
-          {/* Budget — always shown */}
-          <Card>
-            <CardHeader>
-              <SectionHeader icon={<DollarSign size={13} className="text-slate-400" />} title="Budget" />
-            </CardHeader>
-            <CardContent>
-              {intent.budget ? (
-                <>
-                  <Row label="Ceiling"  value={formatCost(intent.budget.ceilingUsd)} />
-                  <Row label="Spent"    value={formatCost(intent.budget.spentUsd)} />
-                  <Row label="Currency" value={intent.budget.currency ?? 'USD'} />
-                  <Row label="Exceeded" value={intent.budget.exceeded
-                    ? <span className="text-red-600 font-semibold">Yes — ceiling hit</span>
-                    : 'No'
-                  } />
-                  <div className="mt-3">
-                    <div className="flex justify-between text-xs text-slate-400 mb-1">
-                      <span>Spent</span>
-                      <span className={spentPct >= 90 ? 'text-red-500 font-medium' : ''}>
-                        {intent.budget?.ceilingUsd > 0 ? `${spentPct.toFixed(1)}%` : '—'}
-                      </span>
-                    </div>
-                    <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                      <div className="h-full rounded-full transition-all"
-                        style={{
-                          width: `${spentPct}%`,
-                          backgroundColor: spentPct >= 90 ? '#dc2626' : spentPct >= 70 ? '#d97706' : '#2563eb',
-                        }} />
-                    </div>
-                  </div>
-                </>
-              ) : (
-                <div className="flex flex-col items-center justify-center py-5 text-center">
-                  <DollarSign size={20} className="text-slate-200 mb-2" />
-                  <p className="text-sm text-slate-400">No budget defined</p>
-                  <p className="text-xs text-slate-300 mt-0.5">
-                    Add a <span className="font-mono">budget.ceilingUsd</span> to your payload to enforce spending limits
-                  </p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+            {/* ── Request — what was submitted, moved directly under Replay
+                so it reads next to the governance/replay context above it. ── */}
+            <div>
+              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Request</p>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
 
-          {/* Constraints — always shown */}
-          <Card>
-            <CardHeader>
-              <SectionHeader icon={<Target size={13} className="text-slate-400" />} title="Constraints" />
-            </CardHeader>
-            <CardContent>
-              {intent.constraints ? (
-                <>
-                  <Row label="Max latency ms" value={intent.constraints.maxLatencyMs
-                    ? `${intent.constraints.maxLatencyMs}ms` : '—'} />
-                  <Row label="Max retries"  value={intent.constraints.maxRetries ?? '—'} />
-                  <Row label="Timeout"      value={intent.constraints.timeoutSeconds
-                    ? `${intent.constraints.timeoutSeconds}s` : '—'} />
-                  <Row label="Drift limit"  value={intent.constraints.maxDriftThreshold != null
-                    ? intent.constraints.maxDriftThreshold.toFixed(2) : '—'} />
-                </>
-              ) : (
-                <div className="flex flex-col items-center justify-center py-5 text-center">
-                  <Target size={20} className="text-slate-200 mb-2" />
-                  <p className="text-sm text-slate-400">No constraints defined</p>
-                  <p className="text-xs text-slate-300 mt-0.5">
-                    Add <span className="font-mono">constraints</span> to set retries, timeout, and latency limits
-                  </p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Objective — always shown */}
-          <Card>
-            <CardHeader>
-              <SectionHeader icon={<Hash size={13} className="text-slate-400" />} title="Objective" />
-            </CardHeader>
-            <CardContent>
-              {intent.objective ? (() => {
-                const obj = intent.objective;
-                const description = obj.description ?? obj.task ?? obj.goal ?? null;
-                const hasExtra = obj.objectiveType || obj.taskType || obj.successCriteria?.length > 0 || obj.targetThreshold > 0;
-                return (
-                  <div className="space-y-3">
-                    {description ? (
-                      <p className="text-sm text-slate-700 leading-relaxed">{description}</p>
+                <Card>
+                  <CardHeader>
+                    <SectionHeader icon={<DollarSign size={13} className="text-slate-400" />} title="Budget" />
+                  </CardHeader>
+                  <CardContent>
+                    {intent.budget ? (
+                      <>
+                        <Row label="Ceiling"  value={formatCost(intent.budget.ceilingUsd)} />
+                        <Row label="Spent"    value={formatCost(intent.budget.spentUsd)} />
+                        <Row label="Exceeded" value={intent.budget.exceeded
+                          ? <span className="text-red-600 font-semibold">Yes</span>
+                          : 'No'
+                        } />
+                      </>
                     ) : (
-                      <p className="text-sm text-slate-400 italic">No description provided</p>
+                      <p className="text-sm text-slate-400 text-center py-3">No budget defined</p>
                     )}
-                    {hasExtra && (
-                      <div className="grid grid-cols-2 gap-2">
-                        {obj.objectiveType && <Row label="Type"      value={obj.objectiveType} />}
-                        {obj.taskType      && <Row label="Task type" value={obj.taskType} />}
-                        {obj.targetThreshold > 0 && <Row label="Threshold" value={obj.targetThreshold} />}
-                        {obj.tolerance     > 0    && <Row label="Tolerance" value={obj.tolerance} />}
-                      </div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <SectionHeader icon={<Target size={13} className="text-slate-400" />} title="Constraints" />
+                  </CardHeader>
+                  <CardContent>
+                    {intent.constraints ? (
+                      <>
+                        <Row label="Max latency ms" value={intent.constraints.maxLatencyMs
+                          ? `${intent.constraints.maxLatencyMs}ms` : '—'} />
+                        <Row label="Max retries"  value={intent.constraints.maxRetries ?? '—'} />
+                        <Row label="Timeout"      value={intent.constraints.timeoutSeconds
+                          ? `${intent.constraints.timeoutSeconds}s` : '—'} />
+                      </>
+                    ) : (
+                      <p className="text-sm text-slate-400 text-center py-3">No constraints defined</p>
                     )}
-                    {obj.successCriteria?.length > 0 && (
-                      <div>
-                        <p className="text-xs font-medium text-slate-500 uppercase tracking-wide mb-1">
-                          Success criteria
-                        </p>
-                        <ul className="space-y-1">
-                          {obj.successCriteria.map((c, i) => (
-                            <li key={i} className="flex items-start gap-1.5 text-sm text-slate-600">
-                              <CheckCircle size={11} className="text-green-500 shrink-0 mt-0.5" />
-                              {c}
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <SectionHeader icon={<Hash size={13} className="text-slate-400" />} title="Objective" />
+                  </CardHeader>
+                  <CardContent>
+                    {intent.objective ? (() => {
+                      const obj = intent.objective;
+                      const description = obj.description ?? obj.task ?? obj.goal ?? null;
+                      return description ? (
+                        <p className="text-sm text-slate-700 leading-relaxed line-clamp-4">{description}</p>
+                      ) : (
+                        <p className="text-sm text-slate-400 italic">No description provided</p>
+                      );
+                    })() : (
+                      <p className="text-sm text-slate-400 text-center py-3">No objective defined</p>
                     )}
-                  </div>
-                );
-              })() : (
-                <div className="flex flex-col items-center justify-center py-5 text-center">
-                  <Hash size={20} className="text-slate-200 mb-2" />
-                  <p className="text-sm text-slate-400">No objective defined</p>
-                  <p className="text-xs text-slate-300 mt-0.5">
-                    Add an <span className="font-mono">objective</span> block to describe the intent goal
-                  </p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
+                  </CardContent>
+                </Card>
 
-        {/* ── Right column ── */}
-        <div className="lg:col-span-2 space-y-4">
-
-          {/* Decision output — NEW */}
-          <DecisionOutputCard executions={executions} />
-
-          {/* Policy outcome */}
-          <PolicyOutcomeCard
-            policyEvals={policyEvals}
-            events={events}
-            satisfactionState={intent.satisfactionState}
-            violationReason={intent.violationReason}
-            constraints={intent.constraints}
-          />
-          <ReplayPanel intentId={intentId} keycloak={keycloak} satisfactionState={intent?.satisfactionState} />
-
-          {/* Adapter detail */}
-          <AdapterCard events={events} adapters={adapters} executions={executions} />
-
-          {/* Execution timeline */}
-          <Card>
-            <CardHeader>
-              <div className="flex items-center gap-2">
-                <Clock size={13} className="text-slate-400" />
-                <CardTitle>Execution timeline</CardTitle>
-                {!intent.terminal && (
-                  <span className="ml-auto flex items-center gap-1.5 text-xs text-blue-600">
-                    <span className="w-1.5 h-1.5 rounded-full bg-blue-600 animate-pulse" />Live
-                  </span>
-                )}
               </div>
-            </CardHeader>
-            <CardContent>
-              <ExecutionTimeline
-                keycloak={keycloak}
-                intentId={intent.id}
-                currentPhase={intent.phase}
-                terminal={intent.terminal}
-                satisfied={intent.satisfactionState === 'SATISFIED'}
-              />
-            </CardContent>
-          </Card>
+            </div>
+          </div>
 
+          <div className="space-y-4">
+            <ExecutionSummaryCard exec={exec} />
+            <GovernanceStatusCard policyEvals={policyEvals} satisfactionState={intent.satisfactionState} />
+            <PerformanceCard exec={exec} />
+            <NextActionsCard intent={intent} navigate={navigate} />
+          </div>
         </div>
+
       </div>
     </Page>
   );
