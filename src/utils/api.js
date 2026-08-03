@@ -135,6 +135,19 @@ export async function getIntent(keycloak, id) {
   return request(keycloak, `/intents/${id}`);
 }
 
+/**
+ * Read-only "what would happen if I submitted this now" preview — backs the
+ * Playground's Execution intelligence panel (adapter, estimated cost/latency,
+ * expected output). Same request body as submitIntent, no Idempotency-Key
+ * since nothing is created.
+ */
+export async function previewIntent(keycloak, intent) {
+  return request(keycloak, '/intents/preview', {
+    method: 'POST',
+    body: JSON.stringify(intent),
+  });
+}
+
 export async function listIntents(keycloak, params = {}) {
   const qs = new URLSearchParams(
       Object.fromEntries(Object.entries(params).filter(([, v]) => v != null))

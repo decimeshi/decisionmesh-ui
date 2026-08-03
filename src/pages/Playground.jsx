@@ -11,16 +11,137 @@
 import { useState, useEffect, useRef } from 'react';
 import {
   Send, RefreshCw, Copy, ExternalLink, Zap,
-  Shield, Clock, RotateCcw, BookOpen, Key, Cpu,
-  ChevronDown, ChevronUp, AlertTriangle,
+  Shield, AlertTriangle, Lock, Gauge, CheckCircle2, Paperclip, X,
 } from 'lucide-react';
 import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { v4 as uuidv4 } from 'uuid';
 import Page from '../components/shared/Page';
 import { Card, CardHeader, CardTitle, CardContent, Button, KillSwitchNotice } from '../components/shared';
 import ExecutionTimeline from '../components/timeline/ExecutionTimeline';
-import { submitIntent, getIntent, getExecutionsByIntent, request } from '../utils/api';
+import {
+  submitIntent, getIntent, getExecutionsByIntent, request, listPolicies,
+  previewIntent, getIntentAvailability,
+} from '../utils/api';
+import { describeAdapterError } from '../lib/utils';
 import { useCredits, MODEL_TIERS } from '../context/CreditContext';
+import { useProject } from '../context/ProjectContext';
+
+// ── Attachments — small text files/snippets only. There's no attachment field
+// on the intent model and no multimodal path to the LLM, so this rides in
+// objective.context (the only field that reaches the prompt) — same approach
+// this file's own prior comment identified. Capped well below anything that
+// would meaningfully threaten a typical budget/latency ceiling.
+const MAX_ATTACHMENT_BYTES       = 8 * 1024;   // per file
+const MAX_ATTACHMENTS_TOTAL_BYTES = 24 * 1024; // combined
+const ATTACHMENT_ACCEPT = '.txt,.md,.csv,.json,.log';
+
+function formatBytes(n) {
+  return n < 1024 ? `${n} B` : `${(n / 1024).toFixed(1)} KB`;
+}
+
+/** Serialises attachments into the delimited block appended to objective.context. */
+function attachmentsToContextBlock(attachments) {
+  if (!attachments.length) return null;
+  return attachments
+      .map(a => `--- Attachment: ${a.name} ---\n${a.content}`)
+      .join('\n\n');
+}
+
+/**
+ * Returns a copy of body with attachments merged into objective.context —
+ * the shape actually sent to both /intents/preview and /intents, so the
+ * preview never lies about what submit will do.
+ */
+function withAttachments(body, attachments) {
+  const block = attachmentsToContextBlock(attachments);
+  if (!block) return body;
+  return {
+    ...body,
+    objective: {
+      ...(body.objective ?? {}),
+      context: [body.objective?.context, block].filter(Boolean).join('\n\n'),
+    },
+  };
+}
+
+function AttachmentsPanel({ attachments, setAttachments, disabled }) {
+  const [err, setErr] = useState(null);
+  const inputRef = useRef(null);
+  const totalBytes = attachments.reduce((sum, a) => sum + a.size, 0);
+
+  function handleFiles(fileList) {
+    setErr(null);
+    const files = Array.from(fileList ?? []);
+    files.forEach(file => {
+      if (file.size > MAX_ATTACHMENT_BYTES) {
+        setErr(`"${file.name}" is ${formatBytes(file.size)} — max is ${formatBytes(MAX_ATTACHMENT_BYTES)} per file.`);
+        return;
+      }
+      if (totalBytes + file.size > MAX_ATTACHMENTS_TOTAL_BYTES) {
+        setErr(`Adding "${file.name}" would exceed the ${formatBytes(MAX_ATTACHMENTS_TOTAL_BYTES)} combined limit — attachments ride in the prompt itself, so they're kept small.`);
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = () => {
+        setAttachments(prev => [...prev, { name: file.name, content: String(reader.result ?? ''), size: file.size }]);
+      };
+      reader.onerror = () => setErr(`Couldn't read "${file.name}" as text.`);
+      reader.readAsText(file);
+    });
+  }
+
+  function removeAt(i) {
+    setAttachments(prev => prev.filter((_, idx) => idx !== i));
+  }
+
+  return (
+      <div className="border border-slate-200 rounded-xl p-3 flex flex-col gap-2"
+           title="Small text files only — appended to the prompt's context field, so they count toward the same budget/latency ceiling as everything else in the request">
+        <div className="flex items-center justify-between">
+          <p className="text-xs font-medium text-slate-500 flex items-center gap-1.5">
+            <Paperclip size={11} />Attachments
+            {attachments.length > 0 && (
+                <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-400">
+              {attachments.length} · {formatBytes(totalBytes)}
+            </span>
+            )}
+          </p>
+          {!disabled && (
+              <button onClick={() => inputRef.current?.click()}
+                      className="text-[10px] text-blue-500 underline shrink-0">
+                Add file
+              </button>
+          )}
+        </div>
+        <input ref={inputRef} type="file" multiple accept={ATTACHMENT_ACCEPT} className="hidden"
+               disabled={disabled}
+               onChange={e => { handleFiles(e.target.files); e.target.value = ''; }} />
+
+        {attachments.length === 0 ? (
+            <p className="text-[11px] text-slate-400">
+              {disabled ? 'None attached' : `Text files up to ${formatBytes(MAX_ATTACHMENT_BYTES)} each (.txt, .md, .csv, .json, .log)`}
+            </p>
+        ) : (
+            <ul className="space-y-1">
+              {attachments.map((a, i) => (
+                  <li key={i} className="flex items-center justify-between text-[11px] text-slate-600 bg-slate-50 rounded px-2 py-1">
+                    <span className="truncate" title={a.name}>{a.name}</span>
+                    <span className="flex items-center gap-1.5 shrink-0">
+                  <span className="text-slate-400">{formatBytes(a.size)}</span>
+                      {!disabled && (
+                          <button onClick={() => removeAt(i)} className="text-slate-400 hover:text-red-500">
+                            <X size={11} />
+                          </button>
+                      )}
+                </span>
+                  </li>
+              ))}
+            </ul>
+        )}
+        {err && <p className="text-[10px] text-red-500">{err}</p>}
+      </div>
+  );
+}
 
 // ── Shared SmartResponseRenderer helpers ──────────────────────────────────────
 function tryParseJson(text) {
@@ -186,294 +307,6 @@ function SmartResponseRenderer({ responseText, intentType }) {
   );
 }
 
-// ── Intent type suggestions ───────────────────────────────────────────────────
-const INTENT_SUGGESTIONS = [
-  // ── Payments ──────────────────────────────────────────
-  { id: 'detect_fraud_transaction', label: 'Detect Fraud Txn', category: 'Payments' },
-  { id: 'approve_payment', label: 'Approve Payment', category: 'Payments' },
-  { id: 'route_payment', label: 'Route Payment', category: 'Payments' },
-  { id: 'retry_payment', label: 'Retry Payment', category: 'Payments' },
-  { id: 'optimize_payment_rail', label: 'Optimize Payment Rail', category: 'Payments' },
-  { id: 'detect_duplicate_transaction', label: 'Detect Duplicate Txn', category: 'Payments' },
-  { id: 'flag_suspicious_transaction', label: 'Flag Suspicious Txn', category: 'Payments' },
-  { id: 'validate_transaction_limit', label: 'Validate Txn Limit', category: 'Payments' },
-  { id: 'authorize_card', label: 'Authorize Card', category: 'Payments' },
-  { id: 'decline_transaction', label: 'Decline Txn', category: 'Payments' },
-  { id: 'process_refund', label: 'Process Refund', category: 'Payments' },
-  { id: 'handle_chargeback', label: 'Handle Chargeback', category: 'Payments' },
-  { id: 'verify_upi', label: 'Verify Upi', category: 'Payments' },
-  { id: 'monitor_realtime_payment', label: 'Monitor Realtime Payment', category: 'Payments' },
-  { id: 'cross_border_check', label: 'Cross Border Check', category: 'Payments' },
-  { id: 'tokenize_card', label: 'Tokenize Card', category: 'Payments' },
-  { id: 'validate_card', label: 'Validate Card', category: 'Payments' },
-  { id: 'verify_bank_account', label: 'Verify Bank Account', category: 'Payments' },
-  { id: 'process_emi', label: 'Process Emi', category: 'Payments' },
-  { id: 'split_payment', label: 'Split Payment', category: 'Payments' },
-  { id: 'initiate_ach', label: 'Initiate Ach', category: 'Payments' },
-  { id: 'process_swift', label: 'Process Swift', category: 'Payments' },
-  { id: 'generate_payment_link', label: 'Gen Payment Link', category: 'Payments' },
-  { id: 'settle_payment', label: 'Settle Payment', category: 'Payments' },
-  { id: 'reverse_payment', label: 'Reverse Payment', category: 'Payments' },
-  // ── Lending ───────────────────────────────────────────
-  { id: 'approve_loan', label: 'Approve Loan', category: 'Lending' },
-  { id: 'reject_loan', label: 'Reject Loan', category: 'Lending' },
-  { id: 'calculate_credit_score', label: 'Calculate Credit Score', category: 'Lending' },
-  { id: 'assess_borrower_risk', label: 'Assess Borrower Risk', category: 'Lending' },
-  { id: 'determine_interest_rate', label: 'Determine Interest Rate', category: 'Lending' },
-  { id: 'predict_default', label: 'Predict Default', category: 'Lending' },
-  { id: 'detect_synthetic_identity', label: 'Detect Synthetic Identity', category: 'Lending' },
-  { id: 'verify_income', label: 'Verify Income', category: 'Lending' },
-  { id: 'evaluate_collateral', label: 'Evaluate Collateral', category: 'Lending' },
-  { id: 'preapprove_loan', label: 'Preapprove Loan', category: 'Lending' },
-  { id: 'recommend_loan', label: 'Recommend Loan', category: 'Lending' },
-  { id: 'assess_sme_credit', label: 'Assess Sme Credit', category: 'Lending' },
-  { id: 'monitor_loan_risk', label: 'Monitor Loan Risk', category: 'Lending' },
-  { id: 'trigger_loan_review', label: 'Trigger Loan Review', category: 'Lending' },
-  { id: 'adjust_credit_limit', label: 'Adjust Credit Limit', category: 'Lending' },
-  { id: 'disburse_loan', label: 'Disburse Loan', category: 'Lending' },
-  { id: 'close_loan', label: 'Close Loan', category: 'Lending' },
-  { id: 'restructure_loan', label: 'Restructure Loan', category: 'Lending' },
-  { id: 'process_loan_repayment', label: 'Process Loan Repayment', category: 'Lending' },
-  { id: 'onboard_borrower', label: 'Onboard Borrower', category: 'Lending' },
-  { id: 'verify_employment', label: 'Verify Employment', category: 'Lending' },
-  { id: 'generate_loan_statement', label: 'Gen Loan Statement', category: 'Lending' },
-  { id: 'assess_property', label: 'Assess Property', category: 'Lending' },
-  // ── AP / AR ───────────────────────────────────────────
-  { id: 'extract_invoice', label: 'Extract Invoice', category: 'AP/AR' },
-  { id: 'validate_invoice', label: 'Validate Invoice', category: 'AP/AR' },
-  { id: 'match_invoice_po', label: 'Match Invoice Po', category: 'AP/AR' },
-  { id: 'detect_duplicate_invoice', label: 'Detect Duplicate Invoice', category: 'AP/AR' },
-  { id: 'approve_invoice', label: 'Approve Invoice', category: 'AP/AR' },
-  { id: 'reject_invoice', label: 'Reject Invoice', category: 'AP/AR' },
-  { id: 'flag_invoice_anomaly', label: 'Flag Invoice Anomaly', category: 'AP/AR' },
-  { id: 'auto_code_invoice', label: 'Auto Code Invoice', category: 'AP/AR' },
-  { id: 'validate_tax_invoice', label: 'Validate Tax Invoice', category: 'AP/AR' },
-  { id: 'schedule_payment', label: 'Schedule Payment', category: 'AP/AR' },
-  { id: 'split_invoice', label: 'Split Invoice', category: 'AP/AR' },
-  { id: 'process_credit_note', label: 'Process Credit Note', category: 'AP/AR' },
-  { id: 'verify_invoice_compliance', label: 'Verify Invoice Compliance', category: 'AP/AR' },
-  { id: 'audit_invoice', label: 'Audit Invoice', category: 'AP/AR' },
-  { id: 'predict_payment_delay', label: 'Predict Payment Delay', category: 'AP/AR' },
-  { id: 'generate_invoice', label: 'Gen Invoice', category: 'AP/AR' },
-  { id: 'send_payment_reminder', label: 'Send Payment Reminder', category: 'AP/AR' },
-  { id: 'prioritize_collection', label: 'Prioritize Collection', category: 'AP/AR' },
-  { id: 'reconcile_receivable', label: 'Recone Receivable', category: 'AP/AR' },
-  { id: 'apply_payment', label: 'Apply Payment', category: 'AP/AR' },
-  { id: 'offer_discount', label: 'Offer Discount', category: 'AP/AR' },
-  { id: 'detect_overdue_risk', label: 'Detect Overdue Risk', category: 'AP/AR' },
-  { id: 'automate_dunning', label: 'Automate Dunning', category: 'AP/AR' },
-  { id: 'resolve_dispute', label: 'Resolve Dispute', category: 'AP/AR' },
-  { id: 'track_receivable_aging', label: 'Track Receivable Aging', category: 'AP/AR' },
-  { id: 'forecast_receivable', label: 'Forecast Receivable', category: 'AP/AR' },
-  { id: 'match_payment', label: 'Match Payment', category: 'AP/AR' },
-  { id: 'identify_bad_debt', label: 'Identify Bad Debt', category: 'AP/AR' },
-  { id: 'escalate_collection', label: 'Escalate Collection', category: 'AP/AR' },
-  // ── Treasury ──────────────────────────────────────────
-  { id: 'predict_cashflow', label: 'Predict Cashflow', category: 'Treasury' },
-  { id: 'optimize_liquidity', label: 'Optimize Liquidity', category: 'Treasury' },
-  { id: 'allocate_funds', label: 'Allocate Funds', category: 'Treasury' },
-  { id: 'detect_cash_anomaly', label: 'Detect Cash Anomaly', category: 'Treasury' },
-  { id: 'fx_conversion', label: 'Fx Conversion', category: 'Treasury' },
-  { id: 'forecast_treasury', label: 'Forecast Treasury', category: 'Treasury' },
-  { id: 'optimize_working_capital', label: 'Optimize Working Capital', category: 'Treasury' },
-  { id: 'monitor_bank_balance', label: 'Monitor Bank Balance', category: 'Treasury' },
-  { id: 'recommend_investment', label: 'Recommend Investment', category: 'Treasury' },
-  { id: 'manage_borrowing', label: 'Manage Borrowing', category: 'Treasury' },
-  { id: 'detect_cash_movement', label: 'Detect Cash Movement', category: 'Treasury' },
-  { id: 'balance_accounts', label: 'Balance Accounts', category: 'Treasury' },
-  { id: 'optimize_yield', label: 'Optimize Yield', category: 'Treasury' },
-  { id: 'plan_capital', label: 'Plan Capital', category: 'Treasury' },
-  { id: 'stress_liquidity', label: 'Stress Liquidity', category: 'Treasury' },
-  { id: 'manage_hedging', label: 'Manage Hedging', category: 'Treasury' },
-  { id: 'execute_sweep', label: 'Execute Sweep', category: 'Treasury' },
-  { id: 'manage_netting', label: 'Manage Netting', category: 'Treasury' },
-  { id: 'optimize_debt', label: 'Optimize Debt', category: 'Treasury' },
-  { id: 'monitor_counterparty_risk', label: 'Monitor Counterparty Risk', category: 'Treasury' },
-  // ── Fraud ─────────────────────────────────────────────
-  { id: 'fraud_detection', label: 'Fraud Detection', category: 'Fraud' },
-  { id: 'detect_aml', label: 'Detect Aml', category: 'Fraud' },
-  { id: 'flag_high_risk_account', label: 'Flag High Risk Account', category: 'Fraud' },
-  { id: 'monitor_behavior', label: 'Monitor Behavior', category: 'Fraud' },
-  { id: 'detect_insider_fraud', label: 'Detect Insider Fraud', category: 'Fraud' },
-  { id: 'score_customer_risk', label: 'Score Customer Risk', category: 'Fraud' },
-  { id: 'analyze_pattern', label: 'Analyze Pattern', category: 'Fraud' },
-  { id: 'detect_identity_theft', label: 'Detect Identity Theft', category: 'Fraud' },
-  { id: 'flag_login_risk', label: 'Flag Login Risk', category: 'Fraud' },
-  { id: 'assess_geo_risk', label: 'Assess Geo Risk', category: 'Fraud' },
-  { id: 'evaluate_merchant_risk', label: 'Evaluate Merchant Risk', category: 'Fraud' },
-  { id: 'monitor_velocity_fraud', label: 'Monitor Velocity Fraud', category: 'Fraud' },
-  { id: 'detect_card_skimming', label: 'Detect Card Skimming', category: 'Fraud' },
-  { id: 'identify_mule_account', label: 'Identify Mule Account', category: 'Fraud' },
-  { id: 'track_fraud_trend', label: 'Track Fraud Trend', category: 'Fraud' },
-  { id: 'trigger_fraud_alert', label: 'Trigger Fraud Alert', category: 'Fraud' },
-  { id: 'detect_account_takeover', label: 'Detect Account Takeover', category: 'Fraud' },
-  { id: 'detect_bot', label: 'Detect Bot', category: 'Fraud' },
-  { id: 'verify_device', label: 'Verify Device', category: 'Fraud' },
-  { id: 'score_transaction_risk', label: 'Score Txn Risk', category: 'Fraud' },
-  { id: 'detect_phishing', label: 'Detect Phishing', category: 'Fraud' },
-  { id: 'monitor_dark_web', label: 'Monitor Dark Web', category: 'Fraud' },
-  // ── Compliance ────────────────────────────────────────
-  { id: 'compliance_check', label: 'Compliance Check', category: 'Compliance' },
-  { id: 'kyc_verification', label: 'Kyc Verify', category: 'Compliance' },
-  { id: 'validate_document', label: 'Validate Document', category: 'Compliance' },
-  { id: 'screen_sanctions', label: 'Screen Sanctions', category: 'Compliance' },
-  { id: 'check_pep', label: 'Check Pep', category: 'Compliance' },
-  { id: 'monitor_compliance', label: 'Monitor Compliance', category: 'Compliance' },
-  { id: 'generate_compliance_report', label: 'Gen Compliance Report', category: 'Compliance' },
-  { id: 'audit_trail', label: 'Audit Trail', category: 'Compliance' },
-  { id: 'validate_regulation', label: 'Validate Regulation', category: 'Compliance' },
-  { id: 'detect_gdpr_violation', label: 'Detect Gdpr Violation', category: 'Compliance' },
-  { id: 'enforce_policy', label: 'Enforce Policy', category: 'Compliance' },
-  { id: 'track_audit_log', label: 'Track Audit Log', category: 'Compliance' },
-  { id: 'verify_onboarding', label: 'Verify Onboarding', category: 'Compliance' },
-  { id: 'monitor_suspicious_activity', label: 'Monitor Suspicious Activity', category: 'Compliance' },
-  { id: 'file_regulatory_report', label: 'File Reg Report', category: 'Compliance' },
-  { id: 'check_legality', label: 'Check Legality', category: 'Compliance' },
-  { id: 'verify_beneficial_owner', label: 'Verify Beneficial Owner', category: 'Compliance' },
-  { id: 'conduct_edd', label: 'Conduct Edd', category: 'Compliance' },
-  { id: 'assess_country_risk', label: 'Assess Country Risk', category: 'Compliance' },
-  { id: 'check_fatf', label: 'Check Fatf', category: 'Compliance' },
-  { id: 'monitor_transaction_reporting', label: 'Monitor Txn Reporting', category: 'Compliance' },
-  { id: 'validate_aml_rules', label: 'Validate Aml Rules', category: 'Compliance' },
-  { id: 'assess_tax_compliance', label: 'Assess Tax Compliance', category: 'Compliance' },
-  // ── Procurement ───────────────────────────────────────
-  { id: 'evaluate_vendor', label: 'Evaluate Vendor', category: 'Procurement' },
-  { id: 'approve_vendor', label: 'Approve Vendor', category: 'Procurement' },
-  { id: 'detect_vendor_fraud', label: 'Detect Vendor Fraud', category: 'Procurement' },
-  { id: 'score_vendor', label: 'Score Vendor', category: 'Procurement' },
-  { id: 'select_vendor', label: 'Select Vendor', category: 'Procurement' },
-  { id: 'monitor_vendor', label: 'Monitor Vendor', category: 'Procurement' },
-  { id: 'validate_contract', label: 'Validate Contract', category: 'Procurement' },
-  { id: 'detect_supplier_anomaly', label: 'Detect Supplier Anomaly', category: 'Procurement' },
-  { id: 'optimize_procurement', label: 'Optimize Procurement', category: 'Procurement' },
-  { id: 'track_vendor_payment', label: 'Track Vendor Payment', category: 'Procurement' },
-  { id: 'assess_supplier', label: 'Assess Supplier', category: 'Procurement' },
-  { id: 'rank_vendor', label: 'Rank Vendor', category: 'Procurement' },
-  { id: 'audit_vendor', label: 'Audit Vendor', category: 'Procurement' },
-  { id: 'flag_supplier_risk', label: 'Flag Supplier Risk', category: 'Procurement' },
-  { id: 'renew_contract', label: 'Renew Contract', category: 'Procurement' },
-  { id: 'generate_purchase_order', label: 'Gen Purchase Order', category: 'Procurement' },
-  { id: 'approve_purchase_order', label: 'Approve Purchase Order', category: 'Procurement' },
-  { id: 'track_delivery', label: 'Track Delivery', category: 'Procurement' },
-  { id: 'manage_spend', label: 'Manage Spend', category: 'Procurement' },
-  // ── Investments ───────────────────────────────────────
-  { id: 'recommend_portfolio', label: 'Recommend Portfolio', category: 'Investments' },
-  { id: 'execute_trade', label: 'Execute Trade', category: 'Investments' },
-  { id: 'detect_market_anomaly', label: 'Detect Market Anomaly', category: 'Investments' },
-  { id: 'risk_adjusted_return', label: 'Risk Adjusted Return', category: 'Investments' },
-  { id: 'trigger_stop_loss', label: 'Trigger Stop Loss', category: 'Investments' },
-  { id: 'optimize_portfolio', label: 'Optimize Portfolio', category: 'Investments' },
-  { id: 'predict_stock', label: 'Predict Stock', category: 'Investments' },
-  { id: 'analyze_sentiment', label: 'Analyze Sentiment', category: 'Investments' },
-  { id: 'balance_portfolio', label: 'Balance Portfolio', category: 'Investments' },
-  { id: 'allocate_assets', label: 'Allocate Assets', category: 'Investments' },
-  { id: 'detect_arbitrage', label: 'Detect Arbitrage', category: 'Investments' },
-  { id: 'evaluate_fund', label: 'Evaluate Fund', category: 'Investments' },
-  { id: 'track_volatility', label: 'Track Volatility', category: 'Investments' },
-  { id: 'rebalance_portfolio', label: 'Rebalance Portfolio', category: 'Investments' },
-  { id: 'manage_exposure', label: 'Manage Exposure', category: 'Investments' },
-  { id: 'calculate_var', label: 'Calculate Var', category: 'Investments' },
-  { id: 'assess_esg', label: 'Assess Esg', category: 'Investments' },
-  { id: 'backtest_strategy', label: 'Backtest Strategy', category: 'Investments' },
-  { id: 'monitor_market_risk', label: 'Monitor Market Risk', category: 'Investments' },
-  { id: 'optimize_tax_loss', label: 'Optimize Tax Loss', category: 'Investments' },
-  { id: 'generate_trade_report', label: 'Gen Trade Report', category: 'Investments' },
-  // ── Customer Ops ──────────────────────────────────────
-  { id: 'recommend_product', label: 'Recommend Product', category: 'Customer Ops' },
-  { id: 'detect_churn', label: 'Detect Churn', category: 'Customer Ops' },
-  { id: 'personalize_offer', label: 'Personalize Offer', category: 'Customer Ops' },
-  { id: 'resolve_customer_dispute', label: 'Resolve Customer Dispute', category: 'Customer Ops' },
-  { id: 'generate_support', label: 'Gen Support', category: 'Customer Ops' },
-  { id: 'analyze_sentiment_customer', label: 'Analyze Sentiment Customer', category: 'Customer Ops' },
-  { id: 'segment_customer', label: 'Segment Customer', category: 'Customer Ops' },
-  { id: 'detect_upsell', label: 'Detect Upsell', category: 'Customer Ops' },
-  { id: 'track_engagement', label: 'Track Engagement', category: 'Customer Ops' },
-  { id: 'recommend_card', label: 'Recommend Card', category: 'Customer Ops' },
-  { id: 'offer_upgrade', label: 'Offer Upgrade', category: 'Customer Ops' },
-  { id: 'predict_clv', label: 'Predict Clv', category: 'Customer Ops' },
-  { id: 'detect_dissatisfaction', label: 'Detect Dissatisfaction', category: 'Customer Ops' },
-  { id: 'route_support', label: 'Route Support', category: 'Customer Ops' },
-  { id: 'optimize_retention', label: 'Optimize Retention', category: 'Customer Ops' },
-  { id: 'onboard_customer', label: 'Onboard Customer', category: 'Customer Ops' },
-  { id: 'verify_identity', label: 'Verify Identity', category: 'Customer Ops' },
-  { id: 'close_account', label: 'Close Account', category: 'Customer Ops' },
-  { id: 'handle_complaint', label: 'Handle Complaint', category: 'Customer Ops' },
-  { id: 'generate_statement', label: 'Gen Statement', category: 'Customer Ops' },
-  { id: 'update_kyc', label: 'Update Kyc', category: 'Customer Ops' },
-  // ── Reconciliation ────────────────────────────────────
-  { id: 'reconcile_transaction', label: 'Recone Txn', category: 'Reconciliation' },
-  { id: 'match_ledger', label: 'Match Ledger', category: 'Reconciliation' },
-  { id: 'detect_recon_gap', label: 'Detect Recon Gap', category: 'Reconciliation' },
-  { id: 'resolve_mismatch', label: 'Resolve Mismatch', category: 'Reconciliation' },
-  { id: 'automate_settlement', label: 'Automate Settlement', category: 'Reconciliation' },
-  { id: 'validate_entries', label: 'Validate Entries', category: 'Reconciliation' },
-  { id: 'track_unmatched', label: 'Track Unmatched', category: 'Reconciliation' },
-  { id: 'identify_breaks', label: 'Identify Breaks', category: 'Reconciliation' },
-  { id: 'adjust_ledger', label: 'Adjust Ledger', category: 'Reconciliation' },
-  { id: 'close_books', label: 'Close Books', category: 'Reconciliation' },
-  { id: 'reconcile_bank', label: 'Recone Bank', category: 'Reconciliation' },
-  { id: 'reconcile_intercompany', label: 'Recone Intercompany', category: 'Reconciliation' },
-  { id: 'validate_nostro', label: 'Validate Nostro', category: 'Reconciliation' },
-  { id: 'reconcile_tax', label: 'Recone Tax', category: 'Reconciliation' },
-  { id: 'perform_period_close', label: 'Perform Period Close', category: 'Reconciliation' },
-  // ── Billing ───────────────────────────────────────────
-  { id: 'calculate_usage', label: 'Calculate Usage', category: 'Billing' },
-  { id: 'generate_bill', label: 'Gen Bill', category: 'Billing' },
-  { id: 'detect_revenue_leakage', label: 'Detect Revenue Leakage', category: 'Billing' },
-  { id: 'optimize_pricing', label: 'Optimize Pricing', category: 'Billing' },
-  { id: 'forecast_revenue', label: 'Forecast Revenue', category: 'Billing' },
-  { id: 'apply_tax', label: 'Apply Tax', category: 'Billing' },
-  { id: 'invoice_customer', label: 'Invoice Customer', category: 'Billing' },
-  { id: 'track_subscription', label: 'Track Subscription', category: 'Billing' },
-  { id: 'prorate_charges', label: 'Prorate Charges', category: 'Billing' },
-  { id: 'audit_billing', label: 'Audit Billing', category: 'Billing' },
-  { id: 'process_renewal', label: 'Process Renewal', category: 'Billing' },
-  { id: 'upgrade_plan', label: 'Upgrade Plan', category: 'Billing' },
-  { id: 'downgrade_plan', label: 'Downgrade Plan', category: 'Billing' },
-  { id: 'issue_refund', label: 'Issue Refund', category: 'Billing' },
-  { id: 'handle_payment_failure', label: 'Handle Payment Failure', category: 'Billing' },
-  { id: 'apply_coupon', label: 'Apply Coupon', category: 'Billing' },
-  { id: 'generate_receipt', label: 'Gen Receipt', category: 'Billing' },
-  { id: 'validate_billing_info', label: 'Validate Billing Info', category: 'Billing' },
-  // ── Insurance ─────────────────────────────────────────
-  { id: 'assess_insurance_risk', label: 'Assess Insurance Risk', category: 'Insurance' },
-  { id: 'process_claim', label: 'Process Claim', category: 'Insurance' },
-  { id: 'detect_claim_fraud', label: 'Detect Claim Fraud', category: 'Insurance' },
-  { id: 'calculate_premium', label: 'Calculate Premium', category: 'Insurance' },
-  { id: 'underwrite_policy', label: 'Underwrite Policy', category: 'Insurance' },
-  { id: 'renew_policy', label: 'Renew Policy', category: 'Insurance' },
-  { id: 'validate_claim', label: 'Validate Claim', category: 'Insurance' },
-  { id: 'approve_claim', label: 'Approve Claim', category: 'Insurance' },
-  { id: 'reject_claim', label: 'Reject Claim', category: 'Insurance' },
-  { id: 'monitor_policy', label: 'Monitor Policy', category: 'Insurance' },
-  // ── Reporting ─────────────────────────────────────────
-  { id: 'generate_financial_report', label: 'Gen Financial Report', category: 'Reporting' },
-  { id: 'generate_regulatory_report', label: 'Gen Reg Report', category: 'Reporting' },
-  { id: 'consolidate_accounts', label: 'Consolidate Accounts', category: 'Reporting' },
-  { id: 'generate_tax_report', label: 'Gen Tax Report', category: 'Reporting' },
-  { id: 'generate_management_report', label: 'Gen Mgmt Report', category: 'Reporting' },
-  { id: 'validate_report', label: 'Validate Report', category: 'Reporting' },
-  { id: 'distribute_report', label: 'Distribute Report', category: 'Reporting' },
-  { id: 'archive_report', label: 'Archive Report', category: 'Reporting' },
-  { id: 'generate_board_report', label: 'Gen Board Report', category: 'Reporting' },
-  { id: 'track_kpi', label: 'Track Kpi', category: 'Reporting' },
-  // ── Risk ──────────────────────────────────────────────
-  { id: 'assess_operational_risk', label: 'Assess Operational Risk', category: 'Risk' },
-  { id: 'assess_credit_risk', label: 'Assess Credit Risk', category: 'Risk' },
-  { id: 'monitor_concentration_risk', label: 'Monitor Concentration Risk', category: 'Risk' },
-  { id: 'stress_test', label: 'Stress Test', category: 'Risk' },
-  { id: 'calculate_capital_adequacy', label: 'Calculate Capital Adequacy', category: 'Risk' },
-  { id: 'monitor_limit_breach', label: 'Monitor Limit Breach', category: 'Risk' },
-  { id: 'generate_risk_report', label: 'Gen Risk Report', category: 'Risk' },
-  { id: 'assess_model_risk', label: 'Assess Model Risk', category: 'Risk' },
-  { id: 'track_risk_appetite', label: 'Track Risk Appetite', category: 'Risk' },
-  { id: 'escalate_risk', label: 'Escalate Risk', category: 'Risk' },
-  // ── General ─────────────────────────────────────────────────────
-  { id: 'custom', label: 'Custom', category: 'General' },
-];
-
-const INTENT_CATEGORIES = ['All', 'Payments', 'Lending', 'AP/AR', 'Treasury', 'Fraud', 'Compliance', 'Procurement', 'Investments', 'Customer Ops', 'Reconciliation', 'Billing', 'Insurance', 'Reporting', 'Risk', 'General'];
-
 // ── Default payload — control plane focused ───────────────────────────────────
 // Shows budget ceiling, policy rules, and constraints — the actual product.
 const DEFAULT = JSON.stringify({
@@ -497,545 +330,362 @@ const DEFAULT = JSON.stringify({
     requireHumanReview: false,
   },
 }, null, 2);
-
-// ── Example intents — SATISFIED and VIOLATED ─────────────────────────────────
-// These two payloads populate every card on the IntentDetail page.
-// SATISFIED: all constraints are achievable — intent completes cleanly.
-// VIOLATED:  budget ceiling is set below realistic cost — will be exceeded.
-
-const EXAMPLE_SATISFIED = {
-  intentType: 'fraud_detection',
-  objective: {
-    description:     'Analyse this payment transaction for fraud signals and return a risk score with reasoning',
-    userMessage:     'Transaction TXN-20260420-084521: $4,832 wire transfer to an overseas account, initiated at 02:14 AM, from a device not seen before. Analyse fraud risk.',
-    fintechCategory: 'FRAUD',
-    riskLevel:       'HIGH',
-    sourceSystem:    'payment-gateway-v3',
-    transactionRef:  'TXN-20260420-084521',
-  },
-  constraints: {
-    maxRetries:          2,
-    timeoutSeconds:      30,
-    maxLatencyMs:        2000,
-    maxDriftThreshold:   0.20,
-  },
-  budget: {
-    ceilingUsd: 0.50,
-    currency:   'USD',
-  },
-  policy: {
-    allowedModels:      ['gpt-4o-mini', 'claude-haiku-3'],
-    blockTopics:        ['personal_data_retention'],
-    requireHumanReview: false,
-    auditLevel:         'STANDARD',
-    driftThreshold:     0.20,
-    alertOnDrift:       true,
-  },
-};
-
-const EXAMPLE_VIOLATED = {
-  intentType: 'fraud_detection',
-  objective: {
-    description:     'Analyse this payment transaction for fraud signals and return a risk score with reasoning',
-    fintechCategory: 'FRAUD',
-    riskLevel:       'HIGH',
-    sourceSystem:    'payment-gateway-v3',
-    transactionRef:  'TXN-20260420-084521',
-  },
-  constraints: {
-    maxRetries:          0,
-    timeoutSeconds:      1,
-    maxLatencyMs:        50,
-    maxDriftThreshold:   0.01,
-  },
-  budget: {
-    ceilingUsd: 0.00001,
-    currency:   'USD',
-  },
-  policy: {
-    allowedModels:      ['gpt-4o-mini'],
-    blockTopics:        ['personal_data_retention', 'fraud', 'risk', 'transaction'],
-    requireHumanReview: false,
-    auditLevel:         'IMMUTABLE',
-    driftThreshold:     0.01,
-    alertOnDrift:       true,
-  },
-};
-
-// ── Payload templates ─────────────────────────────────────────────────────────
-const TEMPLATES = {
-  budget_enforcement: {
-    label: 'Budget enforcement',
-    icon:  '💰',
-    description: 'Hard ceiling — intent fails rather than overruns budget',
-    payload: {
-      intentType: 'chat',
-      objective:  { description: 'Summarise the quarterly earnings report' },
-      constraints:{ maxRetries: 2, timeoutSeconds: 15 },
-      budget:     { ceilingUsd: 0.01, currency: 'USD' },
-      policy:     { allowedModels: ['gpt-4o-mini', 'claude-haiku-3'] },
-    },
-  },
-  policy_block: {
-    label: 'Policy + topic block',
-    icon:  '🛡️',
-    description: 'Blocks response if blocked topic is detected in output',
-    payload: {
-      intentType: 'chat',
-      objective:  { description: 'Help the user with their account query' },
-      constraints:{ maxRetries: 3, timeoutSeconds: 30 },
-      budget:     { ceilingUsd: 0.05, currency: 'USD' },
-      policy: {
-        allowedModels:      ['gpt-4o-mini'],
-        blockTopics:        ['competitor_products', 'pricing_promises'],
-        requireHumanReview: false,
-        driftThreshold:     0.15,
-      },
-    },
-  },
-  fraud_signal: {
-    label: 'Fraud detection',
-    icon:  '🔍',
-    description: 'High-stakes intent — routes to premium, flags for review',
-    payload: {
-      intentType: 'fraud_detection',
-      objective: {
-        description:     'Analyse transaction pattern for fraud signals',
-        fintechCategory: 'FRAUD',
-        riskLevel:       'HIGH',
-      },
-      constraints:{ maxRetries: 1, timeoutSeconds: 6, maxLatencyMs: 10000 },
-      budget:     { ceilingUsd: 0.20, currency: 'USD' },
-      policy: {
-        requireHumanReview: true,
-        auditLevel:         'IMMUTABLE',
-        alertOnDrift:       true,
-      },
-    },
-  },
-  hitl_gate: {
-    label: 'Human-in-the-loop',
-    icon:  '👤',
-    description: 'Pauses execution for human approval before completing',
-    payload: {
-      intentType: 'compliance_check',
-      objective: {
-        description:     'Review loan application for regulatory compliance',
-        fintechCategory: 'COMPLIANCE',
-      },
-      constraints:{ maxRetries: 0, timeoutSeconds: 300 },
-      budget:     { ceilingUsd: 0.50, currency: 'USD' },
-      policy: {
-        requireHumanReview: true,
-        humanReviewTimeout: 3600,
-        escalationEmail:    'compliance@yourcompany.com',
-      },
-    },
-  },
-  byok_routing: {
-    label: 'BYOK routing',
-    icon:  '🔑',
-    description: 'Routes to your own API key — 1 credit orchestration only',
-    payload: {
-      intentType: 'chat',
-      objective:  { description: 'Process using my Anthropic contract key' },
-      constraints:{ maxRetries: 3, timeoutSeconds: 30 },
-      budget:     { ceilingUsd: 0.10, currency: 'USD' },
-      adapter: {
-        type:     'byok',
-        provider: 'anthropic',
-        model:    'claude-haiku-3',
-      },
-    },
-  },
-  byom_routing: {
-    label: 'BYOM routing',
-    icon:  '⚙️',
-    description: 'Routes to your self-hosted model — zero data egress',
-    payload: {
-      intentType: 'classification',
-      objective:  { description: 'Classify document using on-prem model' },
-      constraints:{ maxRetries: 2, timeoutSeconds: 15, maxLatencyMs: 10000 },
-      budget:     { ceilingUsd: 0.01, currency: 'USD' },
-      adapter: {
-        type:         'byom',
-        endpointName: 'my-layoutlmv3-endpoint',
-      },
-    },
-  },
-};
-
 // ── Model tier selector ───────────────────────────────────────────────────────
+// Compact dropdown — mirrors the mockup's "Override Adapter" style instead of
+// a card grid, but still drives the real MODEL_TIERS selection and credit
+// cost underneath (unlike the mockup's Execution Mode/Execution Profile
+// fields, which have no backend concept behind them and aren't reproduced
+// here).
 function ModelTierSelector({ selected, onChange, navigate }) {
   const tiers = Object.entries(MODEL_TIERS);
+  const tier  = MODEL_TIERS[selected];
+  const isSpecial = selected === 'byok' || selected === 'byom';
 
   return (
       <Card>
-        <CardHeader><CardTitle>Adapter tier</CardTitle></CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-2">
-            {tiers.map(([key, tier]) => {
-              const isByok = key === 'byok';
-              const isByom = key === 'byom';
-              const isSpecial = isByok || isByom;
-
-              return (
-                  <button key={key} type="button" onClick={() => onChange(key)}
-                          className="text-left p-3 rounded-xl border-2 transition-all relative"
-                          style={{
-                            borderColor:     selected === key ? tier.color : '#e2e8f0',
-                            backgroundColor: selected === key ? tier.bg    : 'white',
-                          }}>
-                    <div className="flex items-center justify-between mb-1">
-                  <span className="text-xs font-bold" style={{ color: tier.color }}>
-                    {isSpecial && (isByok ? <Key size={9} className="inline mr-1" /> : <Cpu size={9} className="inline mr-1" />)}
-                    {tier.label}
-                  </span>
-                      <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full text-white"
-                            style={{ backgroundColor: tier.color }}>
-                    {tier.credits} cr
-                  </span>
-                    </div>
-                    <p className="text-[10px] text-slate-500 leading-tight">{tier.models}</p>
-                    {isSpecial && (
-                        <button
-                            onClick={e => { e.stopPropagation(); navigate('/billing?tab=byok'); }}
-                            className="mt-1.5 text-[10px] underline"
-                            style={{ color: tier.color }}>
-                          Configure →
-                        </button>
-                    )}
-                  </button>
-              );
-            })}
+        <CardHeader className="py-2.5">
+          <div className="flex items-center gap-2">
+            <span className="flex items-center justify-center w-5 h-5 rounded-full bg-slate-100 text-slate-500 text-[11px] font-bold shrink-0">3</span>
+            <CardTitle>Execution</CardTitle>
           </div>
-          <p className="text-xs text-slate-400">
-            BYOK and BYOM charge 1 credit for orchestration only — your provider or model handles execution.
-          </p>
+        </CardHeader>
+        <CardContent className="space-y-1.5 py-3">
+          <label className="block">
+            <span className="text-[10px] font-medium text-slate-500 uppercase tracking-wide">Adapter tier</span>
+            <select
+                value={selected}
+                onChange={e => onChange(e.target.value)}
+                className="mt-1 w-full text-sm border border-slate-200 rounded-lg px-3 py-1.5 bg-white focus:outline-none focus:border-blue-400">
+              {tiers.map(([key, t]) => (
+                  <option key={key} value={key}>{t.label} — {t.models} ({t.credits} cr)</option>
+              ))}
+            </select>
+          </label>
+          {isSpecial && (
+              <p className="text-xs text-slate-400">
+                {tier.credits} credit for orchestration only — your provider or model handles execution.{' '}
+                <button onClick={() => navigate('/billing?tab=byok')} className="underline" style={{ color: tier.color }}>
+                  Configure →
+                </button>
+              </p>
+          )}
         </CardContent>
       </Card>
   );
 }
 
-// ── Template browser ──────────────────────────────────────────────────────────
-function TemplateBrowser({ onLoad }) {
-  const [open, setOpen] = useState(false);
-
+// ── Effective policy stack — 4 columns matching the mockup. Tenant-wide and
+// Project are real (PolicyEntity.scope supports TENANT/PROJECT, and the list
+// endpoint exposes both). Intent-type and Execution-profile are greyed out:
+// INTENT_TYPE is a real enforcement-time scope (PolicyQueryPort matches
+// scopeRefId == intentTypeId), but the list/create API doesn't expose or
+// accept it yet (PolicyResponse only surfaces projectId, and
+// SavePolicyRequest rejects any scope other than TENANT/PROJECT) — so there's
+// no way to see or create one today even though it would be enforced.
+// Execution Profile has no backend concept anywhere.
+function PolicyColumn({ title, icon, locked, lockedReason, items, emptyLabel }) {
   return (
-      <Card>
-        <button className="w-full" onClick={() => setOpen(o => !o)}>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <BookOpen size={14} className="text-slate-500" />
-                <CardTitle>Example intents</CardTitle>
-                <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-blue-50 text-blue-600 border border-blue-100">
-                {Object.keys(TEMPLATES).length + 2} examples
-              </span>
-              </div>
-              {open
-                  ? <ChevronUp size={14} className="text-slate-400" />
-                  : <ChevronDown size={14} className="text-slate-400" />}
-            </div>
-          </CardHeader>
-        </button>
-
-        {open && (
-            <CardContent className="pt-0 space-y-4">
-
-              {/* ── Featured: SATISFIED + VIOLATED ── */}
-              <div>
-                <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide mb-2">
-                  See positive &amp; negative results
-                </p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-
-                  {/* SATISFIED example */}
-                  <button type="button"
-                          onClick={() => { onLoad(EXAMPLE_SATISFIED); setOpen(false); }}
-                          className="text-left p-3 rounded-xl border-2 border-green-200 bg-green-50 hover:border-green-400 hover:bg-green-100 transition-all group">
-                    <div className="flex items-center gap-2 mb-1.5">
-                  <span className="w-5 h-5 rounded-full bg-green-500 flex items-center justify-center flex-shrink-0">
-                    <span className="text-white text-[10px] font-bold">✓</span>
-                  </span>
-                      <span className="text-xs font-bold text-green-800">SATISFIED example</span>
-                    </div>
-                    <p className="text-[10px] text-green-700 leading-snug mb-2">
-                      Fraud detection intent with realistic budget ($0.50), generous constraints, and achievable policy rules — completes successfully.
-                    </p>
-                    <div className="flex flex-wrap gap-1">
-                      {['budget: $0.50', 'retries: 2', 'timeout: 30s', 'drift: 0.20'].map(t => (
-                          <span key={t} className="text-[9px] px-1.5 py-0.5 rounded bg-green-200 text-green-800 font-medium">{t}</span>
-                      ))}
-                    </div>
-                  </button>
-
-                  {/* VIOLATED example */}
-                  <button type="button"
-                          onClick={() => { onLoad(EXAMPLE_VIOLATED); setOpen(false); }}
-                          className="text-left p-3 rounded-xl border-2 border-red-200 bg-red-50 hover:border-red-400 hover:bg-red-100 transition-all group">
-                    <div className="flex items-center gap-2 mb-1.5">
-                  <span className="w-5 h-5 rounded-full bg-red-500 flex items-center justify-center flex-shrink-0">
-                    <span className="text-white text-[10px] font-bold">✕</span>
-                  </span>
-                      <span className="text-xs font-bold text-red-800">VIOLATED example</span>
-                    </div>
-                    <p className="text-[10px] text-red-700 leading-snug mb-2">
-                      Same intent — budget set to $0.00001, timeout 1s, topic blocks cover the actual content. Will breach constraints and fail.
-                    </p>
-                    <div className="flex flex-wrap gap-1">
-                      {['budget: $0.00001', 'retries: 0', 'timeout: 1s', 'drift: 0.01'].map(t => (
-                          <span key={t} className="text-[9px] px-1.5 py-0.5 rounded bg-red-200 text-red-800 font-medium">{t}</span>
-                      ))}
-                    </div>
-                  </button>
-
-                </div>
-              </div>
-
-              {/* ── Divider ── */}
-              <div className="border-t border-slate-100" />
-
-              {/* ── Other templates ── */}
-              <div>
-                <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide mb-2">
-                  Feature templates
-                </p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  {Object.entries(TEMPLATES).map(([key, tmpl]) => (
-                      <button key={key} type="button"
-                              onClick={() => { onLoad(tmpl.payload); setOpen(false); }}
-                              className="text-left p-3 rounded-lg border border-slate-200 hover:border-blue-300 hover:bg-blue-50 transition-all group">
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="text-base">{tmpl.icon}</span>
-                          <span className="text-xs font-semibold text-slate-800 group-hover:text-blue-700">
-                      {tmpl.label}
-                    </span>
-                        </div>
-                        <p className="text-[10px] text-slate-500 leading-snug">{tmpl.description}</p>
-                      </button>
-                  ))}
-                </div>
-              </div>
-
-              <p className="text-[10px] text-slate-400 text-center">
-                For domain-specific intent templates →{' '}
-                <button
-                    onClick={() => window.location.href = '/fintech-intents'}
-                    className="text-blue-500 underline">
-                  browse 264 fintech intents
-                </button>
-              </p>
-            </CardContent>
+      <div className={locked ? 'opacity-40' : ''} title={locked ? lockedReason : undefined}>
+        <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide flex items-center gap-1 mb-1.5">
+          {locked ? <Lock size={9} /> : icon}
+          {title}
+          {!locked && items.length > 0 && (
+              <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-400 normal-case font-normal">{items.length}</span>
+          )}
+        </p>
+        {locked ? (
+            <p className="text-xs text-slate-400">Unavailable</p>
+        ) : items.length === 0 ? (
+            <p className="text-xs text-slate-400">{emptyLabel}</p>
+        ) : (
+            <ul className="space-y-1">
+              {items.map(p => (
+                  <li key={p.policyId} className="text-xs text-slate-600 flex items-start gap-1.5">
+                    <CheckCircle2 size={11} className="text-green-500 shrink-0 mt-0.5" />
+                    <span className="truncate" title={p.name}>{p.name}</span>
+                  </li>
+              ))}
+            </ul>
         )}
-      </Card>
-  );
-}
-
-// ── Policy summary strip ──────────────────────────────────────────────────────
-// Shows what governance rules are active in the current payload at a glance
-function PolicyStrip({ json }) {
-  let policy = null;
-  let budget = null;
-  let constraints = null;
-
-  try {
-    const parsed  = JSON.parse(json);
-    policy        = parsed.policy;
-    budget        = parsed.budget;
-    constraints   = parsed.constraints;
-  } catch { return null; }
-
-  const rules = [];
-
-  if (budget?.ceilingUsd)
-    rules.push({ icon: '💰', label: `$${budget.ceilingUsd} ceiling`, color: '#16a34a' });
-
-  if (constraints?.maxRetries !== undefined)
-    rules.push({ icon: '🔁', label: `${constraints.maxRetries} retries`, color: '#2563eb' });
-
-  if (constraints?.maxLatencyMs)
-    rules.push({ icon: '⏱', label: `${constraints.maxLatencyMs}ms max`, color: '#0d9488' });
-
-  if (policy?.requireHumanReview)
-    rules.push({ icon: '👤', label: 'HITL gate', color: '#7c3aed' });
-
-  if (policy?.blockTopics?.length)
-    rules.push({ icon: '🚫', label: `${policy.blockTopics.length} blocked topics`, color: '#dc2626' });
-
-  if (policy?.driftThreshold)
-    rules.push({ icon: '📊', label: `Drift ≤ ${policy.driftThreshold}`, color: '#d97706' });
-
-  if (!rules.length) return null;
-
-  return (
-      <div className="flex flex-wrap gap-1.5 px-1">
-        {rules.map(r => (
-            <span key={r.label}
-                  className="flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full border"
-                  style={{ color: r.color, borderColor: r.color + '40', backgroundColor: r.color + '10' }}>
-          {r.icon} {r.label}
-        </span>
-        ))}
       </div>
   );
 }
 
-// ── Intent type selector — free-form + suggestions ───────────────────────────
-// intentType is a free-form string in the Quarkus backend (no enum).
-// Chips are quick-select shortcuts only — user can type anything.
-// When an intentType is already set (from paste or selection), collapse the
-// browser and show only a compact badge — click to expand and change.
-function IntentTypeSelector({ json, onSelect }) {
-  const [customVal, setCustomVal] = useState('');
-  const [expanded, setExpanded] = useState(false);
+function ActivePoliciesCard({ keycloak, navigate }) {
+  const { activeProject } = useProject();
+  const [policies, setPolicies] = useState(null); // null = loading
 
-  const currentType = (() => {
-    try { return JSON.parse(json)?.intentType ?? ''; }
-    catch { return ''; }
-  })();
-
-  // Collapse once a type is chosen — pasting JSON or picking a chip both land
-  // here, so selection closes the picker without an explicit dismiss.
   useEffect(() => {
-    if (currentType) setExpanded(false);
-  }, [currentType]);
+    listPolicies(keycloak).then(setPolicies).catch(() => setPolicies([]));
+  }, [keycloak]);
 
-  // Derive category from current intentType — default Fintech
-  const matchedCategory = (() => {
-    if (!currentType) return 'All';
-    const match = INTENT_SUGGESTIONS.find(t => t.id === currentType);
-    return match ? match.category : 'All';
-  })();
+  const tenantPolicies  = (policies ?? []).filter(p => p.scope === 'TENANT');
+  const projectPolicies = (policies ?? []).filter(p => p.scope === 'PROJECT' && p.projectId === activeProject?.id);
+  const applicableCount = tenantPolicies.length + projectPolicies.length;
 
-  const [catFilter, setCatFilter] = useState(matchedCategory);
-
-  // Sync category tab whenever intentType changes
-  useEffect(() => {
-    setCatFilter(matchedCategory);
-  }, [matchedCategory]);
-
-  const filtered = catFilter === 'All'
-      ? INTENT_SUGGESTIONS
-      : INTENT_SUGGESTIONS.filter(t => t.category === catFilter);
-
-  function handleCustomSubmit(e) {
-    e.preventDefault();
-    const val = customVal.trim().toLowerCase().replace(/\s+/g, '_');
-    if (val) { onSelect(val); setCustomVal(''); setExpanded(false); }
-  }
-
-  // ── Collapsed view — the default, whether or not an intentType is set ───────
-  //
-  // Previously this was `currentType && !expanded`, so clearing the JSON emptied
-  // currentType and dropped the user into the full suggestion grid — the page
-  // jumped from one compact row to several hundred chips mid-edit. Deleting text
-  // is not a request to browse intent types.
-  //
-  // The grid now opens only when the user asks for it. With no type set, the
-  // badge shows an em dash rather than a stale value: honest about the state,
-  // and the layout does not move.
-  if (!expanded) {
-    return (
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <CardTitle>Intent type</CardTitle>
-                <span className={`text-xs font-mono font-semibold px-2.5 py-0.5 rounded-full ${
-                    currentType ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-400'
-                }`}>
-                {currentType || '—'}
-              </span>
-              </div>
-              <button
-                  onClick={() => setExpanded(true)}
-                  className="text-[10px] text-blue-500 hover:text-blue-700 font-medium transition-colors">
-                {currentType ? 'Change →' : 'Choose →'}
-              </button>
-            </div>
-          </CardHeader>
-        </Card>
-    );
-  }
-
-  // ── Expanded view — shown when no intentType set, or user clicked Change ────
   return (
       <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between flex-wrap gap-2">
-            <div>
-              <CardTitle>Intent type</CardTitle>
-              <p className="text-[10px] text-slate-400 mt-0.5 font-normal">
-                Free-form string — type anything or pick a suggestion
-              </p>
-            </div>
+        <CardHeader className="py-2.5">
+          <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              {currentType && (
-                  <button
-                      onClick={() => setExpanded(false)}
-                      className="text-[10px] text-slate-400 hover:text-slate-600 font-medium transition-colors">
-                    ✕ Cancel
-                  </button>
-              )}
-              <div className="flex gap-1">
-                {INTENT_CATEGORIES.map(c => (
-                    <button key={c} onClick={() => setCatFilter(c)}
-                            className={`px-2 py-0.5 rounded-md text-[10px] font-medium transition-colors ${
-                                catFilter === c
-                                    ? 'bg-blue-600 text-white'
-                                    : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
-                            }`}>
-                      {c}
-                    </button>
-                ))}
-              </div>
+              <span className="flex items-center justify-center w-5 h-5 rounded-full bg-slate-100 text-slate-500 text-[11px] font-bold shrink-0">4</span>
+              <Shield size={14} className="text-slate-500" />
+              <CardTitle>Effective policy stack</CardTitle>
             </div>
+            <button onClick={() => navigate('/policies')} className="text-[10px] text-blue-500 underline shrink-0">
+              View all policies →
+            </button>
           </div>
         </CardHeader>
-        <CardContent className="space-y-3">
-          {/* Suggestion chips */}
-          <div className="flex gap-1.5 flex-wrap">
-            {filtered.map(t => {
-              const sel = currentType === t.id;
-              return (
-                  <button key={t.id} type="button" onClick={() => onSelect(t.id)}
-                          className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
-                              sel
-                                  ? 'bg-blue-600 text-white border-blue-600'
-                                  : 'bg-white text-slate-600 border-slate-200 hover:border-blue-300'
-                          }`}>
-                    {t.label}
-                  </button>
-              );
-            })}
+        <CardContent className="pt-0 pb-3">
+          {policies === null ? (
+              <p className="text-xs text-slate-400">Loading…</p>
+          ) : (
+              <>
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                  <PolicyColumn title="Tenant-wide" icon={<Shield size={9} className="text-slate-400" />}
+                    items={tenantPolicies} emptyLabel="None yet" />
+                  <PolicyColumn title="Project" icon={<Shield size={9} className="text-slate-400" />}
+                    items={projectPolicies} emptyLabel="None yet" />
+                  <PolicyColumn title="Intent-type" locked
+                    lockedReason="INTENT_TYPE-scoped policies are enforced server-side but the policy list/create API doesn't expose or accept this scope yet" />
+                  <PolicyColumn title="Execution profile" locked
+                    lockedReason="Execution profiles are not a concept in the backend yet" />
+                </div>
+                <p className="text-[10px] text-slate-400 mt-2 pt-2 border-t border-slate-100">
+                  {applicableCount > 0
+                      ? <>This submission will be governed by <strong className="text-slate-600">{applicableCount}</strong> active polic{applicableCount === 1 ? 'y' : 'ies'}.</>
+                      : <>No policies apply yet — anything in the payload's own <code className="text-[10px] bg-slate-100 px-1 py-0.5 rounded">policy</code> block still runs for this submission.</>
+                  }
+                </p>
+              </>
+          )}
+        </CardContent>
+      </Card>
+  );
+}
+
+// ── Intent selection — Domain → Category → Intent, real intent-library data ──
+// Mirrors FintechIntents.jsx's vertical/category/intent model but as compact
+// dropdowns instead of a card grid, so pick → configure → submit fits on one
+// continuous page. Selecting an intent loads its real examplePayload/
+// description/riskLevel — nothing here is invented.
+const DOMAINS = [
+  { key: 'FINTECH',    label: 'Fintech & Banking' },
+  { key: 'HEALTHCARE', label: 'Healthcare' },
+  { key: 'INSURANCE',  label: 'Insurance' },
+  { key: 'LEGAL',      label: 'Legal Services' },
+  { key: 'GOVERNMENT', label: 'Government' },
+  { key: 'ENTERPRISE', label: 'Enterprise SaaS' },
+  { key: 'RETAIL',     label: 'Retail & E-commerce' },
+  { key: 'EDUCATION',  label: 'Education' },
+];
+
+const RISK_STYLE = {
+  HIGH:   { bg: '#fef2f2', text: '#991b1b', dot: '#dc2626', label: 'High'   },
+  MEDIUM: { bg: '#fffbeb', text: '#92400e', dot: '#d97706', label: 'Medium' },
+  LOW:    { bg: '#f0fdf4', text: '#14532d', dot: '#16a34a', label: 'Low'    },
+};
+
+function IntentSelection({ keycloak, domain, setDomain, category, setCategory, intentName, setIntentName, onPick, selectedMeta, readOnly = false }) {
+  const [categories, setCategories] = useState([]);
+  const [intents,    setIntents]    = useState([]);
+  const [loadingCats, setLoadingCats] = useState(true);
+  const [loadingIntents, setLoadingIntents] = useState(false);
+
+  useEffect(() => {
+    setLoadingCats(true);
+    request(keycloak, `/intent-library/${domain.toLowerCase()}/meta/categories`)
+        .then(cats => {
+          const list = cats ?? [];
+          setCategories(list);
+          if (list.length > 0) setCategory(list[0].category);
+        })
+        .catch(() => setCategories([]))
+        .finally(() => setLoadingCats(false));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [domain]);
+
+  useEffect(() => {
+    if (!category) return;
+    setLoadingIntents(true);
+    request(keycloak, `/intent-library/${domain.toLowerCase()}/by-category/${category}`)
+        .then(list => {
+          const items = list ?? [];
+          setIntents(items);
+          if (items.length > 0) onPick(items[0]);
+        })
+        .catch(() => setIntents([]))
+        .finally(() => setLoadingIntents(false));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [category, domain]);
+
+  const risk = selectedMeta ? (RISK_STYLE[selectedMeta.riskLevel] ?? RISK_STYLE.MEDIUM) : null;
+
+  return (
+      <Card>
+        <CardHeader className="py-2.5">
+          <div className="flex items-center gap-2">
+            <span className="flex items-center justify-center w-5 h-5 rounded-full bg-slate-100 text-slate-500 text-[11px] font-bold shrink-0">1</span>
+            <CardTitle>Intent selection</CardTitle>
+            {readOnly && (
+                <span className="text-[10px] font-medium text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded-full">As submitted</span>
+            )}
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-1.5 py-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <label className="flex items-center gap-2">
+              <span className="text-[10px] font-bold text-blue-600 uppercase tracking-wide bg-blue-50 px-1.5 py-0.5 rounded shrink-0">Domain</span>
+              <select
+                  value={domain}
+                  onChange={e => { setDomain(e.target.value); setCategory(''); setIntentName(''); }}
+                  disabled={readOnly}
+                  className="flex-1 min-w-0 text-xs border border-slate-200 rounded-lg px-2.5 py-1.5 bg-white focus:outline-none focus:border-blue-400 disabled:opacity-50">
+                {DOMAINS.map(d => <option key={d.key} value={d.key}>{d.label}</option>)}
+              </select>
+            </label>
+            <label className="flex items-center gap-2">
+              <span className="text-[10px] font-bold text-blue-600 uppercase tracking-wide bg-blue-50 px-1.5 py-0.5 rounded shrink-0">Category</span>
+              <select
+                  value={category}
+                  onChange={e => setCategory(e.target.value)}
+                  disabled={readOnly || loadingCats || categories.length === 0}
+                  className="flex-1 min-w-0 text-xs border border-slate-200 rounded-lg px-2.5 py-1.5 bg-white focus:outline-none focus:border-blue-400 disabled:opacity-50">
+                {categories.map(c => (
+                    <option key={c.category} value={c.category}>{(c.categoryLabel || c.category).replace(/_/g, ' ')}</option>
+                ))}
+              </select>
+            </label>
+            <label className="flex items-center gap-2">
+              <span className="text-[10px] font-bold text-blue-600 uppercase tracking-wide bg-blue-50 px-1.5 py-0.5 rounded shrink-0">Intent</span>
+              <select
+                  value={intentName}
+                  onChange={e => {
+                    const match = intents.find(i => i.name === e.target.value);
+                    if (match) onPick(match);
+                  }}
+                  disabled={readOnly || loadingIntents || intents.length === 0}
+                  className="flex-1 min-w-0 text-xs border border-slate-200 rounded-lg px-2.5 py-1.5 bg-white focus:outline-none focus:border-blue-400 disabled:opacity-50">
+                {intents.map(i => (
+                    <option key={i.id} value={i.name}>{i.name.replace(/_/g, ' ')}</option>
+                ))}
+              </select>
+            </label>
           </div>
 
-          {/* Free-form input */}
-          <form onSubmit={handleCustomSubmit} className="flex gap-2">
-            <input
-                type="text"
-                value={customVal}
-                onChange={e => setCustomVal(e.target.value)}
-                placeholder={currentType ? `Current: ${currentType}` : 'or type any intent type…'}
-                className="flex-1 text-xs font-mono border border-slate-200 rounded-lg px-3 py-1.5 bg-slate-50 focus:outline-none focus:border-blue-400 focus:bg-white transition-colors"
-                style={{ fontFamily: "'JetBrains Mono', monospace" }}
-            />
-            <button type="submit"
-                    disabled={!customVal.trim()}
-                    className="text-xs px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 disabled:opacity-40 transition-colors">
-              Set
-            </button>
-          </form>
+          {risk && (
+              <span className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full mt-1"
+                    style={{ background: risk.bg, color: risk.text }}>
+                <span className="w-1.5 h-1.5 rounded-full" style={{ background: risk.dot }} />
+                {risk.label} risk
+              </span>
+          )}
+        </CardContent>
+      </Card>
+  );
+}
 
-          <p className="text-[10px] text-slate-400 leading-relaxed">
-            The backend accepts any string. For domain-specific types used in your 264 fintech intents,{' '}
-            <button
-                onClick={() => window.location.href = '/fintech-intents'}
-                className="text-blue-500 underline">
-              browse the intent library →
-            </button>
-          </p>
+// ── Execution intelligence sidebar ────────────────────────────────────────────
+// Mirrors the mockup's right-hand panel in full structure. Adapter, cost/
+// latency estimate, expected output and kill-switch status are now backed by
+// real endpoints: POST /intents/preview (IntentPreviewService — reuses the
+// exact AdapterRegistry.loadCandidates + LlmModelSelector.select pipeline the
+// real submission path runs, read-only) and GET /intents/availability
+// (KillSwitchService.firstBlockingBroad). Both are snapshots, not guarantees —
+// selection is live (EMA-driven), so the adapter actually used at submission
+// may differ if candidate performance shifts between preview and submit.
+function ExecutionIntelligence({ json, selectedMeta, loading, result, preview, previewLoading, previewError, availability }) {
+  let intentType = null;
+  try { intentType = JSON.parse(json)?.intentType; } catch { /* ignore */ }
+
+  const risk   = selectedMeta ? (RISK_STYLE[selectedMeta.riskLevel] ?? RISK_STYLE.MEDIUM) : null;
+  const status = result ? 'Submitted' : loading ? 'Submitting…' : 'Ready to submit';
+
+  return (
+      <Card>
+        <CardHeader className="py-2.5"><CardTitle>Execution intelligence</CardTitle></CardHeader>
+        <CardContent className="space-y-3 py-3.5">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide">Intent</p>
+              <p className="text-sm font-mono font-semibold text-slate-800 break-all">{intentType || '—'}</p>
+            </div>
+            {risk && (
+                <span className="inline-flex items-center gap-1.5 text-xs font-semibold shrink-0 mt-3.5" style={{ color: risk.text }}>
+                  <span className="w-1.5 h-1.5 rounded-full" style={{ background: risk.dot }} />
+                  {risk.label}
+                </span>
+            )}
+          </div>
+
+          <div>
+            <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide">Status</p>
+            <p className="text-sm font-semibold text-slate-800">{status}</p>
+          </div>
+
+          {/* Adapter */}
+          <div className="pt-3 border-t border-slate-100">
+            <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide mb-1">Adapter</p>
+            {previewLoading ? (
+                <p className="text-xs text-slate-400">Resolving…</p>
+            ) : previewError ? (
+                <p className="text-xs text-slate-400" title={previewError}>Unavailable</p>
+            ) : preview?.adapter ? (
+                <p className="text-sm text-slate-700" title={preview.adapter.selectionReason}>
+                  Auto — currently <span className="font-semibold text-slate-900">{preview.adapter.provider}/{preview.adapter.model}</span>
+                  <span className="block text-xs text-slate-400 mt-0.5">resolved again at execution</span>
+                </p>
+            ) : preview && !preview.hasCandidates ? (
+                <p className="text-sm font-medium text-amber-600">No eligible adapters configured for this intent type</p>
+            ) : (
+                <p className="text-sm text-slate-400">Auto (resolved at execution)</p>
+            )}
+          </div>
+
+          {/* Optimization — estimated cost/latency */}
+          <div className="pt-3 border-t border-slate-100">
+            <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide mb-1.5">Optimization</p>
+            <div className="grid grid-cols-2 gap-2">
+              <div className="rounded-lg bg-slate-50 border border-slate-100 px-2.5 py-2">
+                <span className="flex items-center gap-1 text-[10px] text-slate-500 font-medium"><Gauge size={9} />Est. cost</span>
+                <span className="block text-sm font-bold text-slate-800 mt-0.5">
+                  {previewLoading ? '…' : preview?.estimatedCostUsd != null ? `$${preview.estimatedCostUsd.toFixed(4)}` : '—'}
+                </span>
+              </div>
+              <div className="rounded-lg bg-slate-50 border border-slate-100 px-2.5 py-2">
+                <span className="flex items-center gap-1 text-[10px] text-slate-500 font-medium"><Gauge size={9} />Est. latency</span>
+                <span className="block text-sm font-bold text-slate-800 mt-0.5">
+                  {previewLoading ? '…' : preview?.estimatedLatencyMs != null ? `${Math.round(preview.estimatedLatencyMs)}ms` : '—'}
+                </span>
+              </div>
+            </div>
+            {preview?.estimateFromColdStart && (
+                <p className="text-[10px] text-slate-400 mt-1.5">No execution history yet — default estimate</p>
+            )}
+          </div>
+
+          {/* Expected output */}
+          <div className="pt-3 border-t border-slate-100">
+            <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide mb-1">Expected output</p>
+            <p className="text-sm text-slate-700 leading-relaxed">
+              {previewLoading ? 'Checking…' : preview?.expectedOutput || '—'}
+            </p>
+          </div>
+
+          {/* Kill switch */}
+          <div className="pt-3 border-t border-slate-100">
+            <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide mb-1">Kill switch</p>
+            {availability === null ? (
+                <p className="text-sm text-slate-400">Checking…</p>
+            ) : availability?.paused ? (
+                <p className="text-sm font-semibold text-red-600" title={availability.reason ?? undefined}>
+                  Active — submissions paused ({availability.scopeType ?? 'unknown scope'})
+                </p>
+            ) : (
+                <p className="text-sm font-semibold text-green-600">Clear</p>
+            )}
+          </div>
         </CardContent>
       </Card>
   );
@@ -1069,22 +719,75 @@ export default function Playground({ keycloak }) {
   const [intentData, setIntentData] = useState(null);   // intent detail after completion
   const pollRef = useRef(null);
 
+  // Attachments — small text files merged into objective.context on submit
+  const [attachments, setAttachments] = useState([]);
+
+  // Execution intelligence — preview (adapter/cost/latency/expected output)
+  // and kill-switch availability, both real backend reads (see api.js).
+  const [preview,        setPreview]        = useState(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [previewError,   setPreviewError]   = useState(null);
+  const [availability,   setAvailability]   = useState(null);
+  const previewDebounceRef = useRef(null);
+
+  // Intent Selection state — Domain → Category → Intent (section 1)
+  const [domain,       setDomain]       = useState('FINTECH');
+  const [category,     setCategory]     = useState('');
+  const [intentName,   setIntentName]   = useState('');
+  const [selectedMeta, setSelectedMeta] = useState(null); // { description, riskLevel } for the picked intent
+
   // When navigated from Intent Library via ?intent=name query param,
   // fetch the examplePayload from the API and pre-fill the editor
   useEffect(() => {
-    const intentName = searchParams.get('intent');
-    if (!intentName || location.state?.intentPayload) return; // skip if already have payload
-    request(keycloak, `/intent-library/fintech/search?q=${intentName}`)
+    const q = searchParams.get('intent');
+    if (!q || location.state?.intentPayload) return; // skip if already have payload
+    request(keycloak, `/intent-library/fintech/search?q=${q}`)
         .then(results => {
           const match = Array.isArray(results)
-              ? results.find(r => r.name === intentName)
+              ? results.find(r => r.name === q)
               : null;
           if (match?.examplePayload) {
             setJson(JSON.stringify(match.examplePayload, null, 2));
+            setIntentName(match.name);
+            setSelectedMeta({ description: match.description, riskLevel: match.riskLevel });
           }
         })
         .catch(() => {}); // silently fall back to DEFAULT
   }, [searchParams, keycloak]);
+
+  // Debounced preview — re-fetch adapter/cost/latency/expected-output
+  // whenever the payload settles, so it stays honest as the user edits
+  // rather than showing what was true for a previous draft.
+  useEffect(() => {
+    if (result || jsonErr) return; // nothing to preview once submitted, or while invalid
+    clearTimeout(previewDebounceRef.current);
+    previewDebounceRef.current = setTimeout(() => {
+      let body;
+      try { body = JSON.parse(json); } catch { return; }
+      if (!body?.intentType || !body?.objective || !body?.constraints || !body?.budget) return;
+      setPreviewLoading(true);
+      setPreviewError(null);
+      previewIntent(keycloak, withAttachments(body, attachments))
+          .then(p => setPreview(p))
+          .catch(e => { setPreview(null); setPreviewError(e?.message || 'Preview failed'); })
+          .finally(() => setPreviewLoading(false));
+    }, 600);
+    return () => clearTimeout(previewDebounceRef.current);
+  }, [json, jsonErr, result, keycloak, attachments]);
+
+  // Kill-switch availability — checked once on load and re-checked every 20s
+  // while the page is open, so "Clear" doesn't go stale during a long edit.
+  useEffect(() => {
+    let cancelled = false;
+    function check() {
+      getIntentAvailability(keycloak)
+          .then(res => { if (!cancelled) setAvailability(res ?? { paused: false }); })
+          .catch(() => { if (!cancelled) setAvailability(prev => prev ?? { paused: false }); });
+    }
+    check();
+    const id = setInterval(check, 20000);
+    return () => { cancelled = true; clearInterval(id); };
+  }, [keycloak]);
 
   // ── Helpers ─────────────────────────────────────────────────────────────
 
@@ -1094,41 +797,51 @@ export default function Playground({ keycloak }) {
     catch { setJsonErr('Invalid JSON'); }
   }
 
-  function loadTemplate(payload) {
-    // Detect best tier from adapter hint in template
-    if (payload.adapter?.type === 'byok') setTier('byok');
-    else if (payload.adapter?.type === 'byom') setTier('byom');
-    else if (payload.policy?.requireHumanReview) setTier('premium');
-    setJson(JSON.stringify(payload, null, 2));
+  // Picked from the Intent Selection dropdowns (section 1) — loads the real
+  // examplePayload/description/riskLevel from the intent library, same shape
+  // FintechIntents.jsx's "Try in Playground" already uses.
+  function handleIntentSelected(intent) {
+    setIntentName(intent.name);
+    setSelectedMeta({ description: intent.description, riskLevel: intent.riskLevel });
+    const payload = intent.examplePayload
+        ? JSON.stringify(intent.examplePayload, null, 2)
+        : JSON.stringify({
+            intentType: intent.name,
+            objective: { description: intent.description ?? '', userMessage: '' },
+            constraints: { maxRetries: 2, timeoutSeconds: 30, maxLatencyMs: 10000 },
+            budget: { ceilingUsd: 0.10, currency: 'USD' },
+          }, null, 2);
+    setJson(payload);
     setJsonErr(null);
     setResult(null);
     setError(null);
+    // Proactive default, not a hard rule — HIGH-risk intents (fraud, compliance,
+    // anything with requireHumanReview in its example) get routed to a stronger
+    // model by default so a first run isn't quietly under-powered for the
+    // scenario it's demonstrating. Still just a starting point — Adapter tier
+    // stays fully editable right below.
+    let tierHint = 'economy';
+    try {
+      const p = JSON.parse(payload);
+      if (intent.riskLevel === 'HIGH' || p?.constraints?.requireHumanReview) tierHint = 'standard';
+    } catch { /* keep default */ }
+    setTier(tierHint);
   }
 
-  async function setIntentType(id) {
-    // Try to load the full library payload for this intent type.
-    // If found, replace the entire payload so description, userMessage,
-    // constraints and budget all match the selected intent — not just the type.
-    try {
-      const res = await request(keycloak, `/intent-library/by-name/${encodeURIComponent(id)}`);
-      if (res?.examplePayload) {
-        // Library payload found — load it fully, preserving model tier
-        const payload = typeof res.examplePayload === 'string'
-            ? JSON.parse(res.examplePayload)
-            : res.examplePayload;
-        setJson(JSON.stringify(payload, null, 2));
-        setJsonErr(null);
-        return;
-      }
-    } catch { /* library lookup failed — fall through to simple swap */ }
+  // Query field (section 2) mirrors objective.userMessage — the JSON textarea
+  // stays the source of truth; editing Query re-serialises into it. Disabled
+  // while the JSON itself is invalid since there's nothing safe to merge into.
+  const queryValue = (() => {
+    try { return JSON.parse(json)?.objective?.userMessage ?? ''; }
+    catch { return ''; }
+  })();
 
-    // Fallback: just update intentType in existing payload
+  function handleQueryChange(e) {
     try {
       const p = JSON.parse(json);
-      p.intentType = id;
+      p.objective = { ...(p.objective ?? {}), userMessage: e.target.value };
       setJson(JSON.stringify(p, null, 2));
-      setJsonErr(null);
-    } catch { /**/ }
+    } catch { /* invalid JSON — Query stays disabled, nothing to merge into */ }
   }
 
   // ── Submit ───────────────────────────────────────────────────────────────
@@ -1141,6 +854,7 @@ export default function Playground({ keycloak }) {
     try   { body = JSON.parse(json); }
     catch { setError('Fix the JSON before submitting'); return; }
 
+    body = withAttachments(body, attachments);
     body._modelTier = tier;
     setLoading(true);
 
@@ -1182,7 +896,10 @@ export default function Playground({ keycloak }) {
             const sat = intentDetail.satisfactionState;
             if (sat === 'VIOLATED') {
               const reason = intentDetail.violationReason ?? intentDetail.violatedConstraint ?? 'Constraint violated';
-              setError(`Intent violated: ${reason}. Check your maxLatencyMs and budget constraints.`);
+              const adapterHint = describeAdapterError(reason);
+              setError(adapterHint
+                  ? `Intent violated: ${reason}\n\n${adapterHint}`
+                  : `Intent violated: ${reason}. Check your maxLatencyMs and budget constraints.`);
               refundCredits(tier);
             }
             setExecResult(completed ?? null);
@@ -1279,21 +996,18 @@ export default function Playground({ keycloak }) {
   const tierData  = MODEL_TIERS[tier];
   const canSubmit = !jsonErr && !loading && !isEmpty && balance !== null;
 
-  // Show floating bar once user has a valid intent type selected
-  const hasIntent = (() => {
-    try {
-      const parsed = JSON.parse(json);
-      return !!(parsed?.intentType && parsed.intentType !== '' && parsed?.objective?.userMessage);
-    } catch { return false; }
-  })();
-
   // ── Render ───────────────────────────────────────────────────────────────
 
   return (
       <>
         <Page
-            title="Playground"
-            subtitle="Test budget enforcement, policy rules and adapter routing in real time"
+            className="space-y-3"
+            title={
+              <span className="text-sm font-normal text-slate-500">
+                <span className="font-semibold text-blue-600">Workspace for testing DecisionMesh end-to-end</span>
+                : Select an intent, review its payload and the policies that govern it, then submit for execution
+              </span>
+            }
             action={result && (
                 <Button variant="secondary" size="sm"
                         onClick={() => { setResult(null); setCreditCost(null); setIKey(uuidv4()); }}>
@@ -1301,137 +1015,14 @@ export default function Playground({ keycloak }) {
                 </Button>
             )}>
 
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 xl:grid-cols-4 gap-4">
 
-            {/* ── Left column ── */}
-            <div className="space-y-4">
+            <div className="xl:col-span-3 space-y-2">
 
-              {/* Adapter tier */}
-              <ModelTierSelector selected={tier} onChange={setTier} navigate={navigate} />
-
-              {/* Intent type */}
-              <IntentTypeSelector json={json} onSelect={setIntentType} />
-
-              {/* Template browser */}
-              <TemplateBrowser onLoad={loadTemplate} />
-
-              {/* Payload editor */}
-              <Card>
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <CardTitle>Intent payload</CardTitle>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-slate-400">JSON</span>
-                      <button
-                          onClick={() => setShowRaw(v => !v)}
-                          className="text-[10px] text-slate-400 hover:text-slate-600 border border-slate-200 rounded px-1.5 py-0.5">
-                        {showRaw ? 'Collapse' : 'Expand'}
-                      </button>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent className="p-0">
-              <textarea
-                  value={json}
-                  onChange={handleChange}
-                  rows={showRaw ? 24 : 13}
-                  className="w-full font-mono text-xs p-4 resize-none focus:outline-none rounded-b-xl text-slate-700 bg-slate-50"
-                  style={{ fontFamily: "'JetBrains Mono', monospace" }}
-              />
-                  {jsonErr && <p className="px-4 pb-3 text-xs text-red-500">{jsonErr}</p>}
-                </CardContent>
-              </Card>
-
-              {/* Active governance rules — live preview from payload */}
-              <PolicyStrip json={json} />
-
-              {/* Idempotency key */}
-              <Card>
-                <CardHeader><CardTitle>Request metadata</CardTitle></CardHeader>
-                <CardContent>
-                  <div className="flex items-center justify-between mb-1.5">
-                    <label className="text-xs font-medium text-slate-600">Idempotency key</label>
-                    <button onClick={() => setIKey(uuidv4())}
-                            className="text-xs text-blue-600 flex items-center gap-1">
-                      <RefreshCw size={11} /> Regenerate
-                    </button>
-                  </div>
-                  <input readOnly value={iKey}
-                         className="w-full text-xs font-mono border border-slate-200 rounded-lg px-3 py-2 bg-slate-50 text-slate-500"
-                         style={{ fontFamily: "'JetBrains Mono', monospace" }} />
-                </CardContent>
-              </Card>
-
-              {/* Governance summary strip */}
-              <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 space-y-2">
-                <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide">
-                  What DecisionMesh enforces on this intent
-                </p>
-                <div className="grid grid-cols-2 gap-2 text-[10px] text-slate-600">
-                  {[
-                    { icon: <Shield size={10} />,      label: 'Budget ceiling',       color: '#16a34a' },
-                    { icon: <RotateCcw size={10} />,   label: 'Retry policy',         color: '#2563eb' },
-                    { icon: <Clock size={10} />,        label: 'Latency constraint',   color: '#0d9488' },
-                    { icon: <Shield size={10} />,       label: 'Policy rules',         color: '#7c3aed' },
-                    { icon: <AlertTriangle size={10} />,label: 'Drift detection',      color: '#d97706' },
-                    { icon: <BookOpen size={10} />,     label: 'Immutable audit log',  color: '#475569' },
-                  ].map(({ icon, label, color }) => (
-                      <div key={label} className="flex items-center gap-1.5">
-                        <span style={{ color }}>{icon}</span>
-                        <span>{label}</span>
-                      </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Credit cost + submit — hidden when floating bar is visible */}
-              <div className="space-y-2" style={{ display: hasIntent && !result ? 'none' : 'block' }}>
-                <div className="flex items-center justify-between px-1">
-                  <div className="flex items-center gap-2 text-sm">
-                    <Zap size={13} style={{ color: tierData.color }} />
-                    <span className="text-slate-600">
-                  Cost:{' '}
-                      <strong style={{ color: tierData.color }}>
-                    {tierData.credits} credit{tierData.credits !== 1 ? 's' : ''}
-                  </strong>
-                  <span className="text-xs text-slate-400 ml-1">({tierData.label})</span>
-                </span>
-                  </div>
-                  {balance !== null && (
-                      <span className="text-xs text-slate-400">
-                  Balance:{' '}
-                        <strong style={{
-                          color: balance <= 0 ? '#dc2626' : balance < 50 ? '#d97706' : '#16a34a',
-                        }}>
-                    {balance?.toLocaleString()}
-                  </strong>
-                </span>
-                  )}
-                </div>
-
-                <Button className="w-full" size="lg" loading={loading} disabled={!canSubmit} onClick={handleSubmit}>
-                  <Send size={14} />
-                  {isEmpty ? 'No credits — top up to submit' : 'Submit intent'}
-                </Button>
-
-                {isEmpty && (
-                    <button onClick={() => navigate('/billing')}
-                            className="w-full text-xs text-blue-600 underline text-center">
-                      Buy credits or upgrade plan →
-                    </button>
-                )}
-              </div>
-
-              {error && (
-                  <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-xs text-red-700">
-                    {error}
-                  </div>
-              )}
-            </div>
-
-            {/* ── Right column — execution result ── */}
-            <div>
-              {result ? (
+              {/* Result — shown above the (now read-only) submitted form once
+                  an intent exists, rather than replacing it, so what was
+                  actually submitted stays visible instead of disappearing. */}
+              {result && (
                   <Card>
                     <CardHeader className="flex flex-row items-center justify-between">
                       <div className="flex items-center gap-2">
@@ -1524,106 +1115,167 @@ export default function Playground({ keycloak }) {
                       />
                     </CardContent>
                   </Card>
-              ) : (
-                  <div className="space-y-4">
-                    {/* Empty state */}
-                    <Card className="flex items-center justify-center min-h-64 border-dashed border-slate-200 bg-transparent shadow-none">
-                      <div className="text-center text-slate-400 p-8">
-                        <Send size={28} className="mx-auto mb-3 opacity-20" />
-                        <p className="text-sm font-medium">Submit an intent</p>
-                        <p className="text-xs mt-1 text-slate-300">
-                          The execution timeline appears here
-                        </p>
-                        <p className="text-xs mt-3 font-semibold" style={{ color: tierData.color }}>
-                          {tierData.credits} credit{tierData.credits !== 1 ? 's' : ''} per execution · {tierData.label} tier
-                        </p>
+              )}
+
+              {/* 1 & 2 — always shown. Frozen (read-only) once a result
+                  exists, so what was actually submitted stays visible
+                  instead of being replaced or reset; "New intent" in the
+                  page header clears result and re-enables editing. */}
+              <IntentSelection
+                  keycloak={keycloak}
+                  domain={domain} setDomain={setDomain}
+                  category={category} setCategory={setCategory}
+                  intentName={intentName} setIntentName={setIntentName}
+                  onPick={handleIntentSelected}
+                  selectedMeta={selectedMeta}
+                  readOnly={!!result}
+              />
+
+              {/* 2. Intent request — Query (objective.userMessage) + full JSON payload */}
+              <Card>
+                <CardHeader className="py-2.5">
+                  <div className="flex items-center gap-2">
+                    <span className="flex items-center justify-center w-5 h-5 rounded-full bg-slate-100 text-slate-500 text-[11px] font-bold shrink-0">2</span>
+                    <CardTitle>Intent request</CardTitle>
+                    {!!result && (
+                        <span className="text-[10px] font-medium text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded-full">As submitted</span>
+                    )}
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-1.5 py-3">
+                  <label className="block">
+                    <span className="text-[10px] font-bold text-blue-600 uppercase tracking-wide bg-blue-50 px-1.5 py-0.5 rounded">Query</span>
+                    <input
+                        type="text"
+                        value={queryValue}
+                        onChange={handleQueryChange}
+                        disabled={!!jsonErr || !!result}
+                        placeholder="What should the model do with this?"
+                        className="mt-1 w-full text-sm border border-slate-200 rounded-lg px-3 py-1.5 bg-white focus:outline-none focus:border-blue-400 disabled:opacity-50 disabled:bg-slate-50"
+                    />
+                  </label>
+
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-2">
+                    <div className="lg:col-span-2 border border-slate-200 rounded-xl overflow-hidden">
+                      <div className="flex items-center justify-between px-3 py-1.5 bg-slate-50 border-b border-slate-200">
+                        <span className="text-[10px] font-medium text-slate-500 uppercase tracking-wide">Payload (JSON)</span>
+                        <button
+                            onClick={() => setShowRaw(v => !v)}
+                            className="text-[10px] text-slate-400 hover:text-slate-600 border border-slate-200 rounded px-1.5 py-0.5 bg-white">
+                          {showRaw ? 'Collapse' : 'Expand'}
+                        </button>
                       </div>
-                    </Card>
-
-                    {/* What gets enforced — right panel explainer */}
-                    <Card>
-                      <CardHeader><CardTitle>What happens when you submit</CardTitle></CardHeader>
-                      <CardContent>
-                        <div className="space-y-3">
-                          {[
-                            {
-                              phase: 'Planning',
-                              color: '#2563eb',
-                              detail: 'DecisionMesh selects the adapter, validates budget ceiling, and builds the execution plan.',
-                            },
-                            {
-                              phase: 'Policy check',
-                              color: '#7c3aed',
-                              detail: 'Blocked topics, model allow-list, and HITL gate rules are evaluated before any LLM call.',
-                            },
-                            {
-                              phase: 'Execution',
-                              color: '#0d9488',
-                              detail: 'The intent is dispatched to the adapter. Budget is tracked live. Retries fire on failure.',
-                            },
-                            {
-                              phase: 'Quality scoring',
-                              color: '#d97706',
-                              detail: 'Output is scored for quality, drift from baseline, and policy compliance.',
-                            },
-                            {
-                              phase: 'Audit log',
-                              color: '#475569',
-                              detail: 'Every attempt, credit cost, policy outcome and response is written to the immutable ledger.',
-                            },
-                          ].map(({ phase, color, detail }) => (
-                              <div key={phase} className="flex gap-3">
-                                <div className="w-1 rounded-full flex-shrink-0 self-stretch" style={{ backgroundColor: color }} />
-                                <div>
-                                  <p className="text-xs font-semibold" style={{ color }}>{phase}</p>
-                                  <p className="text-xs text-slate-500 leading-relaxed">{detail}</p>
-                                </div>
-                              </div>
-                          ))}
-                        </div>
-
-                        <div className="mt-4 pt-4 border-t border-slate-100 flex items-start gap-2">
-                          <Key size={12} className="text-amber-500 shrink-0 mt-0.5" />
-                          <p className="text-[10px] text-slate-500 leading-relaxed">
-                            <strong className="text-slate-700">Using BYOK or BYOM?</strong>{' '}
-                            Your model or key handles execution — DecisionMesh enforces all of
-                            the above governance on top of it for 1 credit.{' '}
-                            <button onClick={() => navigate('/billing?tab=byok')}
-                                    className="text-blue-500 underline">
-                              Configure keys →
-                            </button>
-                          </p>
-                        </div>
-                      </CardContent>
-                    </Card>
-
-                    {/* Quick links */}
-                    <div className="grid grid-cols-2 gap-3">
-                      {[
-                        { label: 'Browse 264 intent templates', icon: <BookOpen size={13} />, path: '/fintech-intents', color: '#2563eb' },
-                        { label: 'Configure BYOK / BYOM',       icon: <Key size={13} />,      path: '/billing?tab=byok', color: '#d97706' },
-                        { label: 'View execution history',      icon: <Clock size={13} />,    path: '/intents',          color: '#0d9488' },
-                        { label: 'Policy builder',              icon: <Shield size={13} />,   path: '/policies',         color: '#7c3aed' },
-                      ].map(({ label, icon, path, color }) => (
-                          <button key={label}
-                                  onClick={() => navigate(path)}
-                                  className="flex items-center gap-2 p-3 rounded-xl border border-slate-200 hover:border-slate-300 bg-white text-left transition-colors group">
-                    <span className="p-1.5 rounded-lg flex-shrink-0"
-                          style={{ background: color + '15', color }}>
-                      {icon}
-                    </span>
-                            <span className="text-xs font-medium text-slate-600 group-hover:text-slate-900 leading-tight">
-                      {label}
-                    </span>
-                          </button>
-                      ))}
+                      <textarea
+                          value={json}
+                          onChange={handleChange}
+                          readOnly={!!result}
+                          rows={showRaw ? 18 : 7}
+                          className="w-full font-mono text-xs p-3 resize-none focus:outline-none text-slate-700 bg-white read-only:bg-slate-50"
+                          style={{ fontFamily: "'JetBrains Mono', monospace" }}
+                      />
+                      {jsonErr && <p className="px-3 pb-2 text-xs text-red-500">{jsonErr}</p>}
                     </div>
+
+                    {/* Attachments — small text files, merged into objective.context
+                        on submit (see attachmentsToContextBlock / handleSubmit).
+                        Size-capped so they can't blow the budget/latency ceiling. */}
+                    <AttachmentsPanel attachments={attachments} setAttachments={setAttachments} disabled={!!result} />
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* 3 + 4 side by side — Execution narrower, policy stack wider,
+                  matching the mockup's row layout. */}
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
+                <ModelTierSelector selected={tier} onChange={setTier} navigate={navigate} />
+                <div className="lg:col-span-2">
+                  <ActivePoliciesCard keycloak={keycloak} navigate={navigate} />
+                </div>
+              </div>
+
+              {/* Credit cost + submit — hidden once a result exists; use
+                  "New intent" in the page header to reset and submit again. */}
+              {!result && (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between px-1">
+                  <div className="flex items-center gap-2 text-sm">
+                    <Zap size={13} style={{ color: tierData.color }} />
+                    <span className="text-slate-600">
+                  Cost:{' '}
+                      <strong style={{ color: tierData.color }}>
+                    {tierData.credits} credit{tierData.credits !== 1 ? 's' : ''}
+                  </strong>
+                  <span className="text-xs text-slate-400 ml-1">({tierData.label})</span>
+                </span>
+                  </div>
+                  {balance !== null && (
+                      <span className="text-xs text-slate-400">
+                  Balance:{' '}
+                        <strong style={{
+                          color: balance <= 0 ? '#dc2626' : balance < 50 ? '#d97706' : '#16a34a',
+                        }}>
+                    {balance?.toLocaleString()}
+                  </strong>
+                </span>
+                  )}
+                </div>
+
+                <Button className="w-full" size="lg" loading={loading} disabled={!canSubmit} onClick={handleSubmit}>
+                  <Send size={14} />
+                  {isEmpty ? 'No credits — top up to submit' : 'Submit intent'}
+                </Button>
+
+                {isEmpty && (
+                    <button onClick={() => navigate('/billing')}
+                            className="w-full text-xs text-blue-600 underline text-center">
+                      Buy credits or upgrade plan →
+                    </button>
+                )}
+              </div>
+              )}
+
+              {error && !result && (
+                  <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-xs text-red-700 whitespace-pre-line">
+                    {error}
                   </div>
               )}
             </div>
 
+            {/* ── Sidebar — Execution intelligence: real data only (intent
+                type, risk from the library, submit status). Adapter
+                candidates, cost/latency estimates and kill-switch status
+                are follow-up work once their backend endpoints exist. ── */}
+            <div className="space-y-4">
+              <ExecutionIntelligence
+                  json={json} selectedMeta={selectedMeta} loading={loading} result={result}
+                  preview={preview} previewLoading={previewLoading} previewError={previewError}
+                  availability={availability}
+              />
+            </div>
+
           </div>
+
         </Page>
+
+        {/* Floating quick-submit — sits just left of the global Feedback
+            widget (fixed bottom-6 right-6) so both are reachable without
+            scrolling. Only shown pre-submission; once there's a result,
+            "New intent" in the page header is the relevant action instead. */}
+        {!result && (
+            <button
+                onClick={handleSubmit}
+                disabled={!canSubmit}
+                className="fixed bottom-6 z-40 flex items-center gap-2 px-4 py-2.5 rounded-full text-sm font-semibold text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
+                style={{
+                  right: '150px',
+                  background: canSubmit ? 'linear-gradient(135deg, #1d4ed8, #2563eb)' : '#94a3b8',
+                }}
+            >
+              <Send size={14} />
+              {isEmpty ? 'No credits' : loading ? 'Submitting…' : 'Submit intent'}
+            </button>
+        )}
+
         {/* Kill switch — pinned above the floating bar. */}
         {paused && (
             <div className="fixed bottom-20 left-4 z-50" style={{ right: '120px' }}>
@@ -1633,53 +1285,6 @@ export default function Playground({ keycloak }) {
                   intentJson={json}
                   isAdmin={keycloak?.tokenParsed?.['urn:zitadel:iam:org:project:roles']?.sys_admin != null}
               />
-            </div>
-        )}
-
-        {/* Floating sticky submit bar — appears when intent is ready */}
-        {hasIntent && !result && (
-            <div
-                className="fixed bottom-3 left-4 z-40 flex items-center justify-between gap-4 px-5 py-2.5 shadow-xl border rounded-xl"
-                style={{
-                  background: 'rgba(255,255,255,0.97)',
-                  backdropFilter: 'blur(8px)',
-                  borderColor: '#e2e8f0',
-                  right: '120px',
-                }}
-            >
-              {/* Left — intent info */}
-              <div className="flex items-center gap-3 min-w-0">
-                <div className="w-2 h-2 rounded-full bg-blue-500 shrink-0 animate-pulse" />
-                <div className="min-w-0">
-              <span className="text-xs font-semibold text-slate-700 truncate">
-                {(() => { try { return JSON.parse(json)?.intentType?.replace(/_/g,' '); } catch { return 'Intent ready'; } })()}
-              </span>
-                  <span className="text-[10px] text-slate-400 ml-2">
-                {tierData.credits} cr · {balance} balance
-              </span>
-                </div>
-              </div>
-
-              {/* Right — errors + submit */}
-              <div className="flex items-center gap-3 shrink-0">
-                {error   && <span className="text-xs text-red-600 font-medium max-w-md truncate">⚠ {error}</span>}
-                {jsonErr && <span className="text-xs text-red-500 font-medium">⚠ Fix JSON</span>}
-                {isEmpty && <span className="text-xs text-red-500 font-medium">No credits</span>}
-                {paused  && <span className="text-xs text-amber-600 font-medium">Processing paused</span>}
-                {loading && <span className="text-xs text-blue-500 animate-pulse">Executing…</span>}
-                <button
-                    onClick={handleSubmit}
-                    disabled={!canSubmit}
-                    className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                    style={{
-                      background: canSubmit ? 'linear-gradient(135deg, #1d4ed8, #2563eb)' : '#94a3b8',
-                      boxShadow: canSubmit ? '0 2px 8px rgba(37,99,235,0.35)' : 'none',
-                    }}
-                >
-                  <Send size={13} />
-                  {isEmpty ? 'No credits' : loading ? 'Submitting…' : 'Submit Intent'}
-                </button>
-              </div>
             </div>
         )}
 

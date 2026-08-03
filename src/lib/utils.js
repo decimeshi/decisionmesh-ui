@@ -8,6 +8,10 @@ export function formatDate(iso) {
   try { return format(new Date(iso), 'MMM d, yyyy HH:mm:ss'); } catch { return iso; }
 }
 
+export function formatTime(iso) {
+  try { return format(new Date(iso), 'h:mm:ss a'); } catch { return iso; }
+}
+
 export function formatRelative(iso) {
   try { return formatDistanceToNow(new Date(iso), { addSuffix: true }); } catch { return iso; }
 }
@@ -26,6 +30,36 @@ export function formatLatency(ms) {
 
 export function shortId(uuid) {
   return uuid ? uuid.split('-')[0] : '—';
+}
+
+/**
+ * Turns a raw ADAPTER_ERROR violationReason (ViolationHandler prefixes it
+ * "Adapter error — LLM provider returned an error response — " then appends
+ * the provider's own HTTP status + response body verbatim) into a specific,
+ * actionable message instead of surfacing that raw JSON to the user.
+ *
+ * Covers the three "why did my first submission fail" cases users actually
+ * hit: no adapter configured (handled separately via NO_ACTIVE_MODELS, not
+ * here), a configured model that's been retired/renamed by the provider
+ * (404/not_found_error), and an expired or revoked API key/subscription
+ * (401/403). Returns null when the reason isn't an adapter/provider error at
+ * all, so callers can fall back to their own constraint-based hints.
+ */
+export function describeAdapterError(reason) {
+  const r = (reason ?? '').toLowerCase();
+  if (!r.includes('adapter error')) return null;
+
+  if (r.includes('not_found_error') || r.includes('http 404'))
+    return "The configured model no longer exists at the provider — it's likely been retired or renamed. Update the model ID for this adapter in Adapters settings.";
+  if (r.includes('authentication_error') || r.includes('http 401') || r.includes('invalid x-api-key') || r.includes('invalid api key'))
+    return "The provider rejected the API key for this adapter — it may be expired, revoked, or missing. Check the key in Adapters / BYOK settings.";
+  if (r.includes('permission_error') || r.includes('http 403'))
+    return "The provider account doesn't have access to this model — check the plan/subscription with the provider.";
+  if (r.includes('overloaded') || r.includes('http 529'))
+    return 'The provider is temporarily overloaded — this is transient, try again shortly.';
+  if (r.includes('rate limit') || r.includes('http 429'))
+    return "The provider's rate limit was hit — wait a moment before retrying, or reduce request volume.";
+  return 'The AI provider returned an error for this request — check the adapter configuration in Adapters settings.';
 }
 
 // Fix: added FAILED, CANCELLED, REJECTED so terminal failure states render
