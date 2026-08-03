@@ -294,6 +294,92 @@ function NavBar({ onLogin, onRegister }) {
     </nav>
   );
 }
+const PIPELINE_TICKETS = [
+  { id: 'int-8f3a', type: 'loan_approval' },
+  { id: 'int-2c91', type: 'fraud_check' },
+  { id: 'int-e410', type: 'claims_review' },
+  { id: 'int-77bd', type: 'support_reply' },
+];
+
+// ── Live pipeline — the center column demonstrates the product instead of
+// describing it. A ticket "travels" through the six stages on a loop, each
+// stage narrating what actually happens there, so a visitor watches a
+// request get governed rather than reading a feature list.
+function LivePipeline({ pipeline }) {
+  const [active, setActive] = useState(0);
+  const [cycle, setCycle] = useState(0);
+
+  useEffect(() => {
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (reduceMotion) { setActive(pipeline.length - 1); return; }
+    const id = setInterval(() => {
+      setActive(a => {
+        const next = (a + 1) % pipeline.length;
+        if (next === 0) setCycle(c => c + 1);
+        return next;
+      });
+    }, 1500);
+    return () => clearInterval(id);
+  }, [pipeline.length]);
+
+  const ticket = PIPELINE_TICKETS[cycle % PIPELINE_TICKETS.length];
+  const stage = pipeline[active];
+
+  return (
+    <div style={{ background: 'rgba(14,165,233,0.06)', border: '1px solid rgba(14,165,233,0.18)', borderRadius: 16, boxShadow: '0 4px 28px rgba(14,165,233,0.10)', padding: '24px 26px', backdropFilter: 'blur(8px)' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 18, gap: 12, flexWrap: 'wrap' }}>
+        <div style={{ fontFamily: C.mono, fontSize: 11, color: '#bcd4f5', letterSpacing: '2px', textAlign: 'left', fontWeight: 700 }}>
+          DECISION LIFECYCLE — LIVE
+        </div>
+        <div style={{ fontFamily: C.mono, fontSize: 11, color: stage.color, letterSpacing: '0.5px', fontWeight: 600, transition: 'color 0.4s' }}>
+          {ticket.id} · {ticket.type}
+        </div>
+      </div>
+
+      <div style={{ display: 'flex', alignItems: 'center', gap: 0, overflowX: 'auto' }}>
+        {pipeline.map((s, i) => {
+          const status = i < active ? 'done' : i === active ? 'active' : 'pending';
+          return (
+            <div key={s.label} style={{ display: 'flex', alignItems: 'center', flex: 1, minWidth: 0 }}>
+              <div style={{ flex: 1, textAlign: 'center' }}>
+                <div style={{
+                  width: 40, height: 40, borderRadius: 10,
+                  border: `1.5px solid ${s.color}${status === 'pending' ? '25' : '70'}`,
+                  background: status === 'done' ? s.color : `${s.color}${status === 'active' ? '20' : '0a'}`,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 8px',
+                  transition: 'background 0.4s, border-color 0.4s, transform 0.4s, box-shadow 0.4s',
+                  transform: status === 'active' ? 'scale(1.12)' : 'scale(1)',
+                  boxShadow: status === 'active' ? `0 0 0 5px ${s.color}22, 0 0 18px ${s.color}55` : 'none',
+                  opacity: status === 'pending' ? 0.45 : 1,
+                }}>
+                  {status === 'done'
+                    ? <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#04121f" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+                    : <div style={{ width: 8, height: 8, borderRadius: '50%', background: s.color, opacity: status === 'active' ? 1 : 0.7 }} />}
+                </div>
+                <div style={{ fontFamily: C.mono, fontSize: 11, color: s.color, letterSpacing: '1px', fontWeight: 700, filter: 'brightness(1.35)', marginTop: 2, opacity: status === 'pending' ? 0.5 : 1, transition: 'opacity 0.4s' }}>{s.label}</div>
+              </div>
+              {i < pipeline.length - 1 && (
+                <div style={{
+                  width: 20, height: 2, borderRadius: 2, flexShrink: 0, alignSelf: 'center', marginBottom: 18,
+                  background: i < active ? `linear-gradient(90deg, ${s.color}cc, ${pipeline[i + 1].color}cc)` : 'rgba(148,163,184,0.15)',
+                  transition: 'background 0.5s',
+                }} />
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      <div style={{ marginTop: 18, minHeight: 20 }}>
+        <div key={active} style={{ fontFamily: C.mono, fontSize: 12, color: stage.color, display: 'flex', alignItems: 'center', gap: 7, fontWeight: 500, letterSpacing: '0.02em', animation: 'fadeUp 0.35s ease both' }}>
+          <span style={{ width: 5, height: 5, borderRadius: '50%', background: stage.color, display: 'inline-block', animation: 'pulse-dot 1.5s infinite' }} />
+          {stage.detail}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Hero — "The Control Room" ──────────────────────────────────────────────────
 function Hero({ onRegister, onLogin }) {
 
@@ -313,14 +399,14 @@ function Hero({ onRegister, onLogin }) {
     { title: 'Budget Enforced', detail: 'Spend: $0.0031 / $0.01 limit · 14 intents blocked today · Zero overspend', color: C.green, emoji: '✓', delay: '1.4s' },
   ];
 
-  // Pipeline stages
+  // Pipeline stages — detail is narrated live by LivePipeline as each stage activates
   const pipeline = [
-    { label: 'INTENT', color: C.blue },
-    { label: 'VALIDATE', color: '#6366f1' },
-    { label: 'POLICY', color: C.amber },
-    { label: 'DECIDE', color: C.green },
-    { label: 'EXECUTE', color: C.cyan },
-    { label: 'AUDIT', color: C.purple },
+    { label: 'INTENT', color: C.blue, detail: 'Application declares a goal — not a raw prompt. Actor, budget, and constraints attached.' },
+    { label: 'VALIDATE', color: '#6366f1', detail: 'Schema and permissions checked. Malformed requests rejected immediately.' },
+    { label: 'POLICY', color: C.amber, detail: 'Every governance rule evaluated — cost ceilings, PII rules, safety constraints.' },
+    { label: 'DECIDE', color: C.green, detail: 'Tamper-proof decision recorded with full context and identity.' },
+    { label: 'EXECUTE', color: C.cyan, detail: 'Routed to the selected model. Automatic fallback on timeout or failure.' },
+    { label: 'AUDIT', color: C.purple, detail: 'Cost, latency, and risk score logged — replayable forever.' },
   ];
 
   return (
@@ -366,11 +452,6 @@ function Hero({ onRegister, onLogin }) {
           0%, 100% { opacity: 1; }
           50%       { opacity: 0.3; }
         }
-        @keyframes flow-pulse {
-          0%   { opacity: 0.3; }
-          50%  { opacity: 1; }
-          100% { opacity: 0.3; }
-        }
         @keyframes scan-line {
           0%   { transform: translateY(-100%); }
           100% { transform: translateY(100vh); }
@@ -380,14 +461,14 @@ function Hero({ onRegister, onLogin }) {
       {/* Scan line removed — aurora theme */}
 
       {/* Main content */}
-      <div style={{ position: 'relative', zIndex: 3, display: 'flex', flexDirection: 'column', maxWidth: 1280, margin: '0 auto', padding: '88px 24px 64px', width: '100%' }}>
+      <div style={{ position: 'relative', zIndex: 3, display: 'flex', flexDirection: 'column', maxWidth: 1280, margin: '0 auto', padding: '58px 24px 8px', width: '100%' }}>
 
         {/* Three-column layout */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1.15fr 28px 1.3fr 28px 1.15fr', gap: 0, alignItems: 'stretch' }} className="hero-grid">
+        <div style={{ display: 'grid', gridTemplateColumns: '1.15fr 24px 1.2fr 24px 1.05fr', gap: 0, alignItems: 'stretch' }} className="hero-grid">
 
           {/* LEFT — Problem cards */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 14, justifyContent: 'space-between' }}>
-            <div style={{ fontFamily: C.mono, fontSize: 12, color: C.red, letterSpacing: '1.5px', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, justifyContent: 'space-between' }}>
+            <div style={{ fontFamily: C.mono, fontSize: 12, color: C.red, letterSpacing: '1.5px', marginTop: 22, marginBottom: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
               <span style={{ display: 'inline-block', width: 6, height: 6, borderRadius: '50%', background: C.red, animation: 'pulse-dot 1.5s ease infinite' }} />
               UNRESOLVED INCIDENTS
             </div>
@@ -397,25 +478,25 @@ function Hero({ onRegister, onLogin }) {
                 border: `1px solid ${card.color}45`,
                 borderLeft: `3px solid ${card.color}`,
                 borderRadius: 10,
-                padding: '14px 16px',
+                padding: '13px 16px',
                 animation: `slideInLeft 0.6s ease both`,
                 animationDelay: card.delay,
                 backdropFilter: 'blur(8px)',
               }}>
                 {/* Corner brackets */}
                 <div style={{ position: 'relative' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-                    <span style={{ fontSize: 18 }}>{card.emoji}</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                    <span style={{ fontSize: 20 }}>{card.emoji}</span>
                     <div>
-                      <div style={{ color: C.textPrimary, fontSize: 15, fontWeight: 700 }}>{card.role}</div>
-                      <div style={{ color: C.textSub, fontSize: 13, fontFamily: C.mono }}>{card.org}</div>
+                      <div style={{ color: C.textPrimary, fontSize: 16, fontWeight: 700 }}>{card.role}</div>
+                      <div style={{ color: C.textSub, fontSize: 13.5, fontFamily: C.mono }}>{card.org}</div>
                     </div>
                     <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 4 }}>
                       <span style={{ width: 5, height: 5, borderRadius: '50%', background: card.color, display: 'inline-block', animation: 'pulse-dot 2s ease infinite' }} />
                       <span style={{ fontSize: 11, color: card.color, fontFamily: C.mono, fontWeight: 700 }}>OPEN</span>
                     </div>
                   </div>
-                  <p style={{ color: C.textCard, fontSize: 15.5, lineHeight: 1.7, fontStyle: 'italic', fontWeight: 500 }}>"{card.issue}"</p>
+                  <p style={{ color: C.textCard, fontSize: 16.5, lineHeight: 1.75, fontStyle: 'italic', fontWeight: 500 }}>"{card.issue}"</p>
                 </div>
               </div>
             ))}
@@ -435,34 +516,34 @@ function Hero({ onRegister, onLogin }) {
           </div>
 
           {/* CENTER — Hero content + pipeline */}
-          <div style={{ textAlign: 'center', animation: 'fadeUp 0.7s ease both', animationDelay: '0.1s', display: 'flex', flexDirection: 'column', justifyContent: 'flex-start' }}>
+          <div style={{ textAlign: 'center', animation: 'fadeUp 0.7s ease both', animationDelay: '0.1s', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
             {/* Badge */}
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: C.blueLight, border: `1px solid ${C.blueMuted}`, borderRadius: 999, padding: '5px 14px', marginBottom: 28 }}>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: C.blueLight, border: `1px solid ${C.blueMuted}`, borderRadius: 999, padding: '5px 14px', marginBottom: 16 }}>
               <span style={{ width: 6, height: 6, borderRadius: '50%', background: C.blue, display: 'inline-block', animation: 'pulse-dot 2s infinite', flexShrink: 0 }} />
               <span style={{ color: '#7dd3fc', fontSize: 13, fontWeight: 600 }}>Now in beta — free for early adopters</span>
             </div>
 
             {/* Headline */}
-            <h1 style={{ fontSize: 'clamp(32px, 5vw, 58px)', fontWeight: 800, color: C.textPrimary, lineHeight: 1.08, letterSpacing: '-2.5px', marginBottom: 18 }}>
+            <h1 style={{ fontSize: 'clamp(26px, 3.4vw, 40px)', fontWeight: 800, color: C.textPrimary, lineHeight: 1.1, letterSpacing: '-1.8px', marginBottom: 10 }}>
               One Control Plane.{' '}
-              <span style={{ background: `linear-gradient(135deg, #60a5fa, #a78bfa)`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', display: 'block' }}>
+              <span style={{ background: `linear-gradient(135deg, #60a5fa, #a78bfa)`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
                 Every Model, Governed.
               </span>
             </h1>
 
-            <p style={{ fontSize: 'clamp(16px, 1.9vw, 19px)', color: C.textSecondary, lineHeight: 1.65, maxWidth: 520, margin: '0 auto 30px', fontWeight: 400 }}>
-              Stop wiring every app to every model by hand. DecisionMesh sits between all of them as a <strong style={{ color: '#93c5fd', fontWeight: 700 }}>single, centralized control plane</strong> — governing, routing, and auditing every request before it ever leaves your enterprise.
+            <p style={{ fontSize: 'clamp(14px, 1.5vw, 16px)', color: C.textSecondary, lineHeight: 1.55, maxWidth: 720, margin: '0 auto 18px', fontWeight: 400 }}>
+              Applications shouldn't call AI models directly. They send DecisionMesh an <strong style={{ color: '#93c5fd', fontWeight: 700 }}>Intent</strong> — and DecisionMesh governs it, secures the data, selects the best model, validates the response, and returns a trusted, provable decision. Your applications stay the same. Your AI stays interchangeable.
             </p>
 
             {/* Compliance badges */}
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, justifyContent: 'center', marginBottom: 32 }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, justifyContent: 'center', marginBottom: 18 }}>
               {['SOC 2 Ready', 'GDPR', 'EU AI Act', 'HIPAA Aware'].map(tag => (
                 <span key={tag} style={{ fontSize: 12.5, fontWeight: 700, color: '#a5e0ff', background: 'rgba(14,165,233,0.12)', border: '1px solid rgba(14,165,233,0.30)', borderRadius: 7, padding: '5px 13px', fontFamily: C.mono, letterSpacing: '0.4px' }}>{tag}</span>
               ))}
             </div>
 
             {/* CTAs */}
-            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', justifyContent: 'center', marginBottom: 32 }}>
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', justifyContent: 'center', marginBottom: 18 }}>
               <button onClick={onRegister} style={{ background: C.blue, color: '#fff', fontSize: 15, fontWeight: 700, border: 'none', borderRadius: 9, padding: '13px 26px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, letterSpacing: '-0.2px', transition: 'background 0.15s, transform 0.1s' }}
                 onMouseEnter={e => { e.currentTarget.style.background = '#245f91'; e.currentTarget.style.transform = 'translateY(-1px)'; }}
                 onMouseLeave={e => { e.currentTarget.style.background = C.blue; e.currentTarget.style.transform = 'none'; }}>
@@ -475,31 +556,8 @@ function Hero({ onRegister, onLogin }) {
               </button>
             </div>
 
-            {/* Decision Pipeline */}
-            <div style={{ background: 'rgba(14,165,233,0.06)', border: '1px solid rgba(14,165,233,0.18)', borderRadius: 16, boxShadow: '0 4px 28px rgba(14,165,233,0.10)', padding: '24px 26px', backdropFilter: 'blur(8px)' }}>
-              <div style={{ fontFamily: C.mono, fontSize: 11, color: '#bcd4f5', letterSpacing: '2px', marginBottom: 18, textAlign: 'left', fontWeight: 700 }}>
-                DECISION LIFECYCLE — EVERY AI REQUEST
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 0, overflowX: 'auto' }}>
-                {pipeline.map((stage, i) => (
-                  <div key={stage.label} style={{ display: 'flex', alignItems: 'center', flex: 1, minWidth: 0 }}>
-                    <div style={{ flex: 1, textAlign: 'center' }}>
-                      <div style={{ width: 40, height: 40, borderRadius: 10, border: `1.5px solid ${stage.color}40`, background: `${stage.color}12`, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 8px', animation: `flow-pulse 2.5s ease infinite`, animationDelay: `${i * 0.3}s` }}>
-                        <div style={{ width: 8, height: 8, borderRadius: '50%', background: stage.color, opacity: 0.9 }} />
-                      </div>
-                      <div style={{ fontFamily: C.mono, fontSize: 11, color: stage.color, letterSpacing: '1px', fontWeight: 700, filter: 'brightness(1.35)', marginTop: 2 }}>{stage.label}</div>
-                    </div>
-                    {i < pipeline.length - 1 && (
-                      <div style={{ width: 20, height: 2, borderRadius: 2, background: `linear-gradient(90deg, ${stage.color}cc, ${pipeline[i+1].color}cc)`, flexShrink: 0, alignSelf: 'center', marginBottom: 18 }} />
-                    )}
-                  </div>
-                ))}
-              </div>
-              <div style={{ fontFamily: C.mono, fontSize: 12, color: '#34d399', marginTop: 18, display: 'flex', alignItems: 'center', gap: 7, fontWeight: 500, letterSpacing: '0.02em' }}>
-                <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#10b981', display: 'inline-block', animation: 'pulse-dot 1.5s infinite' }} />
-                Every intent · validated, policy-checked, and audited by design
-              </div>
-            </div>
+            {/* Decision Pipeline — live, looping visualization */}
+            <LivePipeline pipeline={pipeline} />
           </div>
 
           {/* CENTER→RIGHT CONNECTOR */}
@@ -516,8 +574,8 @@ function Hero({ onRegister, onLogin }) {
           </div>
 
           {/* RIGHT — Resolution cards */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 14, justifyContent: 'space-between' }}>
-            <div style={{ fontFamily: C.mono, fontSize: 12, color: '#34d399', letterSpacing: '1.5px', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, justifyContent: 'space-between' }}>
+            <div style={{ fontFamily: C.mono, fontSize: 12, color: '#34d399', letterSpacing: '1.5px', marginTop: 22, marginBottom: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
               <span style={{ display: 'inline-block', width: 6, height: 6, borderRadius: '50%', background: C.green, animation: 'pulse-dot 1.5s ease infinite' }} />
               RESOLVED BY DECISIONMESH
             </div>
@@ -527,19 +585,19 @@ function Hero({ onRegister, onLogin }) {
                 border: `1px solid ${card.color}45`,
                 borderLeft: `3px solid ${card.color}`,
                 borderRadius: 12,
-                padding: '16px 20px',
+                padding: '15px 18px',
                 animation: 'slideInRight 0.6s ease both',
                 animationDelay: card.delay,
                 backdropFilter: 'blur(8px)',
               }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-                  <div style={{ width: 22, height: 22, borderRadius: '50%', background: `${card.color}18`, border: `1.5px solid ${card.color}50`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: card.color, fontSize: 11, fontWeight: 800, flexShrink: 0 }}>{card.emoji}</div>
-                  <div style={{ color: '#ffffff', fontSize: 16, fontWeight: 700, letterSpacing: '-0.01em', lineHeight: 1.3 }}>{card.title}</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+                  <div style={{ width: 24, height: 24, borderRadius: '50%', background: `${card.color}18`, border: `1.5px solid ${card.color}50`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: card.color, fontSize: 12, fontWeight: 800, flexShrink: 0 }}>{card.emoji}</div>
+                  <div style={{ color: '#ffffff', fontSize: 17, fontWeight: 700, letterSpacing: '-0.01em', lineHeight: 1.3 }}>{card.title}</div>
                   <div style={{ marginLeft: 'auto' }}>
                     <span style={{ fontSize: 10.5, color: card.color, fontFamily: C.mono, fontWeight: 700, background: `${card.color}26`, border: `1px solid ${card.color}55`, padding: '3px 9px', borderRadius: 6, letterSpacing: '0.05em' }}>RESOLVED</span>
                   </div>
                 </div>
-                <p style={{ color: '#f8fafc', fontSize: 15, lineHeight: 1.75, fontFamily: C.mono, fontWeight: 500, letterSpacing: '0.01em' }}>{card.detail}</p>
+                <p style={{ color: '#f8fafc', fontSize: 16, lineHeight: 1.85, fontFamily: C.mono, fontWeight: 500, letterSpacing: '0.01em' }}>{card.detail}</p>
               </div>
             ))}
           </div>
@@ -568,7 +626,7 @@ function HourglassSection() {
           One intelligent bottleneck.<br />Not a hundred integrations.
         </h2>
         <p style={{ color: C.textSecondary, fontSize: 16, maxWidth: 620, margin: '0 auto 48px', lineHeight: 1.7 }}>
-          Point-to-point connections between every app and every model create unmanaged shadow AI — every application owns its own risk. DecisionMesh sits in between, as the single, centralized control plane that governs and optimizes every request before it ever leaves the enterprise.
+          Point-to-point connections between every app and every model create unmanaged shadow AI — every application owns its own risk. DecisionMesh sits in between: applications send an Intent instead of calling a model directly, and DecisionMesh governs, secures, and optimizes every request before it ever leaves the enterprise.
         </p>
 
         {/* Top — apps, converging in */}
@@ -602,9 +660,52 @@ function HourglassSection() {
         </div>
         <div style={{ fontFamily: C.mono, fontSize: 10.5, color: C.textMuted, letterSpacing: '1.5px', marginBottom: 40 }}>EVERY MODEL</div>
 
+        <p style={{ color: C.textPrimary, fontSize: 'clamp(16px, 2vw, 20px)', fontWeight: 600, lineHeight: 1.5, maxWidth: 480, margin: '0 auto 14px' }}>
+          Applications shouldn't talk directly to AI.<br />
+          <span style={{ color: C.blue }}>They should talk to DecisionMesh — and DecisionMesh decides how AI is used.</span>
+        </p>
         <p style={{ color: C.textMuted, fontSize: 13.5, fontStyle: 'italic' }}>
           It is the end of shadow AI. You no longer manage a hundred integrations — you manage one.
         </p>
+      </div>
+    </section>
+  );
+}
+
+// ── Category — the positioning claim ─────────────────────────────────────────
+// Not a comparison to other AI vendors — a comparison to the category leader
+// of every other foundational enterprise layer. Identity, APIs, and containers
+// each got a dedicated control layer; this is the same claim for AI.
+function CategorySection() {
+  const rows = [
+    { who: 'Identity',      what: 'Okta' },
+    { who: 'APIs',          what: 'Kong' },
+    { who: 'Containers',    what: 'Kubernetes' },
+    { who: 'Enterprise AI', what: 'DecisionMesh', us: true },
+  ];
+  return (
+    <section style={{ background: C.surface, padding: '80px 24px', borderTop: '1px solid rgba(14,165,233,0.15)' }}>
+      <div style={{ maxWidth: 760, margin: '0 auto', textAlign: 'center' }}>
+        <p style={{ color: C.blue, fontSize: 11, fontWeight: 700, letterSpacing: '2px', textTransform: 'uppercase', marginBottom: 10, fontFamily: C.mono }}>Why now</p>
+        <h2 style={{ fontSize: 'clamp(24px, 4vw, 40px)', fontWeight: 700, color: C.textPrimary, letterSpacing: '-1px', marginBottom: 16, lineHeight: 1.2 }}>
+          Every foundational layer of the enterprise stack already has one.
+        </h2>
+        <p style={{ color: C.textSecondary, fontSize: 15.5, maxWidth: 560, margin: '0 auto 40px', lineHeight: 1.7 }}>
+          Enterprises standardized identity with Identity Providers, APIs with API Gateways, and infrastructure with Kubernetes. AI is now becoming another enterprise platform that requires the same level of operational control.
+        </p>
+        <div style={{ border: `1px solid ${C.border}`, borderRadius: 14, overflow: 'hidden', textAlign: 'left' }}>
+          {rows.map((r, i) => (
+            <div key={r.who} style={{
+              display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+              padding: '16px 24px', fontFamily: C.mono, fontSize: 14,
+              borderTop: i === 0 ? 'none' : `1px solid ${C.border}`,
+              background: r.us ? 'rgba(59,130,246,0.10)' : 'transparent',
+            }}>
+              <span style={{ color: r.us ? C.blue : C.textPrimary, fontWeight: r.us ? 700 : 500 }}>{r.who}</span>
+              <span style={{ color: r.us ? C.textPrimary : C.textMuted, fontWeight: r.us ? 700 : 400 }}>{r.what}</span>
+            </div>
+          ))}
+        </div>
       </div>
     </section>
   );
@@ -1365,6 +1466,7 @@ export default function LandingPage() {
         <NavBar onLogin={handleLogin} onRegister={handleRegister} />
         <Hero onRegister={handleRegister} onLogin={handleLogin} />
         <HourglassSection />
+        <CategorySection />
         <PainSection />
         <KillSwitchSection />
         <Platform />
