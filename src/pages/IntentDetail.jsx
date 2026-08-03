@@ -5,18 +5,33 @@ import {
   Cpu, Shield, MessageSquare, AlertTriangle, CheckCircle,
   XCircle, Copy, Zap,
   CheckCircle2, Loader2, Circle,
-  Lock, Link2, Download, Library, GitBranch, Gauge,
+  Lock, Link2, GitBranch, Gauge,
 } from 'lucide-react';
 import Page from '../components/shared/Page';
 import {
   Card, CardHeader, CardTitle, CardContent,
   Button, PhaseBadge, SatisfactionBadge, Spinner,
 } from '../components/shared';
-import { getIntent, getIntentEvents, getExecutionsByIntent, getPolicyEvaluations, listAdapters } from '../utils/api';
+import { getIntent, getIntentEvents, getExecutionsByIntent, getPolicyEvaluations, listAdapters, listAudit } from '../utils/api';
 import { formatCost, formatDate, formatTime, formatLatency, shortId, cn, PHASE_ORDER, describeAdapterError } from '../lib/utils';
 import ReplayPanel from '../components/replay/ReplayPanel';
 
 // ── helpers ───────────────────────────────────────────────────────────────────
+
+// A retried intent can carry multiple execution_records rows for the same
+// intent, all status=SUCCESS (a later attempt can be retried for reasons
+// other than adapter failure — e.g. a quality-gate or SLA retry after a
+// response was already produced). GET /intents/{id}/executions returns them
+// ordered by attemptNumber ascending, so the row that actually determined
+// the intent's terminal outcome — and the only one with quality scoring
+// applied — is the LAST completed attempt, not the first.
+function pickFinalExecution(executions) {
+  const list = executions ?? [];
+  if (list.length === 0) return undefined;
+  const completed = list.filter(e => e.status === 'COMPLETED' || e.status === 'SUCCESS');
+  const pool = completed.length > 0 ? completed : list;
+  return pool.reduce((latest, e) => (e.attemptNumber ?? 0) >= (latest.attemptNumber ?? 0) ? e : latest);
+}
 
 function Row({ label, value, mono = false }) {
   return (
@@ -261,10 +276,10 @@ function AdapterCard({ events, adapters, executions }) {
   const eventAdapterId = execEvent?.adapterId;
 
   // Fall back to execution record — adapterId may be null if adapter wasn't
-  // registered in DB, but adapterName is joined from the adapters table
-  const execRecord = (executions ?? []).find(e =>
-    e.status === 'SUCCESS' || e.status === 'COMPLETED'
-  ) ?? executions?.[0];
+  // registered in DB, but adapterName is joined from the adapters table.
+  // Uses the final attempt (pickFinalExecution), not the first — a retry can
+  // fall back to a different adapter than the one the first attempt used.
+  const execRecord = pickFinalExecution(executions);
 
   const adapterId   = eventAdapterId ?? execRecord?.adapterId;
   const adapterName = execRecord?.adapterName;
@@ -741,8 +756,7 @@ function DecisionOutputCard({ executions, stepper }) {
   const [copiedText, setCopiedText] = useState(false);
 
   // Use the most recent completed execution
-  const exec = (executions ?? []).find(e => e.status === 'COMPLETED' || e.status === 'SUCCESS')
-            ?? executions?.[0];
+  const exec = pickFinalExecution(executions);
 
   if (!exec) {
     return (
@@ -1047,13 +1061,15 @@ function ExecutionTraceTab({ events }) {
   );
 }
 
-// ── Tabbed detail — Response/JSON/Policy Evaluation/Execution Trace are real;
-// Prompt/Audit Trail/Attachments are disabled — no backend to invoke yet
-// (prompts aren't persisted, there's no per-intent audit-log filter, and
-// there's no document/attachment model at all). Greyed out, not hidden.
+// ── Tabbed detail — Response/JSON/Policy Evaluation/Execution Trace only.
+// Prompt/Audit Trail/Attachments were dropped entirely rather than shown
+// locked — no backend to invoke for any of them (prompts aren't persisted,
+// there's no per-intent audit-log filter, and there's no document/attachment
+// model at all), so there's nothing to grow into later without new backend
+// work first; removed rather than greyed out.
 function DetailTabs({ executions, policyEvals, events, intent }) {
   const [tab, setTab] = useState('response');
-  const exec = (executions ?? []).find(e => e.status === 'COMPLETED' || e.status === 'SUCCESS') ?? executions?.[0];
+  const exec = pickFinalExecution(executions);
   const parsed = exec?.responseText ? tryParseJson(exec.responseText) : null;
 
   const TABS = [
@@ -1061,9 +1077,6 @@ function DetailTabs({ executions, policyEvals, events, intent }) {
     { key: 'json',     label: 'JSON' },
     { key: 'policy',   label: 'Policy Evaluation', count: policyEvals?.length || undefined },
     { key: 'trace',    label: 'Execution Trace' },
-    { key: 'prompt',   label: 'Prompt',       disabled: true, reason: 'Prompts are not persisted after execution' },
-    { key: 'audit',    label: 'Audit Trail',  disabled: true, reason: 'No per-intent audit-log endpoint yet' },
-    { key: 'files',    label: 'Attachments',  disabled: true, reason: 'Document attachments are not supported yet' },
   ];
 
   return (
@@ -1143,17 +1156,28 @@ function ExecutionSummaryCard({ exec }) {
 }
 
 // ── Governance status — Policy Compliant / No Policy Violations are derived
-// from real policy_evaluations rows; Audit Enabled, PII Protection Applied
-// and Explainability Enabled have no per-intent flag anywhere in the domain
-// model, so they're shown greyed rather than always-on decoration.
-function GovernanceStatusCard({ policyEvals, satisfactionState }) {
+// from real policy_evaluations rows. Audit Enabled and PII Protection Applied
+// are backed by audit_log rows fetched per-intent (GET /api/audit?entityId=).
+// PiiMaskingGuardService.scanAndMask() runs unconditionally before every LLM
+// call (decisionmesh-application/.../DecisionmeshOrchestrator.java), so any
+// INTENT_EXECUTED audit row is proof the guard ran for this intent; decision
+// === 'MASKED' additionally means it found and redacted real PII. Explainability
+// Enabled was removed — no per-intent flag anywhere in the domain model, and
+// this page shows real fields only rather than greying out placeholders.
+function GovernanceStatusCard({ policyEvals, satisfactionState, auditRows }) {
   const blocked = (policyEvals ?? []).filter(e => e.result === 'BLOCKED');
+  const executed = (auditRows ?? []).filter(a => a.action === 'INTENT_EXECUTED');
+  const masked = executed.some(a => a.decision === 'MASKED');
   const items = [
-    { label: 'Policy compliant',    real: true,  ok: satisfactionState !== 'VIOLATED' },
-    { label: 'No policy violations',real: true,  ok: blocked.length === 0 },
-    { label: 'Audit enabled',       real: false },
-    { label: 'PII protection applied', real: false },
-    { label: 'Explainability enabled', real: false },
+    { label: 'Policy compliant',    real: true, ok: satisfactionState !== 'VIOLATED' },
+    { label: 'No policy violations',real: true, ok: blocked.length === 0 },
+    { label: 'Audit enabled',       real: executed.length > 0, ok: true },
+    {
+      label: 'PII protection applied',
+      real: executed.length > 0,
+      ok: true,
+      detail: executed.length > 0 ? (masked ? 'PII detected & redacted' : 'no PII detected') : undefined,
+    },
   ];
   return (
     <Card>
@@ -1161,11 +1185,13 @@ function GovernanceStatusCard({ policyEvals, satisfactionState }) {
       <CardContent className="space-y-2">
         {items.map(it => (
           <div key={it.label} className={cn('flex items-center gap-2 text-sm', !it.real && 'opacity-40')}
-            title={!it.real ? 'No per-intent field for this yet' : undefined}>
+            title={!it.real ? 'No per-intent field for this yet' : it.detail}>
             {it.real
               ? (it.ok ? <CheckCircle2 size={14} className="text-green-500 shrink-0" /> : <XCircle size={14} className="text-red-500 shrink-0" />)
               : <Lock size={12} className="text-slate-300 shrink-0" />}
-            <span className={it.real ? 'text-slate-800 font-medium' : 'text-slate-400'}>{it.label}</span>
+            <span className={it.real ? 'text-slate-800 font-medium' : 'text-slate-400'}>
+              {it.label}{it.real && it.detail ? ` — ${it.detail}` : ''}
+            </span>
           </div>
         ))}
       </CardContent>
@@ -1173,8 +1199,9 @@ function GovernanceStatusCard({ policyEvals, satisfactionState }) {
   );
 }
 
-// ── Performance — Latency is real (execution record). Time to First Token
-// and Throughput (tokens/sec) aren't computed or stored anywhere.
+// ── Performance — Latency is the only figure the platform actually measures
+// (execution record). Time to First Token and Throughput were removed — no
+// adapter reports first-token timing or tokens/sec.
 function PerformanceCard({ exec }) {
   return (
     <Card>
@@ -1184,24 +1211,16 @@ function PerformanceCard({ exec }) {
           <span className="text-slate-500 font-medium flex items-center gap-1.5"><Gauge size={12} />Latency</span>
           <span className="font-semibold text-slate-800">{exec ? formatLatency(exec.latencyMs) : '—'}</span>
         </div>
-        <div className="flex items-center justify-between text-sm opacity-40" title="Not measured — adapters don't report first-token timing">
-          <span className="text-slate-400 flex items-center gap-1.5"><Lock size={11} />Time to first token</span>
-          <span className="text-slate-400">Unavailable</span>
-        </div>
-        <div className="flex items-center justify-between text-sm opacity-40" title="Not measured — no tokens/sec instrumentation">
-          <span className="text-slate-400 flex items-center gap-1.5"><Lock size={11} />Throughput</span>
-          <span className="text-slate-400">Unavailable</span>
-        </div>
       </CardContent>
     </Card>
   );
 }
 
 // ── Next actions — Share Result and Create Follow-up Intent are genuinely
-// wireable with zero/existing backend (clipboard copy; Playground already
-// accepts a pre-fill payload via navigation state). Download Report and Add
-// to Library have no backing endpoint (no report generator, no POST on the
-// intent-library resource) — disabled rather than faked.
+// wireable with existing backend (clipboard copy; Playground already accepts
+// a pre-fill payload via navigation state). Download Report and Add to
+// Library were removed — no report generator and no POST on the
+// intent-library resource exist to back them.
 function NextActionsCard({ intent, navigate }) {
   const [copied, setCopied] = useState(false);
 
@@ -1236,14 +1255,6 @@ function NextActionsCard({ intent, navigate }) {
           className="w-full flex items-center gap-2 px-3 py-2 text-sm rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 transition-colors">
           <GitBranch size={13} />Create follow-up intent
         </button>
-        <button disabled title="No report generator yet"
-          className="w-full flex items-center gap-2 px-3 py-2 text-sm rounded-lg border border-slate-100 bg-slate-50 text-slate-300 cursor-not-allowed">
-          <Lock size={11} /><Download size={13} />Download report
-        </button>
-        <button disabled title="No endpoint to add an intent to the library yet"
-          className="w-full flex items-center gap-2 px-3 py-2 text-sm rounded-lg border border-slate-100 bg-slate-50 text-slate-300 cursor-not-allowed">
-          <Lock size={11} /><Library size={13} />Add to library
-        </button>
       </CardContent>
     </Card>
   );
@@ -1259,25 +1270,30 @@ export default function IntentDetail({ keycloak }) {
   const [executions,   setExecutions]   = useState([]);
   const [adapters,     setAdapters]     = useState([]);
   const [policyEvals,  setPolicyEvals]  = useState([]);
+  const [auditRows,    setAuditRows]    = useState([]);
   const [loading,      setLoading]      = useState(true);
   const [fetching,     setFetching]     = useState(false);
 
   const load = useCallback(async () => {
     setFetching(true);
     try {
-      const [intentData, eventsData, execData, adaptersData, policyData] =
+      const [intentData, eventsData, execData, adaptersData, policyData, auditData] =
         await Promise.allSettled([
           getIntent(keycloak, intentId),
           getIntentEvents(keycloak, intentId),
           getExecutionsByIntent(keycloak, intentId),
           listAdapters(keycloak),
           getPolicyEvaluations(keycloak, intentId),
+          // from=epoch disables the endpoint's 30-day default window — an
+          // older intent's audit trail must not silently read as "no data".
+          listAudit(keycloak, { entityType: 'INTENT', entityId: intentId, from: '1970-01-01T00:00:00Z', size: 50 }),
         ]);
       if (intentData.value)   setIntent(intentData.value);
       if (eventsData.value)   setEvents(eventsData.value ?? []);
       if (execData.value)     setExecutions(execData.value ?? []);
       if (adaptersData.value) setAdapters(adaptersData.value ?? []);
       if (policyData.value)   setPolicyEvals(policyData.value ?? []);
+      if (auditData.value)    setAuditRows(auditData.value?.content ?? []);
     } finally {
       setLoading(false);
       setFetching(false);
@@ -1312,7 +1328,7 @@ export default function IntentDetail({ keycloak }) {
     </Page>
   );
 
-  const exec = (executions ?? []).find(e => e.status === 'COMPLETED' || e.status === 'SUCCESS') ?? executions?.[0];
+  const exec = pickFinalExecution(executions);
 
   // Real outcome sentence — derived from satisfactionState/terminal, not
   // hardcoded — mirrors the mockup's "executed successfully" tone for
@@ -1440,7 +1456,7 @@ export default function IntentDetail({ keycloak }) {
 
           <div className="space-y-4">
             <ExecutionSummaryCard exec={exec} />
-            <GovernanceStatusCard policyEvals={policyEvals} satisfactionState={intent.satisfactionState} />
+            <GovernanceStatusCard policyEvals={policyEvals} satisfactionState={intent.satisfactionState} auditRows={auditRows} />
             <PerformanceCard exec={exec} />
             <NextActionsCard intent={intent} navigate={navigate} />
           </div>
