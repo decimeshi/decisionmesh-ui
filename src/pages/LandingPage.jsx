@@ -444,14 +444,14 @@ function Hero({ onRegister, onLogin }) {
 
             {/* Headline */}
             <h1 style={{ fontSize: 'clamp(32px, 5vw, 58px)', fontWeight: 800, color: C.textPrimary, lineHeight: 1.08, letterSpacing: '-2.5px', marginBottom: 18 }}>
-              The AI Intent{' '}
+              One Control Plane.{' '}
               <span style={{ background: `linear-gradient(135deg, #60a5fa, #a78bfa)`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', display: 'block' }}>
-                Control Plane
+                Every Model, Governed.
               </span>
             </h1>
 
-            <p style={{ fontSize: 'clamp(16px, 1.9vw, 19px)', color: C.textSecondary, lineHeight: 1.65, maxWidth: 500, margin: '0 auto 30px', fontWeight: 400 }}>
-              Most AI governance tools tell you what happened. DecisionMesh lets you <strong style={{ color: '#fca5a5', fontWeight: 700 }}>stop it mid-flight</strong> — and prove to an auditor who stopped it, why, and how long it ran.
+            <p style={{ fontSize: 'clamp(16px, 1.9vw, 19px)', color: C.textSecondary, lineHeight: 1.65, maxWidth: 520, margin: '0 auto 30px', fontWeight: 400 }}>
+              Stop wiring every app to every model by hand. DecisionMesh sits between all of them as a <strong style={{ color: '#93c5fd', fontWeight: 700 }}>single, centralized control plane</strong> — governing, routing, and auditing every request before it ever leaves your enterprise.
             </p>
 
             {/* Compliance badges */}
@@ -545,6 +545,66 @@ function Hero({ onRegister, onLogin }) {
           </div>
         </div>
 
+      </div>
+    </section>
+  );
+}
+
+// ── Hourglass — the core architectural claim ─────────────────────────────────
+// Point-to-point integrations between every app and every model create
+// unmanaged shadow AI. DecisionMesh replaces that with a single choke point:
+// every app in, one governed gateway, every model out. "You no longer manage
+// a hundred integrations — you manage one intelligent bottleneck."
+function HourglassSection() {
+  const apps = ['Customer Support Bot', 'Fraud Detection', 'Internal Copilot', 'Claims Assistant', 'Sales Enablement'];
+  const models = ['OpenAI', 'Anthropic', 'Google Gemini', 'Azure OpenAI', 'Private / On-Prem'];
+  const funnelX = [24, 96, 168, 240, 312];
+
+  return (
+    <section style={{ background: '#091220', padding: '80px 24px', borderTop: '1px solid rgba(14,165,233,0.15)' }}>
+      <div style={{ maxWidth: 900, margin: '0 auto', textAlign: 'center' }}>
+        <p style={{ color: C.blue, fontSize: 11, fontWeight: 700, letterSpacing: '2px', textTransform: 'uppercase', marginBottom: 10, fontFamily: C.mono }}>The Hourglass Architecture</p>
+        <h2 style={{ fontSize: 'clamp(24px, 4vw, 40px)', fontWeight: 700, color: C.textPrimary, letterSpacing: '-1px', marginBottom: 14, lineHeight: 1.25 }}>
+          One intelligent bottleneck.<br />Not a hundred integrations.
+        </h2>
+        <p style={{ color: C.textSecondary, fontSize: 16, maxWidth: 620, margin: '0 auto 48px', lineHeight: 1.7 }}>
+          Point-to-point connections between every app and every model create unmanaged shadow AI — every application owns its own risk. DecisionMesh sits in between, as the single, centralized control plane that governs and optimizes every request before it ever leaves the enterprise.
+        </p>
+
+        {/* Top — apps, converging in */}
+        <div style={{ fontFamily: C.mono, fontSize: 10.5, color: C.textMuted, letterSpacing: '1.5px', marginBottom: 14 }}>YOUR APPLICATIONS</div>
+        <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 10, marginBottom: 4 }}>
+          {apps.map(app => (
+            <span key={app} style={{ fontSize: 12.5, fontWeight: 600, color: C.textSecondary, background: '#0d1e35', border: `1px solid ${C.border}`, borderRadius: 999, padding: '7px 15px' }}>{app}</span>
+          ))}
+        </div>
+
+        <svg width="336" height="64" viewBox="0 0 336 64" style={{ display: 'block', margin: '0 auto' }}>
+          {funnelX.map((x, i) => <line key={i} x1={x} y1="0" x2="168" y2="64" stroke="rgba(59,130,246,0.35)" strokeWidth="1.5" />)}
+        </svg>
+
+        {/* Center — the control plane */}
+        <div style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'center', gap: 8, background: 'rgba(59,130,246,0.10)', border: `1.5px solid ${C.blue}`, borderRadius: 18, padding: '20px 38px', boxShadow: '0 0 40px rgba(59,130,246,0.25)' }}>
+          <img src="/decimeshi-icon.svg" alt="" style={{ width: 32, height: 32 }} />
+          <div style={{ color: C.textPrimary, fontWeight: 800, fontSize: 17, letterSpacing: '-0.3px' }}>DecisionMesh</div>
+          <div style={{ fontFamily: C.mono, fontSize: 10.5, color: '#93c5fd', letterSpacing: '1px', textTransform: 'uppercase' }}>Govern · Route · Audit</div>
+        </div>
+
+        <svg width="336" height="64" viewBox="0 0 336 64" style={{ display: 'block', margin: '0 auto' }}>
+          {funnelX.map((x, i) => <line key={i} x1="168" y1="0" x2={x} y2="64" stroke="rgba(16,185,129,0.35)" strokeWidth="1.5" />)}
+        </svg>
+
+        {/* Bottom — models, diverging out */}
+        <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 10, marginTop: 4, marginBottom: 14 }}>
+          {models.map(m => (
+            <span key={m} style={{ fontSize: 12.5, fontWeight: 600, color: '#a7f3d0', background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.30)', borderRadius: 999, padding: '7px 15px' }}>{m}</span>
+          ))}
+        </div>
+        <div style={{ fontFamily: C.mono, fontSize: 10.5, color: C.textMuted, letterSpacing: '1.5px', marginBottom: 40 }}>EVERY MODEL</div>
+
+        <p style={{ color: C.textMuted, fontSize: 13.5, fontStyle: 'italic' }}>
+          It is the end of shadow AI. You no longer manage a hundred integrations — you manage one.
+        </p>
       </div>
     </section>
   );
@@ -651,8 +711,8 @@ function Platform() {
         <div style={{ textAlign: 'center', marginBottom: 52 }}>
           <p style={{ color: C.blue, fontSize: 11, fontWeight: 700, letterSpacing: '2px', textTransform: 'uppercase', marginBottom: 10, fontFamily: C.mono }}>Platform Architecture</p>
           <h2 style={{ fontSize: 'clamp(24px, 4vw, 40px)', fontWeight: 700, color: C.textPrimary, letterSpacing: '-1px', marginBottom: 12 }}>How the control plane works</h2>
-          <p style={{ color: C.textSecondary, fontSize: 15, maxWidth: 540, margin: '0 auto' }}>
-            DecisionMesh separates AI governance from AI execution. The Control Plane decides what should happen. The Execution Plane carries it out.
+          <p style={{ color: C.textSecondary, fontSize: 15, maxWidth: 560, margin: '0 auto' }}>
+            One centralized control plane governs every request; a pluggable execution plane carries it out. Traditional API gateways only handle authentication and routing — they're blind to intent and data risk. DecisionMesh isn't blind: it decides what should happen before anything executes.
           </p>
         </div>
 
@@ -1304,6 +1364,7 @@ export default function LandingPage() {
       <div style={{ minHeight: '100vh', background: '#0a1628' }}>
         <NavBar onLogin={handleLogin} onRegister={handleRegister} />
         <Hero onRegister={handleRegister} onLogin={handleLogin} />
+        <HourglassSection />
         <PainSection />
         <KillSwitchSection />
         <Platform />
