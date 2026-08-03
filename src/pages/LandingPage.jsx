@@ -326,8 +326,8 @@ function LivePipeline({ pipeline }) {
   const stage = pipeline[active];
 
   return (
-    <div style={{ background: 'rgba(14,165,233,0.06)', border: '1px solid rgba(14,165,233,0.18)', borderRadius: 16, boxShadow: '0 4px 28px rgba(14,165,233,0.10)', padding: '24px 26px', backdropFilter: 'blur(8px)' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 18, gap: 12, flexWrap: 'wrap' }}>
+    <div style={{ background: 'rgba(14,165,233,0.06)', border: '1px solid rgba(14,165,233,0.18)', borderRadius: 16, boxShadow: '0 4px 28px rgba(14,165,233,0.10)', padding: '16px 18px', backdropFilter: 'blur(8px)' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 12, gap: 12, flexWrap: 'wrap' }}>
         <div style={{ fontFamily: C.mono, fontSize: 11, color: '#bcd4f5', letterSpacing: '2px', textAlign: 'left', fontWeight: 700 }}>
           DECISION LIFECYCLE — LIVE
         </div>
@@ -343,10 +343,10 @@ function LivePipeline({ pipeline }) {
             <div key={s.label} style={{ display: 'flex', alignItems: 'center', flex: 1, minWidth: 0 }}>
               <div style={{ flex: 1, textAlign: 'center' }}>
                 <div style={{
-                  width: 40, height: 40, borderRadius: 10,
+                  width: 32, height: 32, borderRadius: 9,
                   border: `1.5px solid ${s.color}${status === 'pending' ? '25' : '70'}`,
                   background: status === 'done' ? s.color : `${s.color}${status === 'active' ? '20' : '0a'}`,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 8px',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 6px',
                   transition: 'background 0.4s, border-color 0.4s, transform 0.4s, box-shadow 0.4s',
                   transform: status === 'active' ? 'scale(1.12)' : 'scale(1)',
                   boxShadow: status === 'active' ? `0 0 0 5px ${s.color}22, 0 0 18px ${s.color}55` : 'none',
@@ -360,7 +360,7 @@ function LivePipeline({ pipeline }) {
               </div>
               {i < pipeline.length - 1 && (
                 <div style={{
-                  width: 20, height: 2, borderRadius: 2, flexShrink: 0, alignSelf: 'center', marginBottom: 18,
+                  width: 20, height: 2, borderRadius: 2, flexShrink: 0, alignSelf: 'center', marginBottom: 14,
                   background: i < active ? `linear-gradient(90deg, ${s.color}cc, ${pipeline[i + 1].color}cc)` : 'rgba(148,163,184,0.15)',
                   transition: 'background 0.5s',
                 }} />
@@ -370,7 +370,7 @@ function LivePipeline({ pipeline }) {
         })}
       </div>
 
-      <div style={{ marginTop: 18, minHeight: 20 }}>
+      <div style={{ marginTop: 10, minHeight: 20 }}>
         <div key={active} style={{ fontFamily: C.mono, fontSize: 12, color: stage.color, display: 'flex', alignItems: 'center', gap: 7, fontWeight: 500, letterSpacing: '0.02em', animation: 'fadeUp 0.35s ease both' }}>
           <span style={{ width: 5, height: 5, borderRadius: '50%', background: stage.color, display: 'inline-block', animation: 'pulse-dot 1.5s infinite' }} />
           {stage.detail}
@@ -461,14 +461,14 @@ function Hero({ onRegister, onLogin }) {
       {/* Scan line removed — aurora theme */}
 
       {/* Main content */}
-      <div style={{ position: 'relative', zIndex: 3, display: 'flex', flexDirection: 'column', maxWidth: 1280, margin: '0 auto', padding: '58px 24px 8px', width: '100%' }}>
+      <div style={{ position: 'relative', zIndex: 3, display: 'flex', flexDirection: 'column', maxWidth: 1280, margin: '0 auto', padding: '58px 24px 48px', width: '100%' }}>
 
         {/* Three-column layout */}
         <div style={{ display: 'grid', gridTemplateColumns: '1.15fr 24px 1.2fr 24px 1.05fr', gap: 0, alignItems: 'stretch' }} className="hero-grid">
 
           {/* LEFT — Problem cards */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, justifyContent: 'space-between' }}>
-            <div style={{ fontFamily: C.mono, fontSize: 12, color: C.red, letterSpacing: '1.5px', marginTop: 22, marginBottom: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, justifyContent: 'flex-start' }}>
+            <div style={{ fontFamily: C.mono, fontSize: 11, color: C.red, letterSpacing: '1.5px', marginTop: 20, marginBottom: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
               <span style={{ display: 'inline-block', width: 6, height: 6, borderRadius: '50%', background: C.red, animation: 'pulse-dot 1.5s ease infinite' }} />
               UNRESOLVED INCIDENTS
             </div>
@@ -478,25 +478,25 @@ function Hero({ onRegister, onLogin }) {
                 border: `1px solid ${card.color}45`,
                 borderLeft: `3px solid ${card.color}`,
                 borderRadius: 10,
-                padding: '13px 16px',
+                padding: '9px 13px',
                 animation: `slideInLeft 0.6s ease both`,
                 animationDelay: card.delay,
                 backdropFilter: 'blur(8px)',
               }}>
                 {/* Corner brackets */}
                 <div style={{ position: 'relative' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-                    <span style={{ fontSize: 20 }}>{card.emoji}</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 7 }}>
+                    <span style={{ fontSize: 17 }}>{card.emoji}</span>
                     <div>
-                      <div style={{ color: C.textPrimary, fontSize: 16, fontWeight: 700 }}>{card.role}</div>
-                      <div style={{ color: C.textSub, fontSize: 13.5, fontFamily: C.mono }}>{card.org}</div>
+                      <div style={{ color: C.textPrimary, fontSize: 14.5, fontWeight: 700 }}>{card.role}</div>
+                      <div style={{ color: C.textSub, fontSize: 12.5, fontFamily: C.mono }}>{card.org}</div>
                     </div>
                     <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 4 }}>
                       <span style={{ width: 5, height: 5, borderRadius: '50%', background: card.color, display: 'inline-block', animation: 'pulse-dot 2s ease infinite' }} />
                       <span style={{ fontSize: 11, color: card.color, fontFamily: C.mono, fontWeight: 700 }}>OPEN</span>
                     </div>
                   </div>
-                  <p style={{ color: C.textCard, fontSize: 16.5, lineHeight: 1.75, fontStyle: 'italic', fontWeight: 500 }}>"{card.issue}"</p>
+                  <p style={{ color: C.textCard, fontSize: 14, lineHeight: 1.5, fontStyle: 'italic', fontWeight: 500 }}>"{card.issue}"</p>
                 </div>
               </div>
             ))}
@@ -518,38 +518,38 @@ function Hero({ onRegister, onLogin }) {
           {/* CENTER — Hero content + pipeline */}
           <div style={{ textAlign: 'center', animation: 'fadeUp 0.7s ease both', animationDelay: '0.1s', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
             {/* Badge */}
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: C.blueLight, border: `1px solid ${C.blueMuted}`, borderRadius: 999, padding: '5px 14px', marginBottom: 16 }}>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: C.blueLight, border: `1px solid ${C.blueMuted}`, borderRadius: 999, padding: '4px 12px', marginBottom: 10 }}>
               <span style={{ width: 6, height: 6, borderRadius: '50%', background: C.blue, display: 'inline-block', animation: 'pulse-dot 2s infinite', flexShrink: 0 }} />
-              <span style={{ color: '#7dd3fc', fontSize: 13, fontWeight: 600 }}>Now in beta — free for early adopters</span>
+              <span style={{ color: '#7dd3fc', fontSize: 12, fontWeight: 600 }}>Now in beta — free for early adopters</span>
             </div>
 
             {/* Headline */}
-            <h1 style={{ fontSize: 'clamp(26px, 3.4vw, 40px)', fontWeight: 800, color: C.textPrimary, lineHeight: 1.1, letterSpacing: '-1.8px', marginBottom: 10 }}>
+            <h1 style={{ fontSize: 'clamp(22px, 3vw, 34px)', fontWeight: 800, color: C.textPrimary, lineHeight: 1.08, letterSpacing: '-1.6px', marginBottom: 6 }}>
               One Control Plane.{' '}
               <span style={{ background: `linear-gradient(135deg, #60a5fa, #a78bfa)`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
                 Every Model, Governed.
               </span>
             </h1>
 
-            <p style={{ fontSize: 'clamp(14px, 1.5vw, 16px)', color: C.textSecondary, lineHeight: 1.55, maxWidth: 720, margin: '0 auto 18px', fontWeight: 400 }}>
+            <p style={{ fontSize: 'clamp(13px, 1.3vw, 14.5px)', color: C.textSecondary, lineHeight: 1.4, maxWidth: 720, margin: '0 auto 10px', fontWeight: 400 }}>
               Applications shouldn't call AI models directly. They send DecisionMesh an <strong style={{ color: '#93c5fd', fontWeight: 700 }}>Intent</strong> — and DecisionMesh governs it, secures the data, selects the best model, validates the response, and returns a trusted, provable decision. Your applications stay the same. Your AI stays interchangeable.
             </p>
 
             {/* Compliance badges */}
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, justifyContent: 'center', marginBottom: 18 }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, justifyContent: 'center', marginBottom: 10 }}>
               {['SOC 2 Ready', 'GDPR', 'EU AI Act', 'HIPAA Aware'].map(tag => (
-                <span key={tag} style={{ fontSize: 12.5, fontWeight: 700, color: '#a5e0ff', background: 'rgba(14,165,233,0.12)', border: '1px solid rgba(14,165,233,0.30)', borderRadius: 7, padding: '5px 13px', fontFamily: C.mono, letterSpacing: '0.4px' }}>{tag}</span>
+                <span key={tag} style={{ fontSize: 11, fontWeight: 700, color: '#a5e0ff', background: 'rgba(14,165,233,0.12)', border: '1px solid rgba(14,165,233,0.30)', borderRadius: 7, padding: '4px 11px', fontFamily: C.mono, letterSpacing: '0.4px' }}>{tag}</span>
               ))}
             </div>
 
             {/* CTAs */}
-            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', justifyContent: 'center', marginBottom: 18 }}>
-              <button onClick={onRegister} style={{ background: C.blue, color: '#fff', fontSize: 15, fontWeight: 700, border: 'none', borderRadius: 9, padding: '13px 26px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, letterSpacing: '-0.2px', transition: 'background 0.15s, transform 0.1s' }}
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', justifyContent: 'center', marginBottom: 10 }}>
+              <button onClick={onRegister} style={{ background: C.blue, color: '#fff', fontSize: 14, fontWeight: 700, border: 'none', borderRadius: 9, padding: '10px 22px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, letterSpacing: '-0.2px', transition: 'background 0.15s, transform 0.1s' }}
                 onMouseEnter={e => { e.currentTarget.style.background = '#245f91'; e.currentTarget.style.transform = 'translateY(-1px)'; }}
                 onMouseLeave={e => { e.currentTarget.style.background = C.blue; e.currentTarget.style.transform = 'none'; }}>
                 Start for free <Icon.ArrowRight />
               </button>
-              <button onClick={onLogin} style={{ background: 'rgba(14,165,233,0.10)', color: '#bae6fd', fontSize: 15, fontWeight: 600, border: '1px solid rgba(14,165,233,0.30)', borderRadius: 9, padding: '13px 24px', cursor: 'pointer', transition: 'background 0.15s' }}
+              <button onClick={onLogin} style={{ background: 'rgba(14,165,233,0.10)', color: '#bae6fd', fontSize: 14, fontWeight: 600, border: '1px solid rgba(14,165,233,0.30)', borderRadius: 9, padding: '10px 20px', cursor: 'pointer', transition: 'background 0.15s' }}
                 onMouseEnter={e => e.currentTarget.style.background = 'rgba(14,165,233,0.14)'}
                 onMouseLeave={e => e.currentTarget.style.background = 'rgba(14,165,233,0.08)'}>
                 Sign in
@@ -574,8 +574,8 @@ function Hero({ onRegister, onLogin }) {
           </div>
 
           {/* RIGHT — Resolution cards */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, justifyContent: 'space-between' }}>
-            <div style={{ fontFamily: C.mono, fontSize: 12, color: '#34d399', letterSpacing: '1.5px', marginTop: 22, marginBottom: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, justifyContent: 'flex-start' }}>
+            <div style={{ fontFamily: C.mono, fontSize: 11, color: '#34d399', letterSpacing: '1.5px', marginTop: 20, marginBottom: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
               <span style={{ display: 'inline-block', width: 6, height: 6, borderRadius: '50%', background: C.green, animation: 'pulse-dot 1.5s ease infinite' }} />
               RESOLVED BY DECISIONMESH
             </div>
@@ -585,19 +585,19 @@ function Hero({ onRegister, onLogin }) {
                 border: `1px solid ${card.color}45`,
                 borderLeft: `3px solid ${card.color}`,
                 borderRadius: 12,
-                padding: '15px 18px',
+                padding: '10px 14px',
                 animation: 'slideInRight 0.6s ease both',
                 animationDelay: card.delay,
                 backdropFilter: 'blur(8px)',
               }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-                  <div style={{ width: 24, height: 24, borderRadius: '50%', background: `${card.color}18`, border: `1.5px solid ${card.color}50`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: card.color, fontSize: 12, fontWeight: 800, flexShrink: 0 }}>{card.emoji}</div>
-                  <div style={{ color: '#ffffff', fontSize: 17, fontWeight: 700, letterSpacing: '-0.01em', lineHeight: 1.3 }}>{card.title}</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                  <div style={{ width: 20, height: 20, borderRadius: '50%', background: `${card.color}18`, border: `1.5px solid ${card.color}50`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: card.color, fontSize: 11, fontWeight: 800, flexShrink: 0 }}>{card.emoji}</div>
+                  <div style={{ color: '#ffffff', fontSize: 15, fontWeight: 700, letterSpacing: '-0.01em', lineHeight: 1.3 }}>{card.title}</div>
                   <div style={{ marginLeft: 'auto' }}>
-                    <span style={{ fontSize: 10.5, color: card.color, fontFamily: C.mono, fontWeight: 700, background: `${card.color}26`, border: `1px solid ${card.color}55`, padding: '3px 9px', borderRadius: 6, letterSpacing: '0.05em' }}>RESOLVED</span>
+                    <span style={{ fontSize: 10, color: card.color, fontFamily: C.mono, fontWeight: 700, background: `${card.color}26`, border: `1px solid ${card.color}55`, padding: '2px 8px', borderRadius: 6, letterSpacing: '0.05em' }}>RESOLVED</span>
                   </div>
                 </div>
-                <p style={{ color: '#f8fafc', fontSize: 16, lineHeight: 1.85, fontFamily: C.mono, fontWeight: 500, letterSpacing: '0.01em' }}>{card.detail}</p>
+                <p style={{ color: '#f8fafc', fontSize: 13.5, lineHeight: 1.55, fontFamily: C.mono, fontWeight: 500, letterSpacing: '0.01em' }}>{card.detail}</p>
               </div>
             ))}
           </div>
