@@ -565,7 +565,7 @@ function Hero({ onRegister, onLogin }) {
                 border: `1px solid ${card.color}45`,
                 borderLeft: `3px solid ${card.color}`,
                 borderRadius: 12,
-                padding: '10px 14px',
+                padding: '18px 14px',
                 animation: 'slideInRight 0.6s ease both',
                 animationDelay: card.delay,
                 backdropFilter: 'blur(8px)',
