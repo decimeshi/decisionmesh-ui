@@ -88,6 +88,9 @@ const FEATURES = [
   { icon: 'Eye', title: 'Shadow AI gateway', desc: 'Replace ungoverned employee AI usage with a single enterprise gateway. Full visibility, approved models only.', color: '#14b8a6', badge: 'NEW' },
 ];
 
+// Shared with the Hero's model marquee — one list, two places, no drift.
+const MODEL_NAMES = ['OpenAI', 'Anthropic', 'Google Gemini', 'Azure OpenAI', 'Private / On-Prem'];
+
 const PAIN_POINTS = [
   { emoji: '💸', title: 'Runaway AI costs', desc: 'A single prompt loop or misconfigured retry can drain thousands before anyone notices. There are no guardrails.' },
   { emoji: '🔇', title: 'Silent failures', desc: 'Your model returns garbage, times out, or hits rate limits. Your app fails. You find out from a user complaint.' },
@@ -436,6 +439,38 @@ function Hero({ onRegister, onLogin }) {
           0%   { transform: translateY(-100%); }
           100% { transform: translateY(100vh); }
         }
+        @keyframes marquee-scroll {
+          from { transform: translateX(0); }
+          to   { transform: translateX(-50%); }
+        }
+        .model-marquee {
+          width: 100%;
+          overflow: hidden;
+          -webkit-mask-image: linear-gradient(90deg, transparent, #000 10%, #000 90%, transparent);
+          mask-image: linear-gradient(90deg, transparent, #000 10%, #000 90%, transparent);
+        }
+        .model-marquee-track {
+          display: flex;
+          align-items: center;
+          gap: 14px;
+          width: max-content;
+          animation: marquee-scroll 22s linear infinite;
+        }
+        .model-chip {
+          flex-shrink: 0;
+          font-family: ${C.mono};
+          font-size: 13px;
+          font-weight: 600;
+          color: #93c5fd;
+          background: rgba(14,165,233,0.06);
+          border: 1px solid rgba(14,165,233,0.20);
+          border-radius: 999px;
+          padding: 8px 20px;
+          white-space: nowrap;
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .model-marquee-track { animation: none; }
+        }
       `}</style>
 
       {/* Scan line removed — aurora theme */}
@@ -601,6 +636,22 @@ function Hero({ onRegister, onLogin }) {
         </div>
 
       </div>
+
+      {/* Model marquee — same provider list as the Hourglass section below,
+          not a fabricated client-logo strip. Full-bleed, outside the
+          maxWidth wrapper, using the leftover vertical space in this section. */}
+      <div style={{ position: 'relative', zIndex: 3, marginTop: 56, borderTop: '1px solid rgba(14,165,233,0.12)', paddingTop: 26, paddingBottom: 4 }}>
+        <p style={{ textAlign: 'center', fontFamily: C.mono, fontSize: 11, letterSpacing: '2px', color: C.textMuted, textTransform: 'uppercase', marginBottom: 18 }}>
+          Works with every major model
+        </p>
+        <div className="model-marquee">
+          <div className="model-marquee-track">
+            {[...MODEL_NAMES, ...MODEL_NAMES].map((m, i) => (
+              <span key={i} className="model-chip">{m}</span>
+            ))}
+          </div>
+        </div>
+      </div>
     </section>
   );
 }
@@ -612,7 +663,7 @@ function Hero({ onRegister, onLogin }) {
 // a hundred integrations — you manage one intelligent bottleneck."
 function HourglassSection() {
   const apps = ['Customer Support Bot', 'Fraud Detection', 'Internal Copilot', 'Claims Assistant', 'Sales Enablement'];
-  const models = ['OpenAI', 'Anthropic', 'Google Gemini', 'Azure OpenAI', 'Private / On-Prem'];
+  const models = MODEL_NAMES;
   const funnelX = [24, 96, 168, 240, 312];
 
   return (
