@@ -319,7 +319,7 @@ function LivePipeline({ pipeline }) {
         </div>
       </div>
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: 0, overflowX: 'auto' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 0, overflowX: 'auto', padding: '12px 0' }}>
         {pipeline.map((s, i) => {
           const status = i < active ? 'done' : i === active ? 'active' : 'pending';
           return (
@@ -476,7 +476,7 @@ function Hero({ onRegister, onLogin }) {
       {/* Scan line removed — aurora theme */}
 
       {/* Main content */}
-      <div style={{ position: 'relative', zIndex: 3, display: 'flex', flexDirection: 'column', maxWidth: 1280, margin: '0 auto', padding: '58px 24px 16px', width: '100%' }}>
+      <div style={{ position: 'relative', zIndex: 3, display: 'flex', flexDirection: 'column', maxWidth: 1280, margin: '0 auto', padding: '96px 24px 16px', width: '100%' }}>
 
         {/* Three-column layout */}
         <div style={{ display: 'grid', gridTemplateColumns: '1.1fr 24px 1.2fr 24px 1.1fr', gap: 0, alignItems: 'stretch' }} className="hero-grid">
@@ -548,15 +548,18 @@ function Hero({ onRegister, onLogin }) {
             </div>
 
             {/* Headline */}
-            <h1 style={{ fontSize: 'clamp(22px, 3vw, 34px)', fontWeight: 800, color: C.textPrimary, lineHeight: 1.08, letterSpacing: '-1.6px', marginBottom: 6 }}>
-              One Control Plane.{' '}
+            <h1 style={{ fontSize: 'clamp(18px, 2.2vw, 26px)', fontWeight: 800, color: C.textPrimary, lineHeight: 1.08, letterSpacing: '-1.6px', marginBottom: 6 }}>
+              One Control Plane.
+              <br />
               <span style={{ background: `linear-gradient(135deg, #60a5fa, #a78bfa)`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
                 Every Model, Governed.
               </span>
             </h1>
 
             <p style={{ fontSize: 'clamp(13px, 1.3vw, 14.5px)', color: C.textSecondary, lineHeight: 1.4, maxWidth: 720, margin: '0 auto 10px', fontWeight: 400 }}>
-              Applications shouldn't call AI models directly. They send DecisionMesh an <strong style={{ color: '#93c5fd', fontWeight: 700 }}>Intent</strong> — and DecisionMesh governs it, secures the data, selects the best model, validates the response, and returns a trusted, provable decision. Your applications stay the same. Your AI stays interchangeable.
+              Applications shouldn't call AI models directly. They send DecisionMesh an <strong style={{ color: '#93c5fd', fontWeight: 700 }}>Intent</strong> — and DecisionMesh governs it, secures the data, selects the best model, validates the response, and returns a trusted, provable decision.
+              <br />
+              <span style={{ color: '#c4b5fd', fontSize: '1.05em', fontWeight: 600 }}>Your applications stay the same. Your AI stays interchangeable.</span>
             </p>
 
             {/* Compliance badges */}
@@ -567,7 +570,7 @@ function Hero({ onRegister, onLogin }) {
             </div>
 
             {/* CTAs */}
-            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', justifyContent: 'center', marginBottom: 10 }}>
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', justifyContent: 'center', marginBottom: 22 }}>
               <button onClick={onRegister} style={{ background: C.blue, color: '#fff', fontSize: 14, fontWeight: 700, border: 'none', borderRadius: 9, padding: '10px 22px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, letterSpacing: '-0.2px', transition: 'background 0.15s, transform 0.1s' }}
                 onMouseEnter={e => { e.currentTarget.style.background = '#245f91'; e.currentTarget.style.transform = 'translateY(-1px)'; }}
                 onMouseLeave={e => { e.currentTarget.style.background = C.blue; e.currentTarget.style.transform = 'none'; }}>
