@@ -32,23 +32,11 @@ const INDIA_LOCALES = ['hi', 'ta', 'te', 'kn', 'ml', 'mr', 'gu', 'pa', 'bn', 'en
 const INDIA_TIMEZONES = ['Asia/Kolkata', 'Asia/Calcutta'];
 const GATEWAY_KEY = 'dm_payment_gateway';
 
-// ── Billing intervals ─────────────────────────────────────────────────────────
-const BILLING_INTERVALS = [
-  { id: 'monthly',    label: 'Monthly',   months: 1,  discount: 0,    badge: null         },
-  { id: 'quarterly',  label: 'Quarterly', months: 3,  discount: 0.10, badge: 'Save 10%'   },
-  { id: 'halfyearly', label: '6 Months',  months: 6,  discount: 0.15, badge: 'Save 15%'   },
-  { id: 'yearly',     label: 'Yearly',    months: 12, discount: 0.20, badge: 'Save 20%'   },
-];
-
-// ── Plans — matching PDF Section 4 ───────────────────────────────────────────
-// priceId.stripe keys must match StripeService.priceMap entries in application.properties
-// priceId.razorpay values are real Razorpay plan IDs (plan_xxx)
-//   → Replace TODO entries with IDs returned from Razorpay plan creation curl commands
+// ── Plans — B2B: Free (self-serve) and Enterprise (contact sales) only ──────
 const PLANS = [
   {
     id: 'free', name: 'Free', color: '#64748b',
-    usdPrice: { monthly: 0, quarterly: 0, halfyearly: 0, yearly: 0 },
-    inrPrice: { monthly: 0, quarterly: 0, halfyearly: 0, yearly: 0 },
+    usdPrice: 0, inrPrice: 0,
     credits: 100, creditsNote: '100 credits one-time',
     cta: 'Current free tier', priceId: null,
     features: [
@@ -63,80 +51,21 @@ const PLANS = [
     ],
   },
   {
-    id: 'builder', name: 'Builder', color: '#2563eb', popular: true,
-    // USD: $19/mo · Quarterly $51 (−10%) · Half-yearly $97 (−15%) · Yearly $182 (−20%)
-    usdPrice: { monthly: 19, quarterly: 51,   halfyearly: 97,   yearly: 182  },
-    // INR: ₹1,599/mo · Quarterly ₹4,317 · Half-yearly ₹8,154 · Yearly ₹15,349
-    inrPrice: { monthly: 1599, quarterly: 4317, halfyearly: 8154, yearly: 15349 },
-    credits: 15000, creditsNote: '15k credits/mo',
-    cta: 'Upgrade to Builder',
-    priceId: {
-      stripe: {
-        monthly:    'builder',
-        quarterly:  'builder_quarterly',
-        halfyearly: 'builder_halfyearly',
-        yearly:     'builder_yearly',
-      },
-      razorpay: {
-        monthly:    'plan_SdDtQreYZOuDuZ',
-        quarterly:  'plan_SdR7GBM6uj4NqV',
-        halfyearly: 'plan_SdR8W9gg1aXHkK',
-        yearly:     'plan_SdR92osLF8JvPx',
-      },
-    },
-    features: [
-      '15,000 credits/month',
-      'Everything in Free',
-      'Full audit log + CSV export',
-      'Priority support',
-      'Overage: $0.002/cr',
-    ],
-    badge: 'Most popular',
-  },
-  {
-    id: 'pro', name: 'Pro', color: '#4f46e5',
-    // USD: $49/mo · Quarterly $132 (−10%) · Half-yearly $250 (−15%) · Yearly $470 (−20%)
-    usdPrice: { monthly: 49, quarterly: 132, halfyearly: 250, yearly: 470  },
-    // INR: ₹4,099/mo · Quarterly ₹11,067 · Half-yearly ₹20,904 · Yearly ₹39,350
-    inrPrice: { monthly: 4099, quarterly: 11067, halfyearly: 20904, yearly: 39350 },
-    credits: 60000, creditsNote: '60k credits/mo',
-    cta: 'Upgrade to Pro',
-    priceId: {
-      stripe: {
-        monthly:    'pro',
-        quarterly:  'pro_quarterly',
-        halfyearly: 'pro_halfyearly',
-        yearly:     'pro_yearly',
-      },
-      razorpay: {
-        monthly:    'plan_SdDv8HzOQxPoFm',
-        quarterly:  'plan_SdR9crmN0Nxxzj',
-        halfyearly: 'plan_SdRA09r9Rs9KA0',
-        yearly:     'plan_SdRAPgVKuMooyq',
-      },
-    },
-    features: [
-      '60,000 credits/month',
-      'Everything in Builder',
-      'Multi-tenancy — full tenant isolation',
-      '5 team seats',
-      'SSO / SAML',
-      'Human-in-the-loop gates',
-      'BYOK — bring your own API key (1 cr/exec)',
-      'Overage: $0.001/cr',
-    ],
-  },
-  {
     id: 'enterprise', name: 'Enterprise', color: '#7c3aed',
     usdPrice: null, inrPrice: null,
     credits: null, creditsNote: 'Unlimited',
     cta: 'Contact sales', priceId: null,
-    features: ['Unlimited credits', 'PII detection & masking',
+    features: ['Unlimited credits',
+               'Multi-tenancy — full tenant isolation',
+               'Unlimited team seats',
+               'SSO / SAML',
+               'Human-in-the-loop gates',
+               'PII detection & masking',
                'Model version tracking', 'Immutable signed audit log',
                'GDPR data residency', 'HIPAA / PCI-DSS templates',
                'BYOK — bring your own API key (1 cr/exec)',
                'BYOM — bring your own model, zero data egress',
-               'Dedicated SLA'],
+               'Priority support', 'Dedicated SLA'],
   },
 ];
 
@@ -298,36 +227,20 @@ async function openRazorpay(order, userEmail) {
 }
 
 // ── Price display helpers ─────────────────────────────────────────────────────
-function formatPrice(plan, gateway, interval = 'monthly') {
-  const isInr   = gateway === 'razorpay';
-  const prices  = isInr ? plan.inrPrice : plan.usdPrice;
-  const sym     = isInr ? '₹' : '$';
+function formatPrice(plan, gateway) {
+  const isInr = gateway === 'razorpay';
+  const price = isInr ? plan.inrPrice : plan.usdPrice;
+  const sym   = isInr ? '₹' : '$';
 
-  if (prices === null) return { main: 'Custom', sub: null, monthly: null, savings: null };
-
-  const total = typeof prices === 'object' ? prices[interval] : prices;
-  if (total === 0) return { main: 'Free', sub: null, monthly: null, savings: null };
-
-  const iv = BILLING_INTERVALS.find(i => i.id === interval);
-  const months = iv?.months ?? 1;
-
-  // Effective per-month for multi-month intervals
-  const perMonth = months > 1 ? (total / months) : null;
-  const monthlyFull = typeof prices === 'object' ? prices.monthly : prices;
-  const savings = months > 1 ? (monthlyFull * months - total) : null;
-
-  return {
-    main:    `${sym}${total.toLocaleString()}`,
-    sub:     months === 1 ? '/mo' : `/ ${months} mo`,
-    monthly: perMonth ? `${sym}${(perMonth).toFixed(0)}/mo` : null,
-    savings: savings  ? `Save ${sym}${savings.toLocaleString()}` : null,
-  };
+  if (price === null) return { main: 'Custom', sub: null };
+  if (price === 0)    return { main: 'Free', sub: null };
+  return { main: `${sym}${price.toLocaleString()}`, sub: '/mo' };
 }
 
 // ── Plan card ─────────────────────────────────────────────────────────────────
-function PlanCard({ plan, currentPlanId, onSelect, selecting, gateway, interval }) {
+function PlanCard({ plan, currentPlanId, gateway }) {
   const isCurrent = plan.id === currentPlanId;
-  const { main, sub, monthly, savings } = formatPrice(plan, gateway, interval);
+  const { main, sub } = formatPrice(plan, gateway);
   const col = plan.color;
 
   return (
@@ -359,16 +272,6 @@ function PlanCard({ plan, currentPlanId, onSelect, selecting, gateway, interval 
           <span className="text-2xl font-extrabold text-slate-900">{main}</span>
           {sub && <span className="text-slate-400 text-xs mb-0.5 ml-0.5">{sub}</span>}
         </div>
-        {/* Effective monthly rate for multi-month intervals */}
-        {monthly && (
-          <p className="text-[11px] text-slate-400 mb-0.5">≈ {monthly} effective</p>
-        )}
-        {/* Savings badge */}
-        {savings && (
-          <span className="inline-block text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded-full mb-1">
-            {savings}
-          </span>
-        )}
         <p className="text-xs font-semibold" style={{ color: col }}>{plan.creditsNote}</p>
       </div>
 
@@ -393,19 +296,10 @@ function PlanCard({ plan, currentPlanId, onSelect, selecting, gateway, interval 
         <div className="flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-semibold bg-slate-100 text-slate-400">
           <Check size={11} /> Current plan
         </div>
-      ) : !plan.priceId ? (
+      ) : (
         <div className="py-2.5 rounded-xl text-xs font-semibold bg-slate-50 text-slate-400 text-center">
           {plan.cta}
         </div>
-      ) : (
-        <button
-          onClick={() => onSelect(plan)}
-          disabled={!!selecting}
-          className="flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-semibold text-white transition-opacity disabled:opacity-60"
-          style={{ backgroundColor: col }}
-        >
-          {selecting === plan.id ? <Spinner className="w-4 h-4" /> : <>{plan.cta} <ArrowRight size={11} /></>}
-        </button>
       )}
     </div>
   );
@@ -530,7 +424,6 @@ export default function Billing({ keycloak }) {
   const [dataLoading,  setDataLoading]  = useState(true);
   const [selecting,    setSelecting]    = useState(null);  // plan/pack id being processed
   const [tab,          setTab]          = useState(searchParams.get('tab') === 'credits' ? 'credits' : searchParams.get('tab') === 'byok' ? 'byok' : 'plans');
-  const [interval,     setInterval]     = useState('monthly');
   const [gateway,      setGateway]      = useState(() => detectGateway(keycloak));
   const [autoDetected, setAutoDetected] = useState(() => !localStorage.getItem(GATEWAY_KEY));
   const [toast,        setToast]        = useState(null);
@@ -644,37 +537,6 @@ export default function Billing({ keycloak }) {
 
     if (!verify?.success) throw new Error('Payment verification failed');
     return verify;
-  }
-
-  // ── Select plan ───────────────────────────────────────────────────────────
-  async function handleSelectPlan(plan) {
-    if (!plan.priceId) return;
-    setSelecting(plan.id);
-    try {
-      if (gateway === 'stripe') {
-        // Resolve interval-aware key: e.g. "builder_quarterly"
-        // Backend maps this to the real Stripe price_xxx from application.properties
-        const stripeKey = plan.priceId.stripe[interval];
-        // NOTE: do NOT pass plan.id in extraBody — it would overwrite stripeKey as `plan`
-        await stripeCheckout(stripeKey, 'subscription', { interval });
-      } else {
-        // Resolve real Razorpay plan_xxx ID for this interval
-        const rzpPlanId = plan.priceId.razorpay[interval];
-        if (!rzpPlanId) {
-          showToast('info', `${plan.name} ${interval} billing is not yet configured. Please contact sales or use monthly billing.`);
-          setSelecting(null);
-          return;
-        }
-        await razorpayCheckout(rzpPlanId, 'subscription', { plan: plan.id, interval });
-        showToast('success', `${plan.name} plan activated! Credits will be added shortly.`);
-        await reload();
-      }
-    } catch (e) {
-      if (e.message !== 'cancelled')
-        showToast('error', e.message ?? 'Payment failed — please try again');
-    } finally {
-      setSelecting(null);
-    }
   }
 
   // ── Buy credit pack ───────────────────────────────────────────────────────
@@ -864,33 +726,11 @@ export default function Billing({ keycloak }) {
           {tab === 'plans' && (
             <div className="space-y-6">
 
-              {/* ── Interval selector ─────────────────────────────────────── */}
-              <div className="flex items-center justify-center gap-2 flex-wrap">
-                {BILLING_INTERVALS.map(iv => (
-                  <button key={iv.id} onClick={() => setInterval(iv.id)}
-                    className={`relative px-4 py-2 rounded-xl text-sm font-medium border-2 transition-all ${
-                      interval === iv.id
-                        ? 'border-blue-600 bg-blue-600 text-white shadow-sm'
-                        : 'border-slate-200 text-slate-600 hover:border-slate-300 bg-white'
-                    }`}>
-                    {iv.label}
-                    {iv.badge && (
-                      <span className="absolute -top-2.5 -right-2 bg-emerald-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full whitespace-nowrap">
-                        {iv.badge}
-                      </span>
-                    )}
-                  </button>
-                ))}
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 max-w-2xl mx-auto">
                 {PLANS.map(plan => (
                   <PlanCard key={plan.id} plan={plan}
                     currentPlanId={currentPlan}
-                    onSelect={handleSelectPlan}
-                    selecting={selecting}
-                    gateway={gateway}
-                    interval={interval} />
+                    gateway={gateway} />
                 ))}
               </div>
 
@@ -1000,7 +840,7 @@ export default function Billing({ keycloak }) {
                   <Key size={16} className="text-slate-700" />
                   <h3 className="text-sm font-bold text-slate-900">BYOK — Bring Your Own Key</h3>
                   <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200">
-                    Pro + Enterprise
+                    Enterprise
                   </span>
                 </div>
                 <p className="text-xs text-slate-500 mb-4 ml-6">
@@ -1329,16 +1169,15 @@ export default function Billing({ keycloak }) {
                 <Info size={14} className="text-slate-500 shrink-0 mt-0.5" />
                 <div className="text-xs text-slate-600">
                   <span className="font-semibold">Plan requirements: </span>
-                  BYOK is available on <strong>Pro and Enterprise</strong> plans.
-                  BYOM is available on <strong>Enterprise</strong> plans only.
-                  {currentPlan === 'free' || currentPlan === 'builder' ? (
+                  BYOK and BYOM are available on <strong>Enterprise</strong> plans only.
+                  {currentPlan !== 'enterprise' ? (
                     <> Your current plan is <strong className="capitalize">{currentPlan}</strong>.{' '}
                       <button onClick={() => setTab('plans')} className="text-blue-600 underline">
                         Upgrade to unlock →
                       </button>
                     </>
                   ) : (
-                    <> Your current plan is <strong className="capitalize">{currentPlan}</strong> — you\'re eligible.</>
+                    <> Your current plan is <strong className="capitalize">{currentPlan}</strong> — you're eligible.</>
                   )}
                 </div>
               </div>
