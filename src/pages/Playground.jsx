@@ -2,11 +2,14 @@
  * Playground.jsx — DecisionMesh Control Plane Test Bench
  *
  * Purpose: test budget enforcement, policy rules, adapter routing
- *          and execution governance — NOT document extraction.
+ *          and execution governance — including document-extraction intents
+ *          (extract_invoice, validate_invoice) now that a real extraction
+ *          step exists server-side (POST /api/intents/attachments/extract).
  *
- * Document extraction / BYOM intelligence is an adapter concern.
- * Users who want extraction connect their own adapter (BYOK/BYOM)
- * and submit via the standard intent pipeline.
+ * There is still no multimodal path to the LLM itself — extraction happens
+ * once, up front, via PDFBox/plain-text passthrough, and the resulting text
+ * rides in objective.context like any other attachment. The model never
+ * sees raw file bytes.
  */
 import { useState, useEffect, useRef } from 'react';
 import {
@@ -20,20 +23,24 @@ import { Card, CardHeader, CardTitle, CardContent, Button, KillSwitchNotice } fr
 import ExecutionTimeline from '../components/timeline/ExecutionTimeline';
 import {
   submitIntent, getIntent, getExecutionsByIntent, request, listPolicies,
-  previewIntent, getIntentAvailability,
+  previewIntent, getIntentAvailability, extractAttachment,
 } from '../utils/api';
 import { describeAdapterError } from '../lib/utils';
 import { useCredits, MODEL_TIERS } from '../context/CreditContext';
 import { useProject } from '../context/ProjectContext';
 
-// ── Attachments — small text files/snippets only. There's no attachment field
-// on the intent model and no multimodal path to the LLM, so this rides in
-// objective.context (the only field that reaches the prompt) — same approach
-// this file's own prior comment identified. Capped well below anything that
-// would meaningfully threaten a typical budget/latency ceiling.
-const MAX_ATTACHMENT_BYTES       = 8 * 1024;   // per file
-const MAX_ATTACHMENTS_TOTAL_BYTES = 24 * 1024; // combined
-const ATTACHMENT_ACCEPT = '.txt,.md,.csv,.json,.log';
+// ── Attachments. There's no attachment field on the intent model and no
+// multimodal path to the LLM, so extracted text always rides in
+// objective.context (the only field that reaches the prompt). Text types are
+// read client-side; PDFs go through POST /intents/attachments/extract
+// (PDFBox server-side) since browsers can't parse a PDF's text layer
+// themselves. Either way, what counts toward the byte caps below is the
+// EXTRACTED TEXT size, not the original file size — that's what actually
+// rides in the prompt and counts toward budget/latency.
+const MAX_ATTACHMENT_BYTES       = 8 * 1024;   // per file, post-extraction
+const MAX_ATTACHMENTS_TOTAL_BYTES = 24 * 1024; // combined, post-extraction
+const ATTACHMENT_ACCEPT = '.txt,.md,.csv,.json,.log,.pdf';
+const PDF_EXTENSIONS = /\.pdf$/i;
 
 function formatBytes(n) {
   return n < 1024 ? `${n} B` : `${(n / 1024).toFixed(1)} KB`;
@@ -64,30 +71,73 @@ function withAttachments(body, attachments) {
   };
 }
 
-function AttachmentsPanel({ attachments, setAttachments, disabled }) {
+function AttachmentsPanel({ attachments, setAttachments, disabled, keycloak }) {
   const [err, setErr] = useState(null);
+  const [extracting, setExtracting] = useState([]); // filenames currently being extracted server-side
   const inputRef = useRef(null);
   const totalBytes = attachments.reduce((sum, a) => sum + a.size, 0);
 
-  function handleFiles(fileList) {
-    setErr(null);
-    const files = Array.from(fileList ?? []);
-    files.forEach(file => {
-      if (file.size > MAX_ATTACHMENT_BYTES) {
-        setErr(`"${file.name}" is ${formatBytes(file.size)} — max is ${formatBytes(MAX_ATTACHMENT_BYTES)} per file.`);
-        return;
-      }
-      if (totalBytes + file.size > MAX_ATTACHMENTS_TOTAL_BYTES) {
-        setErr(`Adding "${file.name}" would exceed the ${formatBytes(MAX_ATTACHMENTS_TOTAL_BYTES)} combined limit — attachments ride in the prompt itself, so they're kept small.`);
-        return;
-      }
+  function byteLength(text) {
+    return new TextEncoder().encode(text).length;
+  }
+
+  // Applies the same per-file/combined cap regardless of source, using the
+  // final extracted-text size (not the original file's size — a PDF's byte
+  // count has little to do with how much text it actually yields).
+  function tryAdd(name, content, currentTotal) {
+    const size = byteLength(content);
+    if (size > MAX_ATTACHMENT_BYTES) {
+      setErr(`"${name}" extracted to ${formatBytes(size)} of text — max is ${formatBytes(MAX_ATTACHMENT_BYTES)} per file.`);
+      return currentTotal;
+    }
+    if (currentTotal + size > MAX_ATTACHMENTS_TOTAL_BYTES) {
+      setErr(`Adding "${name}" would exceed the ${formatBytes(MAX_ATTACHMENTS_TOTAL_BYTES)} combined limit — attachments ride in the prompt itself, so they're kept small.`);
+      return currentTotal;
+    }
+    setAttachments(prev => [...prev, { name, content, size }]);
+    return currentTotal + size;
+  }
+
+  function readAsText(file) {
+    return new Promise((resolve, reject) => {
       const reader = new FileReader();
-      reader.onload = () => {
-        setAttachments(prev => [...prev, { name: file.name, content: String(reader.result ?? ''), size: file.size }]);
-      };
-      reader.onerror = () => setErr(`Couldn't read "${file.name}" as text.`);
+      reader.onload = () => resolve(String(reader.result ?? ''));
+      reader.onerror = () => reject(new Error(`Couldn't read "${file.name}" as text.`));
       reader.readAsText(file);
     });
+  }
+
+  // Sequential, not Promise.all — tryAdd's combined-cap check depends on
+  // running total, which needs each file resolved before the next is judged.
+  async function handleFiles(fileList) {
+    setErr(null);
+    const files = Array.from(fileList ?? []);
+    let runningTotal = totalBytes;
+
+    for (const file of files) {
+      const isPdf = PDF_EXTENSIONS.test(file.name);
+      try {
+        if (isPdf) {
+          setExtracting(prev => [...prev, file.name]);
+          const result = await extractAttachment(keycloak, file);
+          setExtracting(prev => prev.filter(n => n !== file.name));
+          if (!result) {
+            setErr(`Couldn't extract "${file.name}" — not authenticated.`);
+            continue;
+          }
+          if (result.truncated) {
+            setErr(`"${file.name}" extracted text was truncated by the server (document longer than the extraction cap).`);
+          }
+          runningTotal = tryAdd(file.name, result.extractedText ?? '', runningTotal);
+        } else {
+          const text = await readAsText(file);
+          runningTotal = tryAdd(file.name, text, runningTotal);
+        }
+      } catch (e) {
+        setExtracting(prev => prev.filter(n => n !== file.name));
+        setErr(e?.message ?? `Couldn't process "${file.name}".`);
+      }
+    }
   }
 
   function removeAt(i) {
@@ -96,7 +146,7 @@ function AttachmentsPanel({ attachments, setAttachments, disabled }) {
 
   return (
       <div className="border border-slate-200 rounded-xl p-3 flex flex-col gap-2"
-           title="Small text files only — appended to the prompt's context field, so they count toward the same budget/latency ceiling as everything else in the request">
+           title="Text files are read as-is; PDFs are extracted server-side. Either way the extracted text is appended to the prompt's context field, so it counts toward the same budget/latency ceiling as everything else in the request">
         <div className="flex items-center justify-between">
           <p className="text-xs font-medium text-slate-500 flex items-center gap-1.5">
             <Paperclip size={11} />Attachments
@@ -117,9 +167,9 @@ function AttachmentsPanel({ attachments, setAttachments, disabled }) {
                disabled={disabled}
                onChange={e => { handleFiles(e.target.files); e.target.value = ''; }} />
 
-        {attachments.length === 0 ? (
+        {attachments.length === 0 && extracting.length === 0 ? (
             <p className="text-[11px] text-slate-400">
-              {disabled ? 'None attached' : `Text files up to ${formatBytes(MAX_ATTACHMENT_BYTES)} each (.txt, .md, .csv, .json, .log)`}
+              {disabled ? 'None attached' : `Up to ${formatBytes(MAX_ATTACHMENT_BYTES)} of extracted text each (.txt, .md, .csv, .json, .log, .pdf)`}
             </p>
         ) : (
             <ul className="space-y-1">
@@ -134,6 +184,12 @@ function AttachmentsPanel({ attachments, setAttachments, disabled }) {
                           </button>
                       )}
                 </span>
+                  </li>
+              ))}
+              {extracting.map(name => (
+                  <li key={name} className="flex items-center gap-1.5 text-[11px] text-slate-400 bg-slate-50 rounded px-2 py-1 italic">
+                    <RefreshCw size={10} className="animate-spin shrink-0" />
+                    <span className="truncate" title={name}>Extracting {name}…</span>
                   </li>
               ))}
             </ul>
@@ -1179,7 +1235,7 @@ export default function Playground({ keycloak }) {
                     {/* Attachments — small text files, merged into objective.context
                         on submit (see attachmentsToContextBlock / handleSubmit).
                         Size-capped so they can't blow the budget/latency ceiling. */}
-                    <AttachmentsPanel attachments={attachments} setAttachments={setAttachments} disabled={!!result} />
+                    <AttachmentsPanel attachments={attachments} setAttachments={setAttachments} disabled={!!result} keycloak={keycloak} />
                   </div>
                 </CardContent>
               </Card>
