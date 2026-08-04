@@ -115,20 +115,7 @@ const COMPLIANCE_FRAMEWORKS = [
   { name: 'HIPAA', color: '#f59e0b', icon: '🏥', desc: 'PHI access logging, authorization tracking, de-identification support, and breach detection tools.', note: 'HIPAA compliance requires BAA and additional controls.' },
 ];
 
-// ── Billing intervals (mirrors Billing.jsx exactly) ──────────────────────────
-const BILLING_INTERVALS = [
-  { id: 'monthly',    label: 'Monthly',   months: 1,  discount: 0,    badge: null         },
-  { id: 'quarterly',  label: 'Quarterly', months: 3,  discount: 0.10, badge: 'Save 10%'   },
-  { id: 'halfyearly', label: '6 Months',  months: 6,  discount: 0.15, badge: 'Save 15%'   },
-  { id: 'yearly',     label: 'Yearly',    months: 12, discount: 0.20, badge: 'Save 20%'   },
-];
-// Exact prices from Billing.jsx
-const PLAN_PRICES = {
-  builder: { monthly: 19, quarterly: 51,  halfyearly: 97,  yearly: 182  },
-  pro:     { monthly: 49, quarterly: 132, halfyearly: 250, yearly: 470  },
-};
-
-// Arctic White — all plan cards use white/light bg, strong borders, dark text
+// B2B: Free (self-serve) and Enterprise (contact sales) only — Arctic White cards
 const PLANS = [
   {
     key: 'free', name: 'Free', price: 'Free', note: '100 credits · full access',
@@ -147,26 +134,19 @@ const PLANS = [
     ],
   },
   {
-    key: 'builder', name: 'Builder', note: '15k credits/mo',
-    color: '#2563eb', checkColor: '#2563eb', popular: true,
-    bg: 'rgba(46,124,184,0.12)', border: 'rgba(46,124,184,0.40)',
-    cta: 'Upgrade to Builder',
-    features: ['15,000 credits/month', 'Everything in Free', 'Full audit + CSV export', 'Priority support', 'Overage: $0.002/cr'],
-  },
-  {
-    key: 'pro', name: 'Pro', note: '60k credits/mo',
-    color: '#4f46e5', checkColor: '#4f46e5',
-    bg: '#0d1e35', border: 'rgba(79,70,229,0.35)',
-    cta: 'Upgrade to Pro',
-    features: ['60,000 credits/month', 'Multi-tenancy', '5 team seats', 'SSO / SAML', 'Human-in-the-loop gates', 'Priority support', 'BYOK', 'Overage: $0.001/cr'],
-  },
-  {
     key: 'enterprise', name: 'Enterprise', price: 'Custom', note: 'Unlimited',
     color: '#7c3aed', checkColor: '#7c3aed',
     bg: '#faf5ff', border: '#d8b4fe',
     topBar: 'linear-gradient(90deg, #7c3aed, #db2777)',
     cta: 'Contact sales', ctaHref: 'mailto:sales@decisionmesh.io',
-    features: ['Unlimited credits', 'PII detection & masking', 'Model version tracking', 'Immutable signed audit log', 'GDPR data residency', 'HIPAA / PCI-DSS templates', 'BYOK', 'Dedicated SLA'],
+    features: [
+      'Unlimited credits', 'Multi-tenancy', 'Unlimited team seats',
+      'SSO / SAML', 'Human-in-the-loop gates',
+      'PII detection & masking', 'Model version tracking',
+      'Immutable signed audit log', 'GDPR data residency',
+      'HIPAA / PCI-DSS templates', 'BYOK', 'BYOM',
+      'Priority support', 'Dedicated SLA',
+    ],
   },
 ];
 
@@ -464,7 +444,7 @@ function Hero({ onRegister, onLogin }) {
       <div style={{ position: 'relative', zIndex: 3, display: 'flex', flexDirection: 'column', maxWidth: 1280, margin: '0 auto', padding: '58px 24px 48px', width: '100%' }}>
 
         {/* Three-column layout */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1.15fr 24px 1.2fr 24px 1.05fr', gap: 0, alignItems: 'stretch' }} className="hero-grid">
+        <div style={{ display: 'grid', gridTemplateColumns: '1.1fr 24px 1.2fr 24px 1.1fr', gap: 0, alignItems: 'stretch' }} className="hero-grid">
 
           {/* LEFT — Problem cards */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10, justifyContent: 'flex-start' }}>
@@ -1102,22 +1082,7 @@ function Stats() {
 
 // ── Pricing — Arctic White + billing interval switcher ───────────────────────
 function Pricing({ onRegister }) {
-  const [billingInterval, setBillingInterval] = useState('monthly');
   const [pricingTab, setPricingTab] = useState('plans');
-  const iv = BILLING_INTERVALS.find(b => b.id === billingInterval);
-
-  const getUsdPrice = (key) => {
-    const p = PLAN_PRICES[key];
-    return p ? p[billingInterval] : null;
-  };
-
-  const perMoPrice = (key) => {
-    const p = PLAN_PRICES[key];
-    if (!p || billingInterval === 'monthly') return null;
-    return Math.round(p[billingInterval] / iv.months);
-  };
-
-  const periodLabel = { monthly: '/mo', quarterly: '/qtr', halfyearly: '/6mo', yearly: '/yr' };
 
   return (
     <section id="pricing" style={{ background: '#091220', padding: '80px 24px', borderTop: '1px solid rgba(14,165,233,0.15)' }}>
@@ -1145,33 +1110,8 @@ function Pricing({ onRegister }) {
 
         {/* ── PLANS TAB ─────────────────────────────────────────────────────── */}
         {pricingTab === 'plans' && <>
-        {/* Interval switcher — matches Billing.jsx style */}
-        <div style={{ display: 'inline-flex', background: 'rgba(14,165,233,0.06)', border: '1px solid rgba(14,165,233,0.18)', borderRadius: 10, padding: 4, gap: 2, marginBottom: 48 }}>
-          {BILLING_INTERVALS.map(b => (
-            <button key={b.id} onClick={() => setBillingInterval(b.id)} style={{
-              position: 'relative', padding: '7px 16px', borderRadius: 7, border: 'none',
-              fontSize: 13, fontWeight: 600, cursor: 'pointer', transition: 'all 0.15s',
-              background: billingInterval === b.id ? '#2e7cb8' : 'transparent',
-              color: billingInterval === b.id ? '#ffffff' : '#7eb8d4',
-              boxShadow: billingInterval === b.id ? '0 2px 8px rgba(46,124,184,0.25)' : 'none',
-            }}>
-              {b.label}
-              {b.badge && (
-                <span style={{
-                  position: 'absolute', top: -9, right: -6,
-                  fontSize: 9, fontWeight: 700, color: C.green,
-                  background: '#dcfce7', border: '1px solid #bbf7d0',
-                  borderRadius: 99, padding: '1px 5px', whiteSpace: 'nowrap',
-                }}>{b.badge}</span>
-              )}
-            </button>
-          ))}
-        </div>
-
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16, alignItems: 'start' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 16, alignItems: 'start', maxWidth: 620, margin: '0 auto' }}>
           {PLANS.map(plan => {
-            const usdPrice = getUsdPrice(plan.key);
-            const perMo = perMoPrice(plan.key);
             return (
               <div key={plan.key} style={{
                 background: plan.popular ? 'rgba(14,165,233,0.10)' : '#0d1e35', border: plan.popular ? '1px solid rgba(14,165,233,0.35)' : `1px solid ${C.border}`,
@@ -1187,22 +1127,9 @@ function Pricing({ onRegister }) {
                   <p style={{ color: plan.color, fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px' }}>{plan.name}</p>
                 </div>
 
-                {/* Price — dynamic for paid, static for Free/Enterprise */}
+                {/* Price — Free is $0, Enterprise is custom/contact sales */}
                 <div style={{ marginBottom: 4 }}>
-                  {usdPrice != null ? (
-                    <>
-                      <span style={{ fontSize: 36, fontWeight: 900, color: '#e0f2fe', letterSpacing: '-2px', lineHeight: 1 }}>${usdPrice}</span>
-                      <span style={{ color: C.textMuted, fontSize: 13, marginLeft: 3 }}>{periodLabel[billingInterval]}</span>
-                      {perMo && <div style={{ fontSize: 11, color: C.green, fontWeight: 600, marginTop: 3 }}>≈ ${perMo}/mo</div>}
-                      {iv.discount > 0 && (
-                        <div style={{ display: 'inline-block', marginTop: 5, fontSize: 10, fontWeight: 700, color: C.green, background: '#dcfce7', border: '1px solid #bbf7d0', borderRadius: 99, padding: '2px 8px' }}>
-                          Save {Math.round(iv.discount * 100)}% vs monthly
-                        </div>
-                      )}
-                    </>
-                  ) : (
-                    <span style={{ fontSize: 34, fontWeight: 900, color: '#e0f2fe', letterSpacing: '-2px', lineHeight: 1 }}>{plan.price}</span>
-                  )}
+                  <span style={{ fontSize: 34, fontWeight: 900, color: '#e0f2fe', letterSpacing: '-2px', lineHeight: 1 }}>{plan.price}</span>
                 </div>
 
                 <p style={{ color: C.textSub, fontSize: 11, fontWeight: 600, marginBottom: 16 }}>{plan.note}</p>
@@ -1232,7 +1159,7 @@ function Pricing({ onRegister }) {
             );
           })}
         </div>
-        <p style={{ color: C.textSub, fontSize: 12, marginTop: 24 }}>Payments processed securely by Stripe · Cancel anytime · No hidden fees</p>
+        <p style={{ color: C.textSub, fontSize: 12, marginTop: 24 }}>Free requires no payment method · Enterprise pricing is custom — talk to sales</p>
         </>}
 
         {/* ── CREDIT PACKS TAB ──────────────────────────────────────────────── */}
