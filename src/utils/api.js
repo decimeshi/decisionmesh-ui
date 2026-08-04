@@ -148,6 +148,42 @@ export async function previewIntent(keycloak, intent) {
   });
 }
 
+/**
+ * POST /api/intents/attachments/extract (multipart) — turns an uploaded
+ * document into plain text for objective.context. Deliberately NOT built on
+ * request(): that helper always sends Content-Type: application/json and
+ * JSON.stringifies the body, which is wrong for a multipart upload — the
+ * browser must set its own Content-Type with the multipart boundary.
+ *
+ * Returns { filename, contentType, extractedText, truncated }.
+ */
+export async function extractAttachment(keycloak, file) {
+  await refreshToken(keycloak);
+  if (!keycloak?.authenticated || !keycloak?.token) return null;
+
+  const projectId = getCurrentProject();
+  const scopeHeaders = projectId ? { 'X-Project-Id': projectId } : {};
+
+  const form = new FormData();
+  form.append('file', file, file.name);
+
+  const res = await fetch(`${API_BASE}/intents/attachments/extract`, {
+    method: 'POST',
+    headers: {
+      ...scopeHeaders,
+      Authorization: `Bearer ${keycloak.token}`,
+      // No Content-Type here — the browser sets multipart/form-data with the
+      // boundary itself. Setting it manually breaks multipart parsing.
+    },
+    body: form,
+  });
+  if (res.status === 401) {
+    throw new ApiError(401, `Unauthorized — /intents/attachments/extract. Check Token Debugger (/debug/token) for details.`);
+  }
+  if (!res.ok) throw new ApiError(res.status, await res.text());
+  return res.json();
+}
+
 export async function listIntents(keycloak, params = {}) {
   const qs = new URLSearchParams(
       Object.fromEntries(Object.entries(params).filter(([, v]) => v != null))
