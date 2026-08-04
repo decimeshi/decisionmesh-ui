@@ -640,7 +640,7 @@ function Hero({ onRegister, onLogin }) {
       {/* Model marquee — same provider list as the Hourglass section below,
           not a fabricated client-logo strip. Full-bleed, outside the
           maxWidth wrapper, using the leftover vertical space in this section. */}
-      <div style={{ position: 'relative', zIndex: 3, marginTop: 56, borderTop: '1px solid rgba(14,165,233,0.12)', paddingTop: 26, paddingBottom: 4 }}>
+      <div style={{ position: 'relative', zIndex: 3, marginTop: 28, borderTop: '1px solid rgba(14,165,233,0.12)', paddingTop: 14, paddingBottom: 4 }}>
         <p style={{ textAlign: 'center', fontFamily: C.mono, fontSize: 11, letterSpacing: '2px', color: C.textMuted, textTransform: 'uppercase', marginBottom: 18 }}>
           Works with every major model
         </p>
