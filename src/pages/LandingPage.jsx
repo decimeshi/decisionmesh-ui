@@ -459,13 +459,13 @@ function Hero({ onRegister, onLogin }) {
         .model-chip {
           flex-shrink: 0;
           font-family: ${C.mono};
-          font-size: 13px;
+          font-size: 12px;
           font-weight: 600;
           color: #93c5fd;
           background: rgba(14,165,233,0.06);
           border: 1px solid rgba(14,165,233,0.20);
           border-radius: 999px;
-          padding: 8px 20px;
+          padding: 5px 16px;
           white-space: nowrap;
         }
         @media (prefers-reduced-motion: reduce) {
@@ -476,7 +476,7 @@ function Hero({ onRegister, onLogin }) {
       {/* Scan line removed — aurora theme */}
 
       {/* Main content */}
-      <div style={{ position: 'relative', zIndex: 3, display: 'flex', flexDirection: 'column', maxWidth: 1280, margin: '0 auto', padding: '58px 24px 48px', width: '100%' }}>
+      <div style={{ position: 'relative', zIndex: 3, display: 'flex', flexDirection: 'column', maxWidth: 1280, margin: '0 auto', padding: '58px 24px 16px', width: '100%' }}>
 
         {/* Three-column layout */}
         <div style={{ display: 'grid', gridTemplateColumns: '1.1fr 24px 1.2fr 24px 1.1fr', gap: 0, alignItems: 'stretch' }} className="hero-grid">
@@ -640,8 +640,8 @@ function Hero({ onRegister, onLogin }) {
       {/* Model marquee — same provider list as the Hourglass section below,
           not a fabricated client-logo strip. Full-bleed, outside the
           maxWidth wrapper, using the leftover vertical space in this section. */}
-      <div style={{ position: 'relative', zIndex: 3, marginTop: 56, borderTop: '1px solid rgba(14,165,233,0.12)', paddingTop: 26, paddingBottom: 4 }}>
-        <p style={{ textAlign: 'center', fontFamily: C.mono, fontSize: 11, letterSpacing: '2px', color: C.textMuted, textTransform: 'uppercase', marginBottom: 18 }}>
+      <div style={{ position: 'relative', zIndex: 3, marginTop: 10, borderTop: '1px solid rgba(14,165,233,0.12)', paddingTop: 4, paddingBottom: 2 }}>
+        <p style={{ textAlign: 'center', fontFamily: C.mono, fontSize: 10, letterSpacing: '2px', color: C.textMuted, textTransform: 'uppercase', marginBottom: 8 }}>
           Works with every major model
         </p>
         <div className="model-marquee">
