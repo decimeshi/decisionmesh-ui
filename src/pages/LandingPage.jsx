@@ -327,7 +327,7 @@ function LivePipeline({ pipeline }) {
                   border: `1.5px solid ${s.color}${status === 'pending' ? '25' : '70'}`,
                   background: status === 'done' ? s.color : `${s.color}${status === 'active' ? '20' : '0a'}`,
                   display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 6px',
-                  transition: 'background 0.4s, border-color 0.4s, transform 0.4s, box-shadow 0.4s',
+                  transition: 'background 0.4s, border-color 0.4s, transform 0.4s, box-shadow 0.4s, opacity 0.4s',
                   transform: status === 'active' ? 'scale(1.12)' : 'scale(1)',
                   boxShadow: status === 'active' ? `0 0 0 5px ${s.color}22, 0 0 18px ${s.color}55` : 'none',
                   opacity: status === 'pending' ? 0.45 : 1,
