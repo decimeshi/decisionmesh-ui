@@ -459,6 +459,15 @@ function Hero({ onRegister, onLogin }) {
                 borderLeft: `3px solid ${card.color}`,
                 borderRadius: 10,
                 padding: '9px 13px',
+                // Matches the resolved-card minHeight below — these cards have a
+                // two-line header (role + org) vs. the resolved cards' one-line
+                // header (icon + title), so without a shared floor the two
+                // columns drift out of sync as soon as either side's copy changes.
+                minHeight: 110,
+                boxSizing: 'border-box',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'center',
                 animation: `slideInLeft 0.6s ease both`,
                 animationDelay: card.delay,
                 backdropFilter: 'blur(8px)',
@@ -565,7 +574,15 @@ function Hero({ onRegister, onLogin }) {
                 border: `1px solid ${card.color}45`,
                 borderLeft: `3px solid ${card.color}`,
                 borderRadius: 12,
-                padding: '18px 14px',
+                padding: '10px 14px',
+                // Floor, not a tuned magic number — see the matching comment on
+                // the problem cards. justifyContent centers content when the
+                // one-line header leaves this shorter than its left counterpart.
+                minHeight: 110,
+                boxSizing: 'border-box',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'center',
                 animation: 'slideInRight 0.6s ease both',
                 animationDelay: card.delay,
                 backdropFilter: 'blur(8px)',
