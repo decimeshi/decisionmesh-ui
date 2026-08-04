@@ -1169,7 +1169,7 @@ function Pricing({ onRegister }) {
           <div style={{ textAlign: 'center', marginBottom: 32 }}>
             <p style={{ color: C.blue, fontSize: 11, fontWeight: 700, letterSpacing: '2px', textTransform: 'uppercase', marginBottom: 8 }}>Credit Packs</p>
             <h3 style={{ fontSize: 'clamp(20px, 3vw, 28px)', fontWeight: 800, color: C.textPrimary, letterSpacing: '-0.5px', marginBottom: 8 }}>Need more credits? Top up anytime</h3>
-            <p style={{ color: C.textMuted, fontSize: 14 }}>One-time top-ups that stack on your plan and never expire.</p>
+            <p style={{ color: C.textMuted, fontSize: 14 }}>One-time top-ups on the Free tier — stack on your balance, never expire.</p>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16 }}>
             {[
@@ -1232,8 +1232,8 @@ function Pricing({ onRegister }) {
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16 }}>
             {[
-              { name: 'BYOK', title: 'Bring Your Own Key', desc: 'Connect your Anthropic, OpenAI, or Azure key. DecisionMesh adds governance — you pay your provider directly.', cost: '1 credit / execution', saving: '80% cost reduction', badge: 'Pro + Enterprise', icon: '🔑' },
-              { name: 'BYOM', title: 'Bring Your Own Model', desc: 'Connect your own model endpoint — on-prem, fine-tuned, or custom. Zero data egress, full governance.', cost: '1 credit / execution', saving: 'Zero data egress', badge: 'Pro + Enterprise', icon: '🧩' },
+              { name: 'BYOK', title: 'Bring Your Own Key', desc: 'Connect your Anthropic, OpenAI, or Azure key. DecisionMesh adds governance — you pay your provider directly.', cost: '1 credit / execution', saving: '80% cost reduction', badge: 'Enterprise', icon: '🔑' },
+              { name: 'BYOM', title: 'Bring Your Own Model', desc: 'Connect your own model endpoint — on-prem, fine-tuned, or custom. Zero data egress, full governance.', cost: '1 credit / execution', saving: 'Zero data egress', badge: 'Enterprise', icon: '🧩' },
             ].map(item => (
               <div key={item.name} style={{ background: '#0d1e35', border: `1px solid ${C.border}`, borderRadius: 14, padding: '24px 22px', display: 'flex', flexDirection: 'column', gap: 12 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>

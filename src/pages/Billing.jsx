@@ -491,8 +491,9 @@ export default function Billing({ keycloak }) {
     saveGateway(gw); // persist so detectGateway respects it on next load
   }
 
-  // ── Stripe plan / pack ────────────────────────────────────────────────────
-  // planId = plan key e.g. "builder" | "pro" | "starter" | "growth" | "scale"
+  // ── Stripe pack ────────────────────────────────────────────────────────────
+  // planId = credit pack key e.g. "starter" | "growth" | "scale" — only credit
+  // packs use this now; Free/Enterprise have no self-serve subscription checkout.
   // Backend resolves the real Stripe price_xxx ID from application.properties.
   async function stripeCheckout(planId, mode, extraBody = {}) {
     if (!userEmail) {
@@ -774,7 +775,7 @@ export default function Billing({ keycloak }) {
           {tab === 'credits' && (
             <div className="space-y-6">
               <p className="text-sm text-slate-600">
-                One-time credit top-ups — stack on your plan, never expire.
+                One-time credit top-ups — stack on your balance, never expire.
                 {gateway === 'razorpay' ? ' Prices in INR, charged via Razorpay.' : ''}
               </p>
 
@@ -791,11 +792,12 @@ export default function Billing({ keycloak }) {
                 <CardContent className="py-4 flex items-start gap-3">
                   <Zap size={16} className="text-blue-600 shrink-0 mt-0.5" />
                   <div className="text-xs text-blue-800">
-                    <p className="font-semibold mb-1">Credits vs subscription — what's the difference?</p>
+                    <p className="font-semibold mb-1">Credits vs Enterprise — what's the difference?</p>
                     <p>
-                      Your plan gives you a monthly credit allocation that resets each billing cycle.
-                      Credit packs are one-time top-ups that stack on top of your monthly allocation
-                      and <strong>never expire</strong>. Use packs for project spikes or to avoid overage charges.
+                      Free comes with 100 credits, one-time, no recurring charge. Credit packs let you
+                      top up that balance whenever you need more — they <strong>never expire</strong> and
+                      stack on top of whatever you have. Enterprise plans include unlimited credits, so
+                      packs aren't needed once you're on Enterprise.
                     </p>
                   </div>
                 </CardContent>
