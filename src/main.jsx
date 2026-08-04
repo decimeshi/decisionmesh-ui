@@ -24,6 +24,7 @@ import { CapabilityProvider } from './context/CapabilityContext';
 import App          from './App';
 import LandingPage  from './pages/LandingPage';
 import DocsPage     from './pages/DocsPage';
+import ArchitecturePage from './components/architecture/ArchitectureDiagram';
 import SecurityPage  from './pages/SecurityPage';
 import DemoPage     from './pages/DemoPage';
 import Onboarding   from './pages/Onboarding';
@@ -191,6 +192,20 @@ function AppWrapper() {
     return (
       <Routes>
         <Route path="/docs" element={<DocsPage />} />
+      </Routes>
+    );
+  }
+
+  // Architecture diagram — public route. Was previously only registered inside
+  // App.jsx's authenticated <Routes>, which sits behind the
+  // `!auth.isAuthenticated -> <LandingPage />` gate further down — an
+  // unauthenticated visitor hitting /architecture (e.g. from a shared link)
+  // silently saw the landing page instead, same failure mode /demo's
+  // comment above already documents for that route.
+  if (pathname === '/architecture') {
+    return (
+      <Routes>
+        <Route path="/architecture" element={<ArchitecturePage />} />
       </Routes>
     );
   }

@@ -34,6 +34,7 @@ const LABELS = {
   '/admin/health':        'Admin · System Health',
   '/admin/feedback':      'Admin · Feedback',
   '/admin/payments':      'Admin · Payment Testing',
+  '/architecture':        'Architecture',
 };
 
 function useBreadcrumbs() {
@@ -208,7 +209,7 @@ export default function TopBar({ keycloak, sidebarHidden, onToggleSidebar }) {
               {i > 0 && <ChevronRight size={10} className="text-slate-300 shrink-0" />}
               <span className={`truncate text-[13px] ${
                   i === crumbs.length - 1
-                      ? (c.path === '/playground' ? 'font-semibold text-blue-600' : 'font-semibold text-slate-900')
+                      ? 'font-semibold text-blue-600'
                       : 'font-medium text-slate-500'
               }`}>
                 {c.label}

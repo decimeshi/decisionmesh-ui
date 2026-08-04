@@ -8,7 +8,7 @@ import {
   ChevronDown, Check, Plus, Palette, CreditCard, Receipt,
   Bug, Library, MessageSquarePlus, TestTube2,
   Users, Coins, Webhook, HeartPulse, Zap, BookOpen, ShieldAlert, DollarSign,
-  Trash2, Globe2, Building2, Plug,
+  Trash2, Globe2, Building2, Plug, Layers,
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { useProject } from '../context/ProjectContext';
@@ -75,6 +75,7 @@ const NAV = [
     label: 'RESOURCES',
     items: [
       { label: 'Docs',          icon: BookOpen,        to: '/docs'           },
+      { label: 'Architecture',  icon: Layers,          to: '/architecture'   },
     ],
   },
 ];
