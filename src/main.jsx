@@ -25,6 +25,7 @@ import App          from './App';
 import LandingPage  from './pages/LandingPage';
 import DocsPage     from './pages/DocsPage';
 import ArchitecturePage from './components/architecture/ArchitectureDiagram';
+import AcceleratorsPage from './pages/AcceleratorsPage';
 import SecurityPage  from './pages/SecurityPage';
 import DemoPage     from './pages/DemoPage';
 import Onboarding   from './pages/Onboarding';
@@ -206,6 +207,17 @@ function AppWrapper() {
     return (
       <Routes>
         <Route path="/architecture" element={<ArchitecturePage />} />
+      </Routes>
+    );
+  }
+
+  // Accelerators — public route, placeholder product-family page. Same
+  // reasoning as /architecture above: marketing/roadmap content, not an
+  // authenticated app feature, so it belongs before the auth gate.
+  if (pathname === '/accelerators') {
+    return (
+      <Routes>
+        <Route path="/accelerators" element={<AcceleratorsPage />} />
       </Routes>
     );
   }

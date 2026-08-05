@@ -35,6 +35,7 @@ const LABELS = {
   '/admin/feedback':      'Admin · Feedback',
   '/admin/payments':      'Admin · Payment Testing',
   '/architecture':        'Architecture',
+  '/accelerators':        'Accelerators',
 };
 
 function useBreadcrumbs() {
