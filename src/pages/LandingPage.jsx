@@ -1,6 +1,18 @@
 import { useAuth } from 'react-oidc-context';
 import { useState, useEffect, useRef } from 'react';
 import { INVITE_TOKEN_KEY } from '../utils/inviteToken';
+import { ACCELERATORS } from '../data/accelerators';
+
+// Emoji per accelerator, matching this file's own icon convention (INDUSTRIES
+// below uses ind.emoji, not lucide-react, which this file doesn't import at
+// all) rather than pulling in a different icon system just for this section.
+const ACCELERATOR_EMOJI = {
+  banking: '🏦', insurance: '🛡️', healthcare: '⚕️', retail: '🛍️',
+  manufacturing: '🏭', telecom: '📡', government: '🏛️', 'life-sciences': '🧬',
+  pharmaceutical: '💊', 'energy-utilities': '⚡', logistics: '🚚',
+  airline: '✈️', hospitality: '🏨', education: '🎓', legal: '⚖️',
+  'enterprise-shared': '💼',
+};
 
 // ── Design tokens — Deep Ocean theme (Tailwind UI · Planetscale · Clerk) ─────
 // Rich navy base · electric cyan accents · authoritative & calm
@@ -1135,6 +1147,68 @@ function Industries() {
     </div>
   );
 }
+// ── Business Accelerators ─────────────────────────────────────────────────────
+// Condensed preview — full Policies/Prompts/Business Intents/Integrations
+// breakdown per accelerator lives at /accelerators (src/pages/AcceleratorsPage.jsx),
+// which shares this same ACCELERATORS data so the two never drift apart.
+function BusinessAccelerators() {
+  return (
+    <section id="accelerators" style={{ background: C.bg, padding: '80px 24px', borderTop: '1px solid rgba(14,165,233,0.15)' }}>
+      <div style={{ maxWidth: 1160, margin: '0 auto' }}>
+        <div style={{ textAlign: 'center', marginBottom: 40 }}>
+          <p style={{ color: C.blue, fontSize: 11, fontWeight: 700, letterSpacing: '2px', textTransform: 'uppercase', marginBottom: 10 }}>Business Accelerators</p>
+          <h2 style={{ fontSize: 'clamp(24px, 4vw, 40px)', fontWeight: 700, color: C.textPrimary, letterSpacing: '-1px', marginBottom: 12 }}>Production-ready AI governance, packaged per industry</h2>
+          <p style={{ color: C.textSecondary, fontSize: 15, maxWidth: 620, margin: '0 auto 10px' }}>
+            Every Accelerator ships the same framework — Business Policies, Enterprise Prompts,
+            Business Intents, and Connectors &amp; Integrations, plus compliance controls,
+            evaluation suites, dashboards, and reference architectures.
+          </p>
+          <p style={{ color: C.textSub, fontSize: 14, fontWeight: 600, maxWidth: 480, margin: '0 auto' }}>
+            The customer isn't buying prompts — they're buying a faster path to production.
+          </p>
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(270px, 1fr))', gap: 14 }}>
+          {ACCELERATORS.map(acc => (
+            <div key={acc.id} style={{ background: '#0d1e35', border: '1px solid rgba(46,124,184,0.20)', borderRadius: 14, padding: 20 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 10 }}>
+                <span style={{ fontSize: 20 }}>{ACCELERATOR_EMOJI[acc.id]}</span>
+                <h3 style={{ color: C.textPrimary, fontWeight: 700, fontSize: 15 }}>{acc.name}</h3>
+              </div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginBottom: 14 }}>
+                {acc.problemsSolved.slice(0, 3).map(p => (
+                  <span key={p} style={{ fontSize: 10.5, fontWeight: 600, color: '#7eb8d4', background: 'rgba(46,124,184,0.12)', border: '1px solid rgba(46,124,184,0.25)', borderRadius: 999, padding: '2px 9px' }}>{p}</span>
+                ))}
+              </div>
+              {acc.includes && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 5, borderTop: '1px solid rgba(46,124,184,0.15)', paddingTop: 12 }}>
+                  {[
+                    ['Policy',      acc.includes.policies],
+                    ['Prompt',      acc.includes.prompts],
+                    ['Intent',      acc.includes.businessIntents],
+                    ['Integration', acc.includes.integrations],
+                  ].filter(([, list]) => list?.length).map(([label, list]) => (
+                    <p key={label} style={{ fontSize: 12, color: C.textMuted, lineHeight: 1.5 }}>
+                      <span style={{ color: C.textSub, fontWeight: 600 }}>{label}: </span>
+                      {list[0]}
+                    </p>
+                  ))}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+
+        <div style={{ textAlign: 'center', marginTop: 36 }}>
+          <a href="/accelerators" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'rgba(14,165,233,0.10)', color: '#bae6fd', fontSize: 14, fontWeight: 600, border: '1px solid rgba(14,165,233,0.30)', borderRadius: 9, padding: '10px 22px', textDecoration: 'none' }}>
+            View all 16 Accelerators in detail <Icon.ArrowRight />
+          </a>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 // ── Stats ─────────────────────────────────────────────────────────────────────
 function Stats() {
   return (
@@ -1472,6 +1546,7 @@ export default function LandingPage() {
         <Audiences />
         <Compliance />
         <Industries />
+        <BusinessAccelerators />
         <Stats />
         <Pricing onRegister={handleRegister} />
         <FinalCTA onRegister={handleRegister} />
