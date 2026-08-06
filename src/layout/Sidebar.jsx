@@ -3,7 +3,7 @@ import {
   LayoutDashboard, FlaskConical, ListOrdered, Cpu,
   Puzzle, ShieldCheck, BarChart3, TrendingUp,
   KeyRound, ScrollText, ChevronRight, ClipboardCheck,
-  UserPlus, PanelLeftClose,
+  UserPlus, PanelLeftClose, FolderOpen,
   Check, Palette, CreditCard, Receipt,
   Bug, Library, MessageSquarePlus, TestTube2,
   Users, Coins, Webhook, HeartPulse, Zap, BookOpen, ShieldAlert, DollarSign,
@@ -62,6 +62,12 @@ const NAV = [
       // Audit Log/Credits stay visible to everyone — MEMBER/VIEWER hold
       // read access to both (see Role.java), and Credits is informational
       // usage tracking, not a configuration surface.
+      // Ungated, matching the old ProjectSwitcher dropdown's "Manage projects"/
+      // "New project" links it replaces — those were reachable by anyone who
+      // could open that dropdown, no tenantAdminOnly check. Removing them from
+      // the consolidated header (see SidebarHeader) without adding this back
+      // meant create/edit/delete became unreachable from the UI entirely.
+      { label: 'Projects',      icon: FolderOpen,      to: '/projects'       },
       { label: 'API Keys',      icon: KeyRound,        to: '/api-keys',      tenantAdminOnly: true },
       // BYOK/BYOM config lives inside Billing (tab=byok) — a distinct
       // destination from "API Keys" above (DecisionMesh's own platform
