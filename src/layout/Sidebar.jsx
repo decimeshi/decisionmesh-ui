@@ -1,11 +1,10 @@
-import { useState, useEffect, useRef } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, FlaskConical, ListOrdered, Cpu,
   Puzzle, ShieldCheck, BarChart3, TrendingUp,
   KeyRound, ScrollText, ChevronRight, ClipboardCheck,
-  UserPlus, PanelLeftClose, FolderOpen,
-  ChevronDown, Check, Plus, Palette, CreditCard, Receipt,
+  UserPlus, PanelLeftClose,
+  Check, Palette, CreditCard, Receipt,
   Bug, Library, MessageSquarePlus, TestTube2,
   Users, Coins, Webhook, HeartPulse, Zap, BookOpen, ShieldAlert, DollarSign,
   Trash2, Globe2, Building2, Plug, Layers, Rocket,
@@ -14,6 +13,11 @@ import { cn } from '../lib/utils';
 import { useProject } from '../context/ProjectContext';
 import { useCredits } from '../context/CreditContext';
 import { useCapabilities } from '../context/CapabilityContext';
+import { useBranding } from '../context/BrandingContext';
+
+// BrandingContext's pre-fetch/no-override placeholder — see SidebarHeader
+// below for why this needs to be distinguished from a real override.
+const NO_BRANDING_ORG_NAME = 'DecisionMesh';
 
 // ── Nav structure ─────────────────────────────────────────────────────────────
 const NAV = [
@@ -168,106 +172,82 @@ function CreditFooter() {
   );
 }
 
-// ── Project switcher ─────────────────────────────────────────────────────────
+// ── Sidebar header: org logo + name, and a flat list of every project ──────────
+// Was previously two separate, redundant blocks: a hardcoded "DecisionMesh /
+// Govern·Secure / Optimize·Prove" brand header stacked on top of a
+// click-to-open ProjectSwitcher dropdown showing the REAL org name — two
+// different identities on screen at once, and the real one hidden behind an
+// extra click. Consolidated into one real, data-driven header: the org's own
+// logo/name (editable on /org/branding — see BrandingContext), then every
+// project listed directly. "Manage projects" / "New project" intentionally
+// dropped from here — Projects.jsx (linked elsewhere in the nav) is still the
+// real place for that; this header is deliberately just identity + a switcher.
 const ENV_COLOR = { Production: '#22c55e', Staging: '#f59e0b', Dev: '#3b82f6' };
 
-function ProjectSwitcher() {
-  const navigate = useNavigate();
+function SidebarHeader({ collapsed, onHide }) {
   const { org, projects, activeProject, switchProject, loading } = useProject();
-  const [open, setOpen] = useState(false);
-  const buttonRef = useRef(null);
-  const [dropdownStyle, setDropdownStyle] = useState({});
+  const { branding } = useBranding();
 
-  useEffect(() => {
-    if (open && buttonRef.current) {
-      const rect = buttonRef.current.getBoundingClientRect();
-      setDropdownStyle({
-        position: 'fixed',
-        top: rect.bottom + 4,
-        left: rect.left,
-        width: rect.width + 24,
-        zIndex: 9999,
-      });
-    }
-  }, [open]);
+  // branding.orgName/logoUrl come from the tenant's own Organisation Branding
+  // page (/org/branding) — a cosmetic override on top of the real org record.
+  // NO_BRANDING_ORG_NAME is BrandingContext's pre-fetch placeholder,
+  // indistinguishable from a 404 (no branding row saved yet); either way it
+  // means "nothing to override with", so fall through to the real org name.
+  const hasNameOverride = branding.orgName && branding.orgName !== NO_BRANDING_ORG_NAME;
+  const displayName = hasNameOverride ? branding.orgName : (org?.name ?? 'Organisation');
+  const logoSrc = branding.logoUrl || '/decimeshi-icon.svg';
 
-  if (loading) return <div className="h-14 border-b" style={{ borderColor: 'var(--sidebar-border)' }} />;
+  if (collapsed) {
+    return (
+      <div className="flex items-center justify-center border-b shrink-0 px-0 py-[14px]"
+        style={{ borderColor: 'rgba(255,255,255,0.06)', minHeight: '52px' }}>
+        <img src={logoSrc} alt={displayName} className="w-11 h-14 shrink-0" />
+      </div>
+    );
+  }
 
   return (
-    <div className="relative px-3 pb-2 border-b" style={{ borderColor: 'var(--sidebar-border)' }}>
-      <button
-        ref={buttonRef}
-        onClick={() => setOpen(o => !o)}
-        className="w-full flex items-center gap-2.5 px-2 py-2 rounded-lg transition-all text-left group"
-        style={{ ':hover': { background: 'var(--sidebar-hover)' } }}
-        onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
-        onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-      >
-        <div
-          className="w-7 h-7 rounded-lg flex items-center justify-center text-white text-xs font-bold shrink-0"
-          style={{ background: 'var(--brand-gradient)' }}
-        >
-          {org.name?.[0]?.toUpperCase() ?? 'O'}
-        </div>
-        <div className="flex-1 min-w-0">
-          <p className="text-2xs font-semibold leading-none truncate" style={{ color: 'var(--sidebar-text)' }}>
-            {org.name}
+    <div className="border-b shrink-0" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
+      <div className="flex items-center px-3 py-[11px] gap-2.5" style={{ minHeight: '52px' }}>
+        <img src={logoSrc} alt={displayName} className="w-11 h-14 shrink-0 rounded-md object-cover" />
+        <div className="flex-1 overflow-hidden">
+          <p className="text-[14px] font-black leading-none tracking-tight truncate" style={{ color: '#F1F5F9' }}>
+            {loading ? 'Loading…' : displayName}
           </p>
-          <div className="flex items-center gap-1 mt-1">
-            <div className="w-1.5 h-1.5 rounded-full shrink-0"
-              style={{ background: ENV_COLOR[activeProject?.environment] ?? '#94a3b8' }} />
-            <p className="text-2xs font-medium leading-none truncate" style={{ color: 'var(--sidebar-text-active)' }}>
-              {activeProject?.name ?? 'No project'}
-            </p>
-          </div>
+          <p className="text-2xs font-semibold tracking-wide uppercase mt-0.5 truncate" style={{ color: '#DBE4FF' }}>
+            AI Control Plane
+          </p>
         </div>
-        <ChevronDown size={11} className="shrink-0 transition-transform duration-200"
-          style={{ color: 'var(--sidebar-label)', transform: open ? 'rotate(180deg)' : 'none' }} />
-      </button>
+        <button onClick={onHide} title="Hide sidebar"
+          className="p-1.5 rounded-md transition-colors shrink-0"
+          style={{ color: '#94a3b8', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)' }}
+          onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.12)'; e.currentTarget.style.color = '#f1f5f9'; }}
+          onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; e.currentTarget.style.color = '#94a3b8'; }}
+        >
+          <PanelLeftClose size={13} />
+        </button>
+      </div>
 
-      {open && (
-        <>
-          <div className="fixed inset-0 z-[9998]" onClick={() => setOpen(false)} />
-          <div className="rounded-xl border overflow-hidden animate-fadeIn"
-            style={{ ...dropdownStyle, background: '#1e293b', borderColor: 'rgba(255,255,255,0.1)', boxShadow: '0 8px 32px rgba(0,0,0,0.4)' }}>
-            <div className="px-3 py-2 border-b" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
-              <p className="text-2xs font-semibold uppercase tracking-widest" style={{ color: '#38bdf8' }}>
-                Projects
-              </p>
-            </div>
-            <div className="max-h-48 overflow-y-auto py-1 scrollbar-thin">
-              {projects.map(p => (
-                <button key={p.id} onClick={() => { switchProject(p); setOpen(false); }}
-                  className="w-full flex items-center gap-2.5 px-3 py-2 transition-colors text-left"
-                  onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
-                  onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-                >
-                  <div className="w-1.5 h-1.5 rounded-full shrink-0"
-                    style={{ background: ENV_COLOR[p.environment] ?? '#94a3b8' }} />
-                  <span className="flex-1 text-sm truncate" style={{ color: 'var(--sidebar-text)' }}>{p.name}</span>
-                  {p.id === activeProject?.id && (
-                    <Check size={12} style={{ color: 'var(--brand)' }} />
-                  )}
-                </button>
-              ))}
-            </div>
-            <div className="border-t py-1" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
-              {[
-                { label: 'Manage projects', icon: FolderOpen, action: () => navigate('/projects') },
-                { label: 'New project',     icon: Plus,       action: () => navigate('/projects?new=1') },
-              ].map(({ label, icon: Icon, action }) => (
-                <button key={label} onClick={() => { setOpen(false); action(); }}
-                  className="w-full flex items-center gap-2 px-3 py-2 transition-colors text-left text-xs"
-                  style={{ color: 'var(--sidebar-label)' }}
-                  onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.1)'; e.currentTarget.style.color = '#e2e8f0'; }}
-                  onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#64748b'; }}
-                >
-                  <Icon size={12} /> {label}
-                </button>
-              ))}
-            </div>
-          </div>
-        </>
+      {!loading && projects.length > 0 && (
+        <div className="px-2 pb-2 space-y-0.5 max-h-40 overflow-y-auto scrollbar-thin">
+          {projects.map(p => {
+            const active = p.id === activeProject?.id;
+            return (
+              <button key={p.id} onClick={() => switchProject(p)}
+                className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-left transition-colors"
+                style={active ? { background: 'rgba(37,99,235,0.2)' } : {}}
+                onMouseEnter={e => { if (!active) e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; }}
+                onMouseLeave={e => { if (!active) e.currentTarget.style.background = 'transparent'; }}
+              >
+                <div className="w-1.5 h-1.5 rounded-full shrink-0"
+                  style={{ background: ENV_COLOR[p.environment] ?? '#94a3b8' }} />
+                <span className="flex-1 text-xs truncate"
+                  style={{ color: active ? '#93c5fd' : 'var(--sidebar-text)' }}>{p.name}</span>
+                {active && <Check size={11} style={{ color: 'var(--brand)' }} />}
+              </button>
+            );
+          })}
+        </div>
       )}
     </div>
   );
@@ -350,39 +330,8 @@ export default function Sidebar({ collapsed, onToggle, onHide, keycloak }) {
         borderRight: '1px solid rgba(255,255,255,0.06)',
       }}
     >
-      {/* ── Logo ─────────────────────────────────────────────────────────── */}
-      <div
-        className={cn(
-          'flex items-center border-b shrink-0',
-          collapsed ? 'justify-center px-0 py-[14px]' : 'px-3 py-[11px] gap-2.5'
-        )}
-        style={{ borderColor: 'rgba(255,255,255,0.06)', minHeight: '52px' }}
-      >
-        <img src="/decimeshi-icon.svg" alt="DecisionMesh" className="w-11 h-14 shrink-0" />
-
-        {!collapsed && (
-          <>
-            <div className="flex-1 overflow-hidden">
-              <p className="text-[14px] font-black leading-none tracking-tight whitespace-nowrap">
-                <span style={{ color: '#F1F5F9' }}>Decision</span><span style={{ color: '#818CF8' }}>Mesh</span>
-              </p>
-              <p className="text-2xs font-semibold tracking-wide uppercase mt-0.5 whitespace-nowrap leading-[1.35]"
-                style={{ color: '#DBE4FF' }}>Govern · Secure<br />Optimize · Prove</p>
-            </div>
-            <button onClick={onHide} title="Hide sidebar"
-              className="p-1.5 rounded-md transition-colors shrink-0"
-              style={{ color: '#94a3b8', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)' }}
-              onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.12)'; e.currentTarget.style.color = '#f1f5f9'; }}
-              onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; e.currentTarget.style.color = '#94a3b8'; }}
-            >
-              <PanelLeftClose size={13} />
-            </button>
-          </>
-        )}
-      </div>
-
-      {/* ── Project switcher ──────────────────────────────────────────────── */}
-      {!collapsed && <ProjectSwitcher />}
+      {/* ── Header: org logo/name + full project list ───────────────────────── */}
+      <SidebarHeader collapsed={collapsed} onHide={onHide} />
 
       {/* ── Nav ──────────────────────────────────────────────────────────── */}
       <nav className="flex-1 py-3 overflow-y-auto scrollbar-thin space-y-4">
