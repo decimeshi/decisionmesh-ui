@@ -21,7 +21,6 @@ import { ProjectProvider }    from './context/ProjectContext';
 import { BrandingProvider }   from './context/BrandingContext';
 import { CreditProvider }     from './context/CreditContext';
 import { CapabilityProvider } from './context/CapabilityContext';
-import { BreadcrumbProvider } from './context/BreadcrumbContext';
 import App          from './App';
 import LandingPage  from './pages/LandingPage';
 import DocsPage     from './pages/DocsPage';
@@ -289,9 +288,7 @@ function AppWrapper() {
       <ProjectProvider keycloak={keycloak}>
         <CreditProvider keycloak={keycloak}>
           <CapabilityProvider keycloak={keycloak}>
-            <BreadcrumbProvider>
-              <App keycloak={keycloak} />
-            </BreadcrumbProvider>
+            <App keycloak={keycloak} />
           </CapabilityProvider>
         </CreditProvider>
       </ProjectProvider>
