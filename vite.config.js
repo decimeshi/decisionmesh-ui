@@ -26,6 +26,16 @@ export default defineConfig({
         manualChunks(id) {
           if (id.includes('node_modules')) return 'vendor';
           if (id.includes('/src/components/shared/')) return 'vendor';
+          // Recurred a third time with BreadcrumbContext.jsx: any module
+          // under /src/context/ is by nature imported from several
+          // independent route chunks at once (that's the whole point of a
+          // context provider), which is exactly the shared-small-chunk
+          // pattern above — confirmed live via a revert/redeploy bisection
+          // on decimeshi.com (blank page with the file present, fine
+          // without it). Covering the whole directory rather than adding
+          // BreadcrumbContext by name, since the next context added here
+          // would trigger the identical failure.
+          if (id.includes('/src/context/')) return 'vendor';
         },
       },
     },
