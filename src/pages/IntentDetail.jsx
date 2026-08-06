@@ -15,6 +15,7 @@ import {
 import { getIntent, getIntentEvents, getExecutionsByIntent, getPolicyEvaluations, listAdapters, listAudit } from '../utils/api';
 import { formatCost, formatDate, formatTime, formatLatency, shortId, cn, PHASE_ORDER, describeAdapterError } from '../lib/utils';
 import ReplayPanel from '../components/replay/ReplayPanel';
+import { useBreadcrumbLabel } from '../context/BreadcrumbContext';
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 
@@ -1266,6 +1267,7 @@ export default function IntentDetail({ keycloak }) {
   const navigate   = useNavigate();
 
   const [intent,       setIntent]       = useState(null);
+  useBreadcrumbLabel(intentId ? `/intents/${intentId}` : null, intent?.intentType);
   const [events,       setEvents]       = useState([]);
   const [executions,   setExecutions]   = useState([]);
   const [adapters,     setAdapters]     = useState([]);

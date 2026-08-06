@@ -8,6 +8,7 @@ import {
 import { shortId } from '../lib/utils';
 import { useProject } from '../context/ProjectContext';
 import { useCredits } from '../context/CreditContext';
+import { useBreadcrumbLabels } from '../context/BreadcrumbContext';
 
 const LABELS = {
   '/':                    'Dashboard',
@@ -40,11 +41,12 @@ const LABELS = {
 
 function useBreadcrumbs() {
   const { pathname } = useLocation();
+  const dynamicLabels = useBreadcrumbLabels();
   if (LABELS[pathname]) return [{ label: LABELS[pathname], path: pathname }];
   const parts = pathname.split('/').filter(Boolean);
   return parts.map((part, i) => {
     const path = '/' + parts.slice(0, i + 1).join('/');
-    return { label: LABELS[path] ?? (part.length === 36 ? shortId(part) : part), path };
+    return { label: LABELS[path] ?? dynamicLabels[path] ?? (part.length === 36 ? shortId(part) : part), path };
   });
 }
 
