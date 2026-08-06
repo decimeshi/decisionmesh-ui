@@ -108,6 +108,16 @@
     background-clip: text;
   }
 
+  /* ── Primary button ───────────────────────────────────────────────────────── */
+  /* Was Tailwind's literal bg-blue-600/hover:bg-blue-700 utility classes on
+     shared/index.jsx's <Button variant="primary">, hardcoded and structurally
+     unable to respond to var(--brand) — no matter what a tenant saves on
+     /org/branding, every primary button (Submit, Save, etc.) stayed the
+     default blue. This is the fix: an actual CSS-variable-driven class, so
+     the same button now repaints when --brand/--brand-hover change. */
+  .btn-primary          { background: var(--brand); }
+  .btn-primary:hover    { background: var(--brand-hover); }
+
   /* ── Brand button ─────────────────────────────────────────────────────────── */
   .btn-brand {
     background: var(--brand);

@@ -41,13 +41,34 @@ function applyBrandingToDOM(branding) {
   const root = document.documentElement;
   const [h, s, l] = hexToHsl(color);
 
+  // This used to only set --brand-primary/light/dark/text — but most of the
+  // app (Sidebar's active-nav highlight, the shared Button's primary variant,
+  // icons, spinners — see index.css's :root block) actually reads --brand,
+  // --brand-hover, --brand-muted, and --brand-gradient. Saving a new colour
+  // on /org/branding updated the four variables nothing consumes and left
+  // the ones the UI actually uses locked to the default blue, so the change
+  // never visibly took effect anywhere outside this page's own live-preview
+  // mockup (which reads React state directly, not these CSS variables).
+  const light  = `hsl(${h}, ${s}%, ${Math.min(l + 40, 95)}%)`;
+  const muted  = `hsl(${h}, ${s}%, ${Math.min(l + 25, 90)}%)`;
+  const dark   = `hsl(${h}, ${s}%, ${Math.max(l - 10, 10)}%)`;
+  const text   = `hsl(${h}, ${Math.min(s + 10, 100)}%, ${Math.max(l - 20, 15)}%)`;
+  const hue2   = (h + 40) % 360; // gradient's second stop — same tint family, shifted hue
+
   root.style.setProperty('--brand-h',       h);
   root.style.setProperty('--brand-s',       `${s}%`);
   root.style.setProperty('--brand-l',       `${l}%`);
   root.style.setProperty('--brand-primary', color);
-  root.style.setProperty('--brand-light',   `hsl(${h}, ${s}%, ${Math.min(l + 40, 95)}%)`);
-  root.style.setProperty('--brand-dark',    `hsl(${h}, ${s}%, ${Math.max(l - 10, 10)}%)`);
-  root.style.setProperty('--brand-text',    `hsl(${h}, ${Math.min(s + 10, 100)}%, ${Math.max(l - 20, 15)}%)`);
+  root.style.setProperty('--brand-light',   light);
+  root.style.setProperty('--brand-dark',    dark);
+  root.style.setProperty('--brand-text',    text);
+
+  // The actually-consumed variable set (see comment above):
+  root.style.setProperty('--brand',          color);
+  root.style.setProperty('--brand-hover',    dark);
+  root.style.setProperty('--brand-muted',    muted);
+  root.style.setProperty('--brand-purple',   `hsl(${hue2}, ${s}%, ${l}%)`);
+  root.style.setProperty('--brand-gradient', `linear-gradient(135deg, ${color}, hsl(${hue2}, ${s}%, ${l}%))`);
 
   if (branding.favicon) {
     let link = document.querySelector("link[rel~='icon']");
