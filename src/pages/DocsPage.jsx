@@ -680,9 +680,9 @@ function ApiKeys() {
   "expiryDays": 90
 }`}
         response={`{
-  "id": "key_abc123",
+  "id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
   "name": "production-app",
-  "key": "dm_live_a1b2c3d4e5f6...",
+  "key": "sk_live_a1b2c3d4e5f6...",
   "scopes": ["intents:write", "intents:read"],
   "expiresAt": "2026-08-28T00:00:00Z"
 }`} />

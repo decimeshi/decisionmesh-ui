@@ -3,19 +3,7 @@ import { Plus, Copy, Trash2, KeyRound, Eye, EyeOff, Check, Shield, Clock, Activi
 import Page from '../components/shared/Page';
 import { Card, CardHeader, CardTitle, CardContent, Button, Spinner } from '../components/shared';
 import { formatDate, formatRelative } from '../lib/utils';
-
-const API_BASE = 'http://localhost:8080/api';
-
-async function req(keycloak, path, options = {}) {
-  if (keycloak?.token) await keycloak.updateToken(30).catch(() => {});
-  const res = await fetch(`${API_BASE}${path}`, {
-    ...options,
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${keycloak?.token}`, ...(options.headers ?? {}) },
-  });
-  if (res.status === 204) return null;
-  if (!res.ok) throw new Error(await res.text());
-  return res.json().catch(() => null);
-}
+import { request as req } from '../utils/api';
 
 const SCOPES = [
   { id: 'intents:write',   label: 'Submit intents',  desc: 'POST /api/intents' },
@@ -50,24 +38,15 @@ function CreateKeyModal({ keycloak, onCreated, onClose }) {
     if (!name.trim()) { setError('Key name is required'); return; }
     if (scopes.length === 0) { setError('Select at least one scope'); return; }
     setSaving(true);
+    setError(null);
     try {
       const result = await req(keycloak, '/api-keys', {
         method: 'POST',
         body: JSON.stringify({ name, scopes, expiryDays: expiry }),
       });
-      onCreated(result ?? {
-        name, scopes, expiryDays: expiry,
-        key: `dm_live_${crypto.randomUUID().replace(/-/g, '')}`,
-        id: crypto.randomUUID(), keyPrefix: 'dm_live_',
-        createdAt: new Date().toISOString(),
-      });
-    } catch {
-      onCreated({
-        name, scopes, expiryDays: expiry,
-        key: `dm_live_${crypto.randomUUID().replace(/-/g, '')}`,
-        id: crypto.randomUUID(), keyPrefix: 'dm_live_',
-        createdAt: new Date().toISOString(),
-      });
+      onCreated(result);
+    } catch (e) {
+      setError(e?.message || 'Failed to create key — please try again.');
     } finally { setSaving(false); }
   }
 
@@ -277,7 +256,7 @@ export default function ApiKeys({ keycloak }) {
           <Shield size={16} className="text-blue-600 shrink-0 mt-0.5" />
           <p className="text-xs text-blue-800">
             Pass keys as a Bearer token: <code className="bg-blue-100 px-1.5 py-0.5 rounded"
-              style={{ fontFamily: "'JetBrains Mono', monospace" }}>Authorization: Bearer dm_live_...</code>
+              style={{ fontFamily: "'JetBrains Mono', monospace" }}>Authorization: Bearer sk_live_...</code>
           </p>
         </CardContent>
       </Card>
