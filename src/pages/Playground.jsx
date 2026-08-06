@@ -1324,7 +1324,10 @@ export default function Playground({ keycloak }) {
                 className="fixed bottom-6 z-40 flex items-center gap-2 px-4 py-2.5 rounded-full text-sm font-semibold text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
                 style={{
                   right: '150px',
-                  background: canSubmit ? 'linear-gradient(135deg, #1d4ed8, #2563eb)' : '#94a3b8',
+                  // Was a hardcoded blue gradient — same bug as the shared
+                  // Button component (see index.css's .btn-primary comment):
+                  // couldn't respond to a saved /org/branding colour at all.
+                  background: canSubmit ? 'var(--brand-gradient)' : '#94a3b8',
                 }}
             >
               <Send size={14} />
