@@ -91,6 +91,38 @@ const NAV = [
   },
 ];
 
+// ── MEMBER's restricted nav ─────────────────────────────────────────────────────
+// Deliberately the same shape as dm-ui's own NAV (see D:\DM\dm-ui\src\layout\
+// Sidebar.jsx) — a MEMBER-role tenant user logging into decisionmesh-ui gets
+// the identical restricted, "API-key-integration" view dm-ui shows, complete
+// with the tenant's own branding (SidebarHeader already reads useBranding()
+// regardless of which nav array is active). OWNER/ADMIN/VIEWER/AUDITOR are
+// unaffected — this only replaces the nav when AuthCapabilitiesResource's
+// isMemberRole resolves true, computed server-side from the same tenant-wide
+// role that already restricts IntentResource.list() to "my own intents" for
+// a MEMBER, not derived or duplicated here.
+const MEMBER_NAV = [
+  {
+    label: 'CORE',
+    items: [
+      { label: 'Dashboard',     icon: LayoutDashboard, to: '/',              end: true },
+    ],
+  },
+  {
+    label: 'PLAYGROUND',
+    items: [
+      { label: 'Playground',    icon: FlaskConical,    to: '/playground'     },
+      { label: 'Intent Library',icon: Library,         to: '/intent-library' },
+    ],
+  },
+  {
+    label: 'OPERATIONS',
+    items: [
+      { label: 'Intents',       icon: ListOrdered,     to: '/intents'        },
+    ],
+  },
+];
+
 // Kill Switches used to live in ADMIN_ITEMS, gated on isAdmin (sys_admin only)
 // along with everything else in that section. That was wrong once
 // /admin/kill-switches itself was widened to accept tenant_admin too (see
@@ -320,12 +352,15 @@ export default function Sidebar({ collapsed, onToggle, onHide, keycloak }) {
   // below for tenant_admin.
   const {
     canViewSpend: isCxo, canManageKillSwitches, canLiftKillSwitches,
-    isPlatformOperator: isAdmin, isTenantAdmin,
+    isPlatformOperator: isAdmin, isTenantAdmin, isMemberRole,
   } = useCapabilities();
   // isAdmin included so a sys_admin without an explicit KILLSWITCH_ENGAGE/LIFT
   // grant (platform authority bypasses the permission check server-side too,
   // see AccessControl.can) still sees the item.
   const canSeeKillSwitches = isAdmin || canManageKillSwitches || canLiftKillSwitches;
+  // See MEMBER_NAV's own comment — a MEMBER gets the restricted,
+  // dm-ui-equivalent nav instead of the full operator one.
+  const activeNav = isMemberRole ? MEMBER_NAV : NAV;
 
   return (
     <aside
@@ -341,7 +376,7 @@ export default function Sidebar({ collapsed, onToggle, onHide, keycloak }) {
 
       {/* ── Nav ──────────────────────────────────────────────────────────── */}
       <nav className="flex-1 py-3 overflow-y-auto scrollbar-thin space-y-4">
-        {NAV.map(section => (
+        {activeNav.map(section => (
           <div key={section.label}>
             {/* Section label */}
             {!collapsed && (
