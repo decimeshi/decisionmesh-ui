@@ -28,6 +28,7 @@
 //   as long as the Zitadel browser session is still active.
 
 import { WebStorageStateStore } from 'oidc-client-ts';
+import { clearActiveTenant } from '../utils/api';
 
 
 const AUTHORITY = import.meta.env.VITE_ZITADEL_AUTHORITY
@@ -193,7 +194,7 @@ export function createKeycloakShim(auth) {
             token:         null,
             tokenParsed:   null,
             login:         () => auth.signinRedirect(),
-            logout:        () => auth.signoutRedirect(),
+            logout:        () => { clearActiveTenant(); auth.signoutRedirect(); },
             updateToken:   () => Promise.resolve(false),
             hasRole:       () => false,
         };
@@ -208,7 +209,10 @@ export function createKeycloakShim(auth) {
         get tokenParsed() { return auth.user?.profile ?? null; },
 
         login:  () => auth.signinRedirect(),
-        logout: () => auth.signoutRedirect(),
+        // Stale active-tenant selection must not leak into the next login —
+        // a different account signing in on the same browser would otherwise
+        // inherit whichever workspace this session last picked.
+        logout: () => { clearActiveTenant(); auth.signoutRedirect(); },
 
         /**
          * Ensures the access token is valid for at least `minValidity` seconds.

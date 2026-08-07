@@ -68,6 +68,39 @@ export function getCurrentProject() {
   return currentProjectId;
 }
 
+// ── Tenant scope ───────────────────────────────────────────────────────────────
+// A user can belong to more than one tenant (see InvitationService.
+// acceptInvitation on the backend). The selected one travels as X-Tenant-Id on
+// every call, same pattern as X-Project-Id above — module-level so plain
+// callers of request() get it too, validated server-side against `membership`
+// before TenantContextFilter honours it.
+let currentTenantId = null;
+
+const TENANT_KEY = 'dm_active_tenant';
+
+/** Call from ChooseOrganization (or AcceptInvite, on landing directly in a new one). */
+export function setActiveTenant(tenantId) {
+  currentTenantId = UUID_RE.test(tenantId ?? '') ? tenantId : null;
+  try {
+    if (currentTenantId) localStorage.setItem(TENANT_KEY, currentTenantId);
+  } catch { /* private mode — in-memory only, scope resets on reload */ }
+}
+
+export function getActiveTenant() {
+  if (currentTenantId) return currentTenantId;
+  try {
+    const saved = localStorage.getItem(TENANT_KEY);
+    if (UUID_RE.test(saved ?? '')) currentTenantId = saved;
+  } catch { /* ignore */ }
+  return currentTenantId;
+}
+
+/** Call on logout — a stale tenant id must not leak into the next login. */
+export function clearActiveTenant() {
+  currentTenantId = null;
+  try { localStorage.removeItem(TENANT_KEY); } catch { /* ignore */ }
+}
+
 // Exported so contexts and pages can use it directly instead of
 // duplicating their own fetch + auth logic.
 export async function request(keycloak, path, options = {}) {
@@ -89,7 +122,11 @@ export async function request(keycloak, path, options = {}) {
   // backend logs a malformed-header warning on a blank value, and falls back to
   // the tenant's default project when the header is absent.
   const projectId = getCurrentProject();
-  const scopeHeaders = projectId ? { 'X-Project-Id': projectId } : {};
+  const tenantId  = getActiveTenant();
+  const scopeHeaders = {
+    ...(projectId ? { 'X-Project-Id': projectId } : {}),
+    ...(tenantId  ? { 'X-Tenant-Id':  tenantId  } : {}),
+  };
 
   const res = await fetch(`${API_BASE}${path}`, {
     ...options,
@@ -162,7 +199,11 @@ export async function extractAttachment(keycloak, file) {
   if (!keycloak?.authenticated || !keycloak?.token) return null;
 
   const projectId = getCurrentProject();
-  const scopeHeaders = projectId ? { 'X-Project-Id': projectId } : {};
+  const tenantId  = getActiveTenant();
+  const scopeHeaders = {
+    ...(projectId ? { 'X-Project-Id': projectId } : {}),
+    ...(tenantId  ? { 'X-Tenant-Id':  tenantId  } : {}),
+  };
 
   const form = new FormData();
   form.append('file', file, file.name);
@@ -242,6 +283,17 @@ export async function ensureUser(keycloak) {
  */
 export async function getMe(keycloak) {
   return request(keycloak, '/onboard/me');
+}
+
+/**
+ * GET /api/onboard/my-organizations
+ *
+ * Every tenant/organization the caller has a membership row in. A user with
+ * exactly one is the common case; more than one means ChooseOrganization
+ * should show before the main app shell mounts.
+ */
+export async function getMyOrganizations(keycloak) {
+  return request(keycloak, '/onboard/my-organizations');
 }
 
 // ── Dashboard ─────────────────────────────────────────────────────────────────
