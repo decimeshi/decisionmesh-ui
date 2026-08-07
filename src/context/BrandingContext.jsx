@@ -3,12 +3,23 @@ import { getOrgBranding, API_BASE } from '../utils/api';
 
 
 
-const DEFAULT_BRANDING = {
+export const DEFAULT_BRANDING = {
   orgName:      'DecisionMesh',
   primaryColor: '#2563eb',
   logoUrl:      null,
   logoInitial:  'D',
   favicon:      null,
+  // "Dark Trust + Neon Intelligence" palette (V9) — brand-identity colors,
+  // tenant-customizable same as primaryColor. Defaults match the migration's
+  // column defaults, so a tenant that's never saved branding still gets the
+  // full intended palette, not a hole where four colors used to be.
+  secondaryColor:     '#1E293B',
+  aiAccentColor:      '#06B6D4',
+  intelligenceColor:  '#7C3AED',
+  governColor:        '#2563EB',
+  secureColor:        '#4F46E5',
+  optimizeColor:      '#10B981',
+  proveColor:         '#F59E0B',
 };
 
 const BrandingContext = createContext(null);
@@ -32,6 +43,18 @@ function hexToHsl(hex) {
   return [Math.round(h * 360), Math.round(s * 100), Math.round(l * 100)];
 }
 
+const HEX_RE = /^#[0-9a-fA-F]{6}$/;
+
+// Direct hex → CSS var, no HSL derivation — unlike primaryColor's single-hue
+// system (which derives light/dark/muted/gradient variants from one value),
+// these are each already a specific, distinct hex from the palette spec, so
+// there's nothing to derive. Same validity guard as the primary-color path.
+function applyHexVar(root, cssVar, hex, fallback) {
+  const value = hex || fallback;
+  if (!HEX_RE.test(value)) return;
+  root.style.setProperty(cssVar, value);
+}
+
 function applyBrandingToDOM(branding) {
   const color = branding.primaryColor || DEFAULT_BRANDING.primaryColor;
 
@@ -39,6 +62,14 @@ function applyBrandingToDOM(branding) {
   if (!/^#[0-9a-fA-F]{6}$/.test(color)) return;
 
   const root = document.documentElement;
+
+  applyHexVar(root, '--brand-secondary',    branding.secondaryColor,    DEFAULT_BRANDING.secondaryColor);
+  applyHexVar(root, '--brand-ai-accent',    branding.aiAccentColor,     DEFAULT_BRANDING.aiAccentColor);
+  applyHexVar(root, '--brand-intelligence', branding.intelligenceColor, DEFAULT_BRANDING.intelligenceColor);
+  applyHexVar(root, '--stage-govern',       branding.governColor,       DEFAULT_BRANDING.governColor);
+  applyHexVar(root, '--stage-secure',       branding.secureColor,       DEFAULT_BRANDING.secureColor);
+  applyHexVar(root, '--stage-optimize',     branding.optimizeColor,     DEFAULT_BRANDING.optimizeColor);
+  applyHexVar(root, '--stage-prove',        branding.proveColor,        DEFAULT_BRANDING.proveColor);
   const [h, s, l] = hexToHsl(color);
 
   // This used to only set --brand-primary/light/dark/text — but most of the
@@ -138,10 +169,17 @@ export function BrandingProvider({ keycloak, children }) {
 
           // Normalize — handles both camelCase and snake_case from backend
           const normalized = {
-            primaryColor: data.primaryColor ?? data.primary_color ?? DEFAULT_BRANDING.primaryColor,
-            orgName:      data.orgName      ?? data.org_name      ?? DEFAULT_BRANDING.orgName,
-            logoUrl:      data.logoUrl      ?? data.logo_url      ?? null,
-            favicon:      data.favicon      ?? null,
+            primaryColor:      data.primaryColor      ?? data.primary_color      ?? DEFAULT_BRANDING.primaryColor,
+            orgName:           data.orgName           ?? data.org_name           ?? DEFAULT_BRANDING.orgName,
+            logoUrl:           data.logoUrl           ?? data.logo_url           ?? null,
+            favicon:           data.favicon           ?? null,
+            secondaryColor:    data.secondaryColor    ?? data.secondary_color    ?? DEFAULT_BRANDING.secondaryColor,
+            aiAccentColor:     data.aiAccentColor     ?? data.ai_accent_color    ?? DEFAULT_BRANDING.aiAccentColor,
+            intelligenceColor: data.intelligenceColor ?? data.intelligence_color ?? DEFAULT_BRANDING.intelligenceColor,
+            governColor:       data.governColor       ?? data.govern_color      ?? DEFAULT_BRANDING.governColor,
+            secureColor:       data.secureColor       ?? data.secure_color      ?? DEFAULT_BRANDING.secureColor,
+            optimizeColor:     data.optimizeColor     ?? data.optimize_color    ?? DEFAULT_BRANDING.optimizeColor,
+            proveColor:        data.proveColor        ?? data.prove_color       ?? DEFAULT_BRANDING.proveColor,
           };
 
           console.log('[Branding] applying primaryColor:', normalized.primaryColor);

@@ -17,6 +17,28 @@
     --brand-dark:     #1d4ed8;
     --brand-text:     #1e40af;
 
+    /* "Dark Trust + Neon Intelligence" palette (V9) — brand-identity colors,
+       tenant-customizable via /org/branding same as --brand. Defaults match
+       BrandingContext.jsx's DEFAULT_BRANDING and the V9 migration column
+       defaults — these are the static pre-JS fallback, not the source of
+       truth (BrandingContext overwrites them inline once branding loads). */
+    --brand-secondary:    #1e293b;
+    --brand-ai-accent:    #06b6d4;
+    --brand-intelligence: #7c3aed;
+
+    /* ── Pipeline stages ────────────────────────────────────────────────────── */
+    /* Govern/Secure/Optimize/Prove are tenant-customizable brand colors (same
+       mechanism as --brand above). --stage-kill is NOT — it's a fixed safety
+       color, deliberately excluded from BrandingContext.jsx/OrgBrandingEntity
+       entirely. Letting a tenant recolor "kill switch" away from red would
+       actively harm comprehension of a safety-critical control — the same
+       reason a bank can't rebrand a stop sign. See the V9 migration comment. */
+    --stage-govern:   #2563eb;
+    --stage-secure:   #4f46e5;
+    --stage-optimize: #10b981;
+    --stage-prove:    #f59e0b;
+    --stage-kill:     #ef4444;
+
     /* ── Sidebar (dark) ─────────────────────────────────────────────────────── */
     --sidebar-bg:       #0f172a;
     --sidebar-border:   rgba(255,255,255,0.06);
@@ -30,23 +52,25 @@
     --sidebar-collapsed: 52px;
 
     /* ── Content ────────────────────────────────────────────────────────────── */
-    /* Was #f8fafc (slate-50), then #eef1f5 — both still read as "white" next
-       to a white card at normal screen brightness. #e4e9ef is a clear step
-       into slate-200 territory: cards now visibly float on the page instead
-       of blending into it, confirmed against real screenshots where the
-       lighter values were indistinguishable. */
-    --content-bg:     #e4e9ef;
+    /* "Dark Trust + Neon Intelligence" spec calls for #F8FAFC/#F4F7FB over
+       flat white for a "more premium" feel — picked #f4f7fb specifically
+       (the cooler of the two options) because a prior fix here (see removed
+       history) found #f8fafc reads as indistinguishable from a white card at
+       normal screen brightness; #f4f7fb keeps that same card/page contrast
+       the earlier fix required, while adopting the new spec's intent. */
+    --content-bg:     #f4f7fb;
     --topbar-bg:      #ffffff;
     --topbar-border:  #e2e8f0;
     --topbar-h:       52px;
 
     /* ── Card ───────────────────────────────────────────────────────────────── */
     --card-bg:        #ffffff;
-    /* Darker than --content-bg on purpose — a border equal to (or lighter
-       than) the page background disappears into it; the boundary has to be
-       the darkest line at the seam to read as a border at all. */
-    --card-border:    #d3dae3;
-    --card-radius:    12px;
+    /* Still darker than --content-bg (229 < 244) so the border/page contrast
+       the original fix needed is preserved even at the new, lighter page bg —
+       #e5e7eb is the spec's exact value, not a re-guess. */
+    --card-border:    #e5e7eb;
+    --card-hover:     #f3f4f6;
+    --card-radius:    16px;
     /* Was two lighter passes that stayed too faint against a still-pale
        page. Heavier, wider spread gives real elevation without the page
        itself needing to go dark. */
@@ -115,8 +139,27 @@
      /org/branding, every primary button (Submit, Save, etc.) stayed the
      default blue. This is the fix: an actual CSS-variable-driven class, so
      the same button now repaints when --brand/--brand-hover change. */
-  .btn-primary          { background: var(--brand); }
+  /* "Dark Trust + Neon Intelligence" spec: primary buttons are a blue→purple
+     gradient, not flat blue. --brand-gradient already computes exactly this
+     (brand color → brand-purple) — just needed to actually be used here. */
+  .btn-primary          { background: var(--brand-gradient); }
   .btn-primary:hover    { background: var(--brand-hover); }
+
+  /* ── Success button ───────────────────────────────────────────────────────── */
+  .btn-success          { background: var(--stage-optimize); }
+  .btn-success:hover    { filter: brightness(0.92); }
+
+  /* ── Brand text/badge ─────────────────────────────────────────────────────── */
+  /* Same fix as .btn-primary, applied to the small uppercase field labels and
+     pill badges (Playground's Domain/Category/Intent tags, section-label
+     micro-text) that were hardcoded text-blue-600/text-slate-400 — visually
+     "different colours" per page/section but never actually tied to the
+     tenant's saved brand colour. */
+  .text-brand  { color: var(--brand-text); }
+  .badge-brand {
+    background: var(--brand-light);
+    color: var(--brand-text);
+  }
 
   /* ── Brand button ─────────────────────────────────────────────────────────── */
   .btn-brand {
