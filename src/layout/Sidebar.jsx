@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { NavLink, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, FlaskConical, ListOrdered, Cpu,
@@ -282,19 +283,32 @@ const ENV_COLOR = { Production: '#22c55e', Staging: '#f59e0b', Dev: '#3b82f6' };
 function OrgSwitcher({ keycloak }) {
   const [open, setOpen] = useState(false);
   const [orgs, setOrgs] = useState(null); // null = not fetched yet
-  const ref = useRef(null);
+  const [menuPos, setMenuPos] = useState(null); // viewport coords, computed on open
+  const btnRef = useRef(null);
+  const menuRef = useRef(null);
   // Read fresh each render, not from org.id (that's the ORGANIZATION id,
   // not necessarily the TENANT id getMyOrganizations() keys by) — this is
   // the same module-level value ChooseOrganization/AcceptInvite set.
   const currentTenantId = getActiveTenant();
 
   useEffect(() => {
-    const h = e => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    const h = e => {
+      if (btnRef.current?.contains(e.target)) return;
+      if (menuRef.current && !menuRef.current.contains(e.target)) setOpen(false);
+    };
     document.addEventListener('mousedown', h);
     return () => document.removeEventListener('mousedown', h);
   }, []);
 
   function handleOpen() {
+    if (!open && btnRef.current) {
+      const r = btnRef.current.getBoundingClientRect();
+      // Right-align the menu's right edge with the button's — matching
+      // TopBar's UserMenu convention — since this button sits near the
+      // sidebar's own right edge, left-aligning would push a 256px-wide
+      // menu mostly outside the ~220px sidebar.
+      setMenuPos({ top: r.bottom + 6, right: window.innerWidth - r.right });
+    }
     setOpen(o => !o);
     if (orgs === null) {
       getMyOrganizations(keycloak).then(list => setOrgs(list ?? [])).catch(() => setOrgs([]));
@@ -318,8 +332,8 @@ function OrgSwitcher({ keycloak }) {
   if (orgs !== null && orgs.length <= 1) return null;
 
   return (
-    <div ref={ref} className="relative shrink-0">
-      <button onClick={handleOpen} title="Switch organisation"
+    <div className="relative shrink-0">
+      <button ref={btnRef} onClick={handleOpen} title="Switch organisation"
         className="p-1 rounded-md transition-colors"
         style={{ color: '#94a3b8' }}
         onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.08)'}
@@ -328,9 +342,15 @@ function OrgSwitcher({ keycloak }) {
         <ChevronDown size={13} className={cn('transition-transform duration-150', open && 'rotate-180')} />
       </button>
 
-      {open && (
-        <div className="absolute left-0 top-full mt-2 w-64 bg-white rounded-xl border border-slate-200 overflow-hidden z-50"
-          style={{ boxShadow: '0 8px 32px rgba(0,0,0,0.16)' }}>
+      {/* Portaled to <body> — the sidebar's own wrapper in App.jsx has
+          overflow-hidden (needed for its collapse/hide width animation),
+          which silently clipped this menu when it was a normal absolute-
+          positioned child instead of escaping via a portal. */}
+      {open && menuPos && createPortal(
+        <div ref={menuRef}
+          className="fixed w-64 bg-white rounded-xl border border-slate-200 overflow-hidden z-50"
+          style={{ top: menuPos.top, right: menuPos.right, boxShadow: '0 8px 32px rgba(0,0,0,0.16)' }}
+        >
           <p className="px-3 py-2 text-2xs font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100">
             Switch organisation
           </p>
@@ -355,7 +375,8 @@ function OrgSwitcher({ keycloak }) {
               );
             })}
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
