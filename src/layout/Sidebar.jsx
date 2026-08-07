@@ -1,8 +1,9 @@
+import { useState, useEffect, useRef } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, FlaskConical, ListOrdered, Cpu,
   Puzzle, ShieldCheck, BarChart3, TrendingUp,
-  KeyRound, ScrollText, ChevronRight, ClipboardCheck,
+  KeyRound, ScrollText, ChevronRight, ChevronDown, ClipboardCheck,
   UserPlus, PanelLeftClose, FolderOpen,
   Check, Palette, CreditCard, Receipt,
   Bug, Library, MessageSquarePlus, TestTube2,
@@ -14,6 +15,7 @@ import { useProject } from '../context/ProjectContext';
 import { useCredits } from '../context/CreditContext';
 import { useCapabilities } from '../context/CapabilityContext';
 import { useBranding } from '../context/BrandingContext';
+import { getMyOrganizations, setActiveTenant, getActiveTenant } from '../utils/api';
 
 // BrandingContext's pre-fetch/no-override placeholder — see SidebarHeader
 // below for why this needs to be distinguished from a real override.
@@ -271,7 +273,95 @@ function CreditFooter() {
 // real place for that; this header is deliberately just identity + a switcher.
 const ENV_COLOR = { Production: '#22c55e', Staging: '#f59e0b', Dev: '#3b82f6' };
 
-function SidebarHeader({ collapsed, onHide }) {
+// Switching organizations is a full reload (setActiveTenant + href='/'),
+// the exact pattern AcceptInvite.jsx already uses after accepting an
+// invite — every Provider (Branding/Project/Credit/Capability) re-mounts
+// and refetches from scratch scoped by the new X-Tenant-Id, which is what
+// satisfies "switching refreshes Policies/API Keys/Models/Projects/Billing/
+// Audit Context" for free, with no manual cache-invalidation code anywhere.
+function OrgSwitcher({ keycloak }) {
+  const [open, setOpen] = useState(false);
+  const [orgs, setOrgs] = useState(null); // null = not fetched yet
+  const ref = useRef(null);
+  // Read fresh each render, not from org.id (that's the ORGANIZATION id,
+  // not necessarily the TENANT id getMyOrganizations() keys by) — this is
+  // the same module-level value ChooseOrganization/AcceptInvite set.
+  const currentTenantId = getActiveTenant();
+
+  useEffect(() => {
+    const h = e => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    document.addEventListener('mousedown', h);
+    return () => document.removeEventListener('mousedown', h);
+  }, []);
+
+  function handleOpen() {
+    setOpen(o => !o);
+    if (orgs === null) {
+      getMyOrganizations(keycloak).then(list => setOrgs(list ?? [])).catch(() => setOrgs([]));
+    }
+  }
+
+  function handleSwitch(tenantId) {
+    if (tenantId === currentTenantId) { setOpen(false); return; }
+    // A project id from the org being left is meaningless in the new one —
+    // clearing it here is what makes ChooseProject's "nothing validly
+    // remembered" path trigger correctly on the other side, rather than a
+    // stale id coincidentally matching an unrelated project by chance.
+    try { localStorage.removeItem('dm_active_project'); } catch { /* ignore */ }
+    setActiveTenant(tenantId);
+    window.location.href = '/';
+  }
+
+  // Only render the switcher affordance at all once we know there's
+  // something to switch to — a single-org user sees a static header,
+  // same as before this feature existed.
+  if (orgs !== null && orgs.length <= 1) return null;
+
+  return (
+    <div ref={ref} className="relative shrink-0">
+      <button onClick={handleOpen} title="Switch organisation"
+        className="p-1 rounded-md transition-colors"
+        style={{ color: '#94a3b8' }}
+        onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.08)'}
+        onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+      >
+        <ChevronDown size={13} className={cn('transition-transform duration-150', open && 'rotate-180')} />
+      </button>
+
+      {open && (
+        <div className="absolute left-0 top-full mt-2 w-64 bg-white rounded-xl border border-slate-200 overflow-hidden z-50"
+          style={{ boxShadow: '0 8px 32px rgba(0,0,0,0.16)' }}>
+          <p className="px-3 py-2 text-2xs font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100">
+            Switch organisation
+          </p>
+          <div className="py-1 max-h-64 overflow-y-auto scrollbar-thin">
+            {orgs === null ? (
+              <p className="px-3 py-3 text-xs text-slate-400">Loading…</p>
+            ) : orgs.length === 0 ? (
+              <p className="px-3 py-3 text-xs text-slate-400">No organisations found.</p>
+            ) : orgs.map(o => {
+              const active = o.tenantId === currentTenantId;
+              return (
+                <button key={o.tenantId} onClick={() => handleSwitch(o.tenantId)}
+                  className="w-full flex items-center gap-2.5 px-3 py-2 text-[13px] text-left transition-colors"
+                  style={{ color: active ? '#2563eb' : '#334155', fontWeight: active ? 600 : 500 }}
+                  onMouseEnter={e => { if (!active) e.currentTarget.style.background = '#f8fafc'; }}
+                  onMouseLeave={e => { e.currentTarget.style.background = ''; }}
+                >
+                  <Building2 size={13} className="shrink-0" style={{ color: active ? '#2563eb' : '#94a3b8' }} />
+                  <span className="flex-1 truncate">{o.tenantName}</span>
+                  {active && <Check size={12} className="shrink-0" style={{ color: '#2563eb' }} />}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SidebarHeader({ collapsed, onHide, keycloak }) {
   const { org, projects, activeProject, switchProject, loading } = useProject();
   const { branding } = useBranding();
 
@@ -309,6 +399,7 @@ function SidebarHeader({ collapsed, onHide }) {
             Enterprise AI Control Plane
           </p>
         </div>
+        <OrgSwitcher keycloak={keycloak} />
         <button onClick={onHide} title="Hide sidebar"
           className="p-1.5 rounded-md transition-colors shrink-0"
           style={{ color: '#94a3b8', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)' }}
@@ -429,7 +520,7 @@ export default function Sidebar({ collapsed, onToggle, onHide, keycloak }) {
       }}
     >
       {/* ── Header: org logo/name + full project list ───────────────────────── */}
-      <SidebarHeader collapsed={collapsed} onHide={onHide} />
+      <SidebarHeader collapsed={collapsed} onHide={onHide} keycloak={keycloak} />
 
       {/* ── Nav ──────────────────────────────────────────────────────────── */}
       <nav className="flex-1 py-3 overflow-y-auto scrollbar-thin space-y-4">

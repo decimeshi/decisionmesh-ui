@@ -7,6 +7,8 @@ import { Spinner } from './components/shared';
 import LowCreditBanner from './components/shared/LowCreditBanner';
 import FeedbackWidget from './components/FeedbackWidget';
 import { RequireCapability } from './context/CapabilityContext';
+import { useProject } from './context/ProjectContext';
+import ChooseProject from './pages/ChooseProject';
 import AIGovernanceInfrastructure from "./pages/blog/AIGovernanceInfrastructure.jsx";
 import IntentBasedAIControlPlane from "./pages/blog/IntentBasedAIControlPlane.jsx";
 import SecurityPage from "./pages/SecurityPage.jsx";
@@ -113,6 +115,16 @@ function PageFallback() {
 export default function App({ keycloak }) {
   const [collapsed, setCollapsed] = useState(false);
   const [hidden,    setHidden]    = useState(false);
+
+  // Gated here, not in main.jsx alongside ChooseOrganization — this needs
+  // useProject()/useBranding() (org name for the picker's subtitle), which
+  // only exist once ProjectProvider/BrandingProvider have mounted. The
+  // common single-project case never sets needsProjectPick and this branch
+  // is never taken.
+  const { needsProjectPick, projects, chooseProject, org } = useProject();
+  if (needsProjectPick) {
+    return <ChooseProject projects={projects} orgName={org?.name} onSelect={chooseProject} />;
+  }
 
   return (
       <div className="flex h-screen bg-slate-50 overflow-hidden">

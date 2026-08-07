@@ -336,6 +336,12 @@ function AppWrapper() {
       <ChooseOrganization
         organizations={orgs}
         onSelect={tenantId => {
+          // A project id remembered from whichever tenant was last active is
+          // meaningless in the one just picked — clearing it is what makes
+          // ChooseProject's "nothing validly remembered" path trigger
+          // correctly on the other side, rather than a stale id
+          // coincidentally matching an unrelated project by chance.
+          try { localStorage.removeItem('dm_active_project'); } catch { /* ignore */ }
           setActiveTenant(tenantId);
           setTenantPickVersion(v => v + 1); // force re-render — active tenant lives outside React state
         }}
