@@ -171,17 +171,38 @@ export default function AcceptInvite({ token, auth, keycloak, onConsumed }) {
                 {acceptError && <p style={styles.error}>{acceptError}</p>}
 
                 {!auth?.isAuthenticated ? (
-                  <>
-                    <button style={styles.btn} onClick={() => handleLogin(true)}>
-                      Create account &amp; accept
-                    </button>
-                    <p style={styles.subtitle}>
-                      Already have a DecisionMesh account?{' '}
-                      <a href="#" onClick={e => { e.preventDefault(); handleLogin(false); }} style={{ color: '#2563eb', fontWeight: 600 }}>
-                        Log in instead
-                      </a>
-                    </p>
-                  </>
+                  preview.alreadyRegistered ? (
+                    // This email already has an account — most often an existing
+                    // user being invited into a SECOND org (the common case now
+                    // that a user isn't capped at one tenant — see
+                    // InvitationService.acceptInvitation). Leading with "Create
+                    // account" here was actively wrong: it read as if accepting
+                    // required a brand-new signup, when logging into their
+                    // existing account is what they actually need.
+                    <>
+                      <button style={styles.btn} onClick={() => handleLogin(false)}>
+                        Log in &amp; accept
+                      </button>
+                      <p style={styles.subtitle}>
+                        New to DecisionMesh?{' '}
+                        <a href="#" onClick={e => { e.preventDefault(); handleLogin(true); }} style={{ color: '#2563eb', fontWeight: 600 }}>
+                          Create an account instead
+                        </a>
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <button style={styles.btn} onClick={() => handleLogin(true)}>
+                        Create account &amp; accept
+                      </button>
+                      <p style={styles.subtitle}>
+                        Already have a DecisionMesh account?{' '}
+                        <a href="#" onClick={e => { e.preventDefault(); handleLogin(false); }} style={{ color: '#2563eb', fontWeight: 600 }}>
+                          Log in instead
+                        </a>
+                      </p>
+                    </>
+                  )
                 ) : (
                   <button style={styles.btn} onClick={handleAccept} disabled={accepting}>
                     {accepting ? <Loader2 size={16} style={{ animation: 'spin 0.8s linear infinite' }} /> : null}
