@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect } from 'react';
-import { getOrgBranding, API_BASE } from '../utils/api';
+import { getOrgBranding, API_BASE, getActiveTenant, getCurrentProject } from '../utils/api';
 
 
 
@@ -146,10 +146,20 @@ export function BrandingProvider({ keycloak, children }) {
 
         console.log('[Branding] fetching branding with token:', token.substring(0, 20) + '...');
 
+        // Scope headers by hand — this bypasses request() (see comment above)
+        // so they don't come for free the way every other call gets them.
+        // Missing X-Tenant-Id here meant this always resolved to the user's
+        // default/primary tenant server-side, regardless of which tenant was
+        // actually active — a multi-tenant user always saw their own
+        // workspace's branding no matter which one they picked.
+        const activeTenant  = getActiveTenant();
+        const activeProject = getCurrentProject();
         const res = await fetch(`${API_BASE}/org/branding`, {
           headers: {
             'Authorization': `Bearer ${token}`,
             'Content-Type':  'application/json',
+            ...(activeTenant  ? { 'X-Tenant-Id':  activeTenant }  : {}),
+            ...(activeProject ? { 'X-Project-Id': activeProject } : {}),
           }
         });
 
