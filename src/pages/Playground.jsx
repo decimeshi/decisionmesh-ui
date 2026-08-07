@@ -26,7 +26,7 @@ import {
   submitIntent, getIntent, getExecutionsByIntent, request, listPolicies,
   previewIntent, getIntentAvailability, extractAttachment,
 } from '../utils/api';
-import { describeAdapterError, RISK_COLORS, ADAPTER_DOT_COLORS } from '../lib/utils';
+import { describeAdapterError, RISK_COLORS, ADAPTER_DOT_COLORS, categoryColor } from '../lib/utils';
 import { useCredits, MODEL_TIERS } from '../context/CreditContext';
 import { useProject } from '../context/ProjectContext';
 
@@ -639,6 +639,15 @@ function IntentSelection({ keycloak, domain, setDomain, category, setCategory, i
                 {risk.label} risk
               </span>
           )}
+          {selectedMeta?.category && (
+              // Native <select> can't color individual <option>s cross-browser,
+              // so scanability comes from this dot on the selected intent
+              // instead of the dropdown list itself.
+              <span className="inline-flex items-center gap-1.5 text-[11px] text-slate-500 mt-1 ml-2">
+                <span className="w-1.5 h-1.5 rounded-full" style={{ background: categoryColor(selectedMeta.category) }} />
+                {selectedMeta.category.replace(/_/g, ' ')}
+              </span>
+          )}
         </CardContent>
       </Card>
   );
@@ -667,7 +676,12 @@ function ExecutionIntelligence({ json, selectedMeta, loading, result, preview, p
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
               <p className="text-[10px] font-semibold text-brand uppercase tracking-wide">Intent</p>
-              <p className="text-sm font-mono font-semibold text-slate-800 break-all">{intentType || '—'}</p>
+              <p className="text-sm font-mono font-semibold text-slate-800 break-all flex items-center gap-1.5">
+                {selectedMeta?.category && (
+                    <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: categoryColor(selectedMeta.category) }} />
+                )}
+                {intentType || '—'}
+              </p>
             </div>
             {risk && (
                 <span className="inline-flex items-center gap-1.5 text-xs font-semibold shrink-0 mt-3.5" style={{ color: risk.text }}>
@@ -814,7 +828,7 @@ export default function Playground({ keycloak }) {
           if (match?.examplePayload) {
             setJson(JSON.stringify(match.examplePayload, null, 2));
             setIntentName(match.name);
-            setSelectedMeta({ description: match.description, riskLevel: match.riskLevel });
+            setSelectedMeta({ description: match.description, riskLevel: match.riskLevel, category: match.category });
           }
         })
         .catch(() => {}); // silently fall back to DEFAULT
@@ -867,7 +881,7 @@ export default function Playground({ keycloak }) {
   // FintechIntents.jsx's "Try in Playground" already uses.
   function handleIntentSelected(intent) {
     setIntentName(intent.name);
-    setSelectedMeta({ description: intent.description, riskLevel: intent.riskLevel });
+    setSelectedMeta({ description: intent.description, riskLevel: intent.riskLevel, category: intent.category });
     const payload = intent.examplePayload
         ? JSON.stringify(intent.examplePayload, null, 2)
         : JSON.stringify({
