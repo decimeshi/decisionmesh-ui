@@ -62,10 +62,21 @@ const STATUS_COLORS = {
 
 // ── Sub-components ────────────────────────────────────────────────────────────
 
+// Wire values (ADMIN/MEMBER/VIEWER/AUDITOR) are what the backend stores and
+// what ROLE_COLORS is keyed by — but MEMBER's user-facing label is "Analyst"
+// (see the comment on ROLES above). A badge that displayed the raw value
+// verbatim showed "MEMBER" in the pending-invitations table right after the
+// invite form's dropdown said "Analyst" for the same role, which is what
+// caused the confusion. Colour still keys off the untranslated `role` prop
+// (ROLE_COLORS' keys), only the visible text is translated.
+function roleLabel(value) {
+  return ROLES.find(r => r.value === value)?.label ?? value;
+}
+
 function RoleBadge({ role }) {
   return (
     <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${ROLE_COLORS[role] ?? 'bg-gray-100 text-gray-600'}`}>
-      {role}
+      {roleLabel(role)}
     </span>
   );
 }
