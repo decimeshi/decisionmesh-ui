@@ -303,11 +303,21 @@ function OrgSwitcher({ keycloak }) {
   function handleOpen() {
     if (!open && btnRef.current) {
       const r = btnRef.current.getBoundingClientRect();
-      // Right-align the menu's right edge with the button's — matching
-      // TopBar's UserMenu convention — since this button sits near the
-      // sidebar's own right edge, left-aligning would push a 256px-wide
-      // menu mostly outside the ~220px sidebar.
-      setMenuPos({ top: r.bottom + 6, right: window.innerWidth - r.right });
+      const MENU_WIDTH = 256; // w-64
+      const MARGIN = 8;
+      // Prefer right-aligning the menu's right edge with the button's (the
+      // button sits near the sidebar's own right edge, so left-aligning
+      // would push a 256px-wide menu mostly outside the ~220px sidebar) —
+      // but clamp so it never runs off either edge of the actual viewport.
+      // The sidebar's own right edge (~220px) is well inside 256px, so a
+      // pure right-align here pushed the menu's LEFT edge negative — this
+      // is what clamping against 0 (not just the button's own position)
+      // fixes, on both a narrow AND a wide viewport.
+      const left = Math.max(
+        MARGIN,
+        Math.min(r.right - MENU_WIDTH, window.innerWidth - MENU_WIDTH - MARGIN)
+      );
+      setMenuPos({ top: r.bottom + 6, left });
     }
     setOpen(o => !o);
     if (orgs === null) {
@@ -349,7 +359,7 @@ function OrgSwitcher({ keycloak }) {
       {open && menuPos && createPortal(
         <div ref={menuRef}
           className="fixed w-64 bg-white rounded-xl border border-slate-200 overflow-hidden z-50"
-          style={{ top: menuPos.top, right: menuPos.right, boxShadow: '0 8px 32px rgba(0,0,0,0.16)' }}
+          style={{ top: menuPos.top, left: menuPos.left, boxShadow: '0 8px 32px rgba(0,0,0,0.16)' }}
         >
           <p className="px-3 py-2 text-2xs font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100">
             Switch organisation
