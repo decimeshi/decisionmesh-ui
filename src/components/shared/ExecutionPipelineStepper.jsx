@@ -14,12 +14,12 @@ import { PHASE_ORDER } from '../../lib/utils';
 // "Optimize"), but there's no backend concept finer than these 6 phases to
 // map onto 6 pipeline stages any more precisely without inventing one.
 const STAGES = [
-  { label: 'Intent',   color: 'var(--brand)'          },
-  { label: 'Govern',   color: 'var(--stage-govern)'   },
-  { label: 'Secure',   color: 'var(--stage-secure)'   },
-  { label: 'Optimize', color: 'var(--stage-optimize)' },
-  { label: 'Execute',  color: 'var(--brand-ai-accent)' },
-  { label: 'Prove',    color: 'var(--stage-prove)'    },
+  { label: 'Intent',   color: 'var(--brand-intelligence)' }, // purple
+  { label: 'Govern',   color: 'var(--stage-govern)'        }, // blue
+  { label: 'Secure',   color: 'var(--stage-secure)'        }, // indigo
+  { label: 'Optimize', color: 'var(--stage-optimize)'      }, // emerald
+  { label: 'Execute',  color: 'var(--brand-ai-accent)'     }, // cyan
+  { label: 'Prove',    color: 'var(--stage-prove)'         }, // amber
 ];
 
 export default function ExecutionPipelineStepper({ phase, terminal, satisfactionState }) {
@@ -39,8 +39,12 @@ export default function ExecutionPipelineStepper({ phase, terminal, satisfaction
           <div key={stage.label} className="flex items-center gap-1 shrink-0">
             <div
               className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold transition-colors"
+              // `${stage.color}18` (hex+alpha-suffix trick) only works on
+              // literal hex strings, not CSS var() references — stage.color
+              // is a var() so every stage's tinted background silently
+              // rendered as invalid CSS. color-mix() works with var()s.
               style={lit
-                ? { background: `${stage.color}18`, color: stage.color }
+                ? { background: `color-mix(in srgb, ${stage.color} 18%, transparent)`, color: stage.color }
                 : { background: '#f1f5f9', color: '#94a3b8' }}
             >
               <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: lit ? stage.color : '#cbd5e1' }} />

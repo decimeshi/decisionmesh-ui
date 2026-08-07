@@ -697,8 +697,8 @@ function ExecutionIntelligence({ json, selectedMeta, loading, result, preview, p
           </div>
 
           {/* Adapter — purple/"intelligence" tint per the palette spec */}
-          <div className="pt-3 border-t border-slate-100">
-            <p className="text-[10px] font-semibold text-brand uppercase tracking-wide mb-1">Adapter</p>
+          <div className="pt-3" style={{ borderTop: '2px solid #DDD6FE' }}>
+            <p className="text-[10px] font-semibold uppercase tracking-wide mb-1" style={{ color: 'var(--brand-intelligence)' }}>Adapter</p>
             <div className="rounded-lg px-2.5 py-2" style={{ background: '#F5F3FF' }}>
               {previewLoading ? (
                   <p className="text-xs text-slate-400">Resolving…</p>
@@ -721,8 +721,8 @@ function ExecutionIntelligence({ json, selectedMeta, loading, result, preview, p
           </div>
 
           {/* Optimization — estimated cost/latency, green/blue tints per the palette spec */}
-          <div className="pt-3 border-t border-slate-100">
-            <p className="text-[10px] font-semibold text-brand uppercase tracking-wide mb-1.5">Optimization</p>
+          <div className="pt-3" style={{ borderTop: '2px solid #A7F3D0' }}>
+            <p className="text-[10px] font-semibold uppercase tracking-wide mb-1.5" style={{ color: 'var(--stage-optimize)' }}>Optimization</p>
             <div className="grid grid-cols-2 gap-2">
               <div className="rounded-lg px-2.5 py-2" style={{ background: '#ECFDF5' }}>
                 <span className="flex items-center gap-1 text-[10px] font-medium" style={{ color: 'var(--stage-optimize)' }}><Gauge size={9} />Est. cost</span>
@@ -751,8 +751,8 @@ function ExecutionIntelligence({ json, selectedMeta, loading, result, preview, p
           </div>
 
           {/* Kill switch — fixed red tint, never brand-customizable (see index.css --stage-kill) */}
-          <div className="pt-3 border-t border-slate-100">
-            <p className="text-[10px] font-semibold text-brand uppercase tracking-wide mb-1">Kill switch</p>
+          <div className="pt-3" style={{ borderTop: '2px solid #FECACA' }}>
+            <p className="text-[10px] font-semibold uppercase tracking-wide mb-1" style={{ color: 'var(--stage-kill)' }}>Kill switch</p>
             <div className="rounded-lg px-2.5 py-2" style={{ background: '#FEF2F2' }}>
               {availability === null ? (
                   <p className="text-sm text-slate-400">Checking…</p>
@@ -1082,7 +1082,7 @@ export default function Playground({ keycloak }) {
         <Page
             className="space-y-3"
             title={<span className="text-brand">AI Execution Playground</span>}
-            subtitle="Build, govern, and execute AI intents with full policy enforcement, optimization, and auditability."
+            subtitle="Configure an AI intent, review governance policies, and execute it through the DecisionMesh AI Control Plane."
             action={result && (
                 <Button variant="secondary" size="sm"
                         onClick={() => { setResult(null); setCreditCost(null); setIKey(uuidv4()); }}>
