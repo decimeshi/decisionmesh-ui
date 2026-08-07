@@ -122,10 +122,29 @@ export const ADAPTER_DOT_COLORS = {
 
 // Intent-library category → colour, for scanability when several intent
 // types are listed together (Playground's intent selector, etc.).
+//
+// The real IntentLibraryEntity.category field (decisionmesh-persistence) is
+// free text, not an enum — each of the 8 verticals' JSON resources
+// (intent-library-{fintech,healthcare,retail,...}.json) defines its own
+// category set (fintech alone has 14: PAYMENTS, LENDING, AP_AR, TREASURY,
+// FRAUD, COMPLIANCE, PROCUREMENT, INVESTMENTS, CUSTOMER_OPS, RECONCILIATION,
+// BILLING, INSURANCE, REPORTING, RISK_MANAGEMENT). A hardcoded map can't
+// cover all of them without missing categories the moment a different
+// vertical is selected, so only the two categories the original palette
+// spec named directly (Payments/Fraud) get their exact requested color —
+// everything else gets a stable, deterministic pick from the same palette
+// via hashCategoryColor(), so no category is ever left uncolored.
 export const INTENT_CATEGORY_COLORS = {
-  INVOICE_EXTRACTION: '#16a34a',
-  FRAUD_DETECTION:    '#ea580c',
-  CREDIT_DECISION:    '#7c3aed',
-  PAYMENTS:           '#2563eb',
-  IDENTITY:           '#06b6d4',
+  PAYMENTS: '#2563eb', // blue — spec's "Payments" example
+  FRAUD:    '#ea580c', // orange — spec's "Fraud Detection" example
 };
+
+const CATEGORY_COLOR_PALETTE = ['#16a34a', '#ea580c', '#7c3aed', '#2563eb', '#06b6d4', '#d97706', '#0d9488', '#e11d48'];
+
+export function categoryColor(category) {
+  if (!category) return '#64748b';
+  if (INTENT_CATEGORY_COLORS[category]) return INTENT_CATEGORY_COLORS[category];
+  let hash = 0;
+  for (let i = 0; i < category.length; i++) hash = (hash * 31 + category.charCodeAt(i)) >>> 0;
+  return CATEGORY_COLOR_PALETTE[hash % CATEGORY_COLOR_PALETTE.length];
+}
