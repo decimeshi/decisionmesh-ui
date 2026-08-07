@@ -121,23 +121,15 @@ const FEATURES = [
 // Shared with the Hero's model marquee — one list, two places, no drift.
 const MODEL_NAMES = ['OpenAI', 'Anthropic', 'Google Gemini', 'Azure OpenAI', 'AWS Bedrock', 'Vertex AI', 'Mistral', 'Ollama', 'vLLM', 'Private / On-Prem'];
 
-// A full request's actual journey — distinct from Hero's own 6-stage
-// INTENT/VALIDATE/POLICY/DECIDE/EXECUTE/AUDIT pipeline (that one narrates
-// the platform's internal decision lifecycle; this one narrates what
-// happens to one real request end-to-end, "instead of feature cards").
-// Colors reuse the exact hex from index.css's --stage-* tokens (as plain
-// hex, not CSS vars — LivePipeline's alpha-suffix trick like `${color}25`
-// only works on literal hex strings, the same bug fixed in
-// ExecutionPipelineStepper.jsx earlier today).
-const REQUEST_FLOW = [
-  { label: 'User',            color: '#94a3b8',  detail: 'A person or system triggers a request inside one of your applications.' },
-  { label: 'Intent',          color: '#3b82f6',  detail: 'The app sends DecisionMesh an Intent — goal, actor, budget, constraints — not a raw prompt.' },
-  { label: 'Policies',        color: '#2563EB',  detail: 'Every governance rule evaluated: cost ceilings, RBAC, compliance, organisational guardrails.' },
-  { label: 'Model Selection', color: '#10B981',  detail: 'The best available model is routed to — by cost, latency, quality, and availability.' },
-  { label: 'PII Protection',  color: '#4F46E5',  detail: 'Sensitive data masked, secrets stripped, prompt guardrails applied — before anything reaches a model.' },
-  { label: 'Execution',       color: '#06b6d4',  detail: 'The request executes against the selected model, with automatic fallback on timeout or failure.' },
-  { label: 'Evidence',        color: '#F59E0B',  detail: 'Cost, latency, and an immutable decision record generated — explainable and replayable.' },
-  { label: 'Response',        color: '#22C55E',  detail: 'A trusted, provable decision returns to the application — same as any other API response.' },
+const PAIN_POINTS = [
+  { emoji: '💸', title: 'Runaway AI costs', desc: 'A single prompt loop or misconfigured retry can drain thousands before anyone notices. There are no guardrails.' },
+  { emoji: '🔇', title: 'Silent failures', desc: 'Your model returns garbage, times out, or hits rate limits. Your app fails. You find out from a user complaint.' },
+  { emoji: '🕳️', title: 'Zero audit trail', desc: 'Who triggered that decision? What model answered? What did it cost? Nobody knows — and compliance asks anyway.' },
+  { emoji: '🔁', title: "Can't reproduce AI failures", desc: "Something went wrong last Tuesday. You have no way to re-run it, compare outputs, or prove what happened." },
+  { emoji: '🔓', title: 'Sensitive data leaking', desc: 'Customer emails, card numbers, health records — flowing raw into third-party AI APIs with no masking, no controls.' },
+  { emoji: '🤥', title: 'AI that confidently lies', desc: 'Your model invents a legal citation, fabricates a drug dosage, or makes up a policy. You shipped it to production.' },
+  { emoji: '🕵️', title: 'Shadow AI everywhere', desc: 'Over 90% of employees use personal AI accounts for work. Your confidential data is in ChatGPT right now.' },
+  { emoji: '💉', title: 'Prompt injection attacks', desc: 'A malicious input overrides your system prompt. The AI then follows the attacker instructions, not yours.' },
 ];
 
 const INDUSTRIES = [
@@ -309,7 +301,7 @@ function NavBar({ onLogin, onRegister }) {
           ))}
           <div style={{ height: 1, background: C.border, margin: '4px 0' }} />
           <button onClick={onLogin} style={{ background: 'rgba(14,165,233,0.08)', color: '#7dd3fc', border: '1px solid rgba(14,165,233,0.2)', borderRadius: 8, padding: 10, cursor: 'pointer', fontSize: 15, fontWeight: 600 }}>Sign in</button>
-          <button onClick={onRegister} style={{ background: C.gradient, color: '#fff', border: 'none', borderRadius: 8, padding: 10, cursor: 'pointer', fontSize: 15, fontWeight: 700 }}>Start free</button>
+          <button onClick={onRegister} style={{ background: C.blue, color: '#fff', border: 'none', borderRadius: 8, padding: 10, cursor: 'pointer', fontSize: 15, fontWeight: 700 }}>Get started free</button>
         </div>
       )}
     </nav>
@@ -326,7 +318,7 @@ const PIPELINE_TICKETS = [
 // describing it. A ticket "travels" through the six stages on a loop, each
 // stage narrating what actually happens there, so a visitor watches a
 // request get governed rather than reading a feature list.
-function LivePipeline({ pipeline, label = 'DECISION LIFECYCLE — LIVE' }) {
+function LivePipeline({ pipeline }) {
   const [active, setActive] = useState(0);
   const [cycle, setCycle] = useState(0);
 
@@ -350,7 +342,7 @@ function LivePipeline({ pipeline, label = 'DECISION LIFECYCLE — LIVE' }) {
     <div style={{ background: 'rgba(14,165,233,0.06)', border: '1px solid rgba(14,165,233,0.18)', borderRadius: 16, boxShadow: '0 4px 28px rgba(14,165,233,0.10)', padding: '16px 18px', backdropFilter: 'blur(8px)' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 12, gap: 12, flexWrap: 'wrap' }}>
         <div style={{ fontFamily: C.mono, fontSize: 11, color: '#bcd4f5', letterSpacing: '2px', textAlign: 'left', fontWeight: 700 }}>
-          {label}
+          DECISION LIFECYCLE — LIVE
         </div>
         <div style={{ fontFamily: C.mono, fontSize: 11, color: stage.color, letterSpacing: '0.5px', fontWeight: 600, transition: 'color 0.4s' }}>
           {ticket.id} · {ticket.type}
@@ -701,27 +693,6 @@ function Hero({ onRegister, onLogin }) {
   );
 }
 
-// ── Execution flow — "instead of feature cards, animate a real request" ──────
-// Reuses LivePipeline's existing mechanics (interval-driven active-stage
-// advance, connector-line fill, prefers-reduced-motion handling) with
-// REQUEST_FLOW's 8-stage set — no new animation logic needed.
-function ExecutionFlowSection() {
-  return (
-    <section style={{ background: C.bg, padding: '60px 24px 80px', borderTop: '1px solid rgba(46,124,184,0.15)' }}>
-      <div style={{ maxWidth: 900, margin: '0 auto' }}>
-        <p style={{ textAlign: 'center', color: C.blue, fontSize: 11, fontWeight: 700, letterSpacing: '2px', textTransform: 'uppercase', marginBottom: 10 }}>How it works</p>
-        <h2 style={{ textAlign: 'center', fontSize: 'clamp(22px, 3.2vw, 32px)', fontWeight: 700, color: C.textPrimary, letterSpacing: '-1px', marginBottom: 8 }}>
-          Watch a real request get governed
-        </h2>
-        <p style={{ textAlign: 'center', color: C.textMuted, fontSize: 14, marginBottom: 36, maxWidth: 560, margin: '0 auto 36px' }}>
-          Every DecisionMesh request moves through the same eight stages — no step skipped, nothing hidden.
-        </p>
-        <LivePipeline pipeline={REQUEST_FLOW} label="REQUEST JOURNEY — LIVE" />
-      </div>
-    </section>
-  );
-}
-
 // ── Hourglass — the core architectural claim ─────────────────────────────────
 // Point-to-point integrations between every app and every model create
 // unmanaged shadow AI. DecisionMesh replaces that with a single choke point:
@@ -786,41 +757,6 @@ function HourglassSection() {
   );
 }
 
-// ── Four Pillars — Govern/Secure/Optimize/Prove as the product's own top-
-// level framing. Same exact hex as index.css's --stage-* tokens (see the
-// REQUEST_FLOW comment above for why plain hex, not var() references).
-const PILLARS = [
-  { label: 'Govern',   color: '#2563EB', desc: 'Enforce policies, RBAC, budget, compliance and organisational guardrails consistently.' },
-  { label: 'Secure',   color: '#4F46E5', desc: 'Protect data with PII masking, secrets management, prompt guardrails and zero trust controls.' },
-  { label: 'Optimize', color: '#10B981', desc: 'Intelligently route, cache and optimize for cost, latency, quality and availability.' },
-  { label: 'Prove',    color: '#F59E0B', desc: 'Generate immutable audit trails, explain every decision, and meet regulatory and internal compliance.' },
-];
-
-function FourPillarsSection() {
-  return (
-    <section style={{ background: C.surface, padding: '80px 24px', borderTop: '1px solid rgba(46,124,184,0.15)' }}>
-      <div style={{ maxWidth: 1000, margin: '0 auto', textAlign: 'center' }}>
-        <h2 style={{ fontSize: 'clamp(22px, 3.2vw, 32px)', fontWeight: 700, color: C.textPrimary, letterSpacing: '-1px', marginBottom: 40 }}>
-          The four pillars of trusted AI
-        </h2>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 18, textAlign: 'left' }}>
-          {PILLARS.map(({ label, color, desc }) => (
-            <div key={label} style={{ background: C.bg, border: `1px solid ${color}35`, borderRadius: 14, padding: 24, transition: 'border-color 0.2s, transform 0.2s' }}
-              onMouseEnter={e => { e.currentTarget.style.borderColor = color; e.currentTarget.style.transform = 'translateY(-2px)'; }}
-              onMouseLeave={e => { e.currentTarget.style.borderColor = `${color}35`; e.currentTarget.style.transform = 'none'; }}>
-              <div style={{ width: 36, height: 36, borderRadius: 9, background: `${color}18`, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 14 }}>
-                <div style={{ width: 12, height: 12, borderRadius: 3, background: color }} />
-              </div>
-              <h3 style={{ color, fontWeight: 700, fontSize: 17, marginBottom: 8 }}>{label}</h3>
-              <p style={{ color: C.textSecondary, fontSize: 13.5, lineHeight: 1.55 }}>{desc}</p>
-            </div>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
-
 // ── Category — the positioning claim ─────────────────────────────────────────
 // Not a comparison to other AI vendors — a comparison to the category leader
 // of every other foundational enterprise layer. Identity, APIs, and containers
@@ -861,91 +797,20 @@ function CategorySection() {
 }
 
 // ── Pain Points ───────────────────────────────────────────────────────────────
-// ── Comparison — replaces the old one-sided PainSection/PAIN_POINTS grid ─────
-// That content's spirit is folded into the "Without" column below rather
-// than dropped — this is a real before/after table, not just a relabeling.
-const WITHOUT_ROWS = [
-  'Applications call models directly',
-  'Unknown or shadow AI usage',
-  'No visibility into cost or latency',
-  'Inconsistent security & data risk',
-  'No governance or policy enforcement',
-  'No audit trail or explainability',
-  'No kill switch for misbehaving models',
-];
-const WITH_ROWS = [
-  'Applications call a DecisionMesh Intent',
-  'Best model selected for each intent',
-  'Policies enforced before execution',
-  'Data protected automatically',
-  'Cost, latency and quality optimized',
-  'Full audit trail and explainability',
-  // Human-engaged, not automated detection — see KillSwitchSection's own
-  // honesty constraint below; "instant" describes the switch's own latency,
-  // not a claim that DecisionMesh detects problems on its own.
-  'Instant kill switch across all apps',
-];
-
-function ComparisonSection() {
+function PainSection() {
   return (
     <section style={{ background: C.surface, padding: '80px 24px', borderTop: '1px solid rgba(14,165,233,0.15)' }}>
-      <div style={{ maxWidth: 900, margin: '0 auto', textAlign: 'center' }}>
-        <h2 style={{ fontSize: 'clamp(26px, 4vw, 40px)', fontWeight: 700, color: C.textPrimary, letterSpacing: '-1px', marginBottom: 40 }}>
-          Why enterprises need DecisionMesh
-        </h2>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 20, textAlign: 'left' }}>
-          <div style={{ background: C.bg, border: `1px solid ${C.error}40`, borderRadius: 14, padding: 28 }}>
-            <p style={{ color: C.error, fontSize: 12, fontWeight: 700, letterSpacing: '1.5px', textTransform: 'uppercase', marginBottom: 18 }}>Without DecisionMesh</p>
-            {WITHOUT_ROWS.map(row => (
-              <div key={row} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 14 }}>
-                <span style={{ color: C.error, fontSize: 15, lineHeight: 1.3, flexShrink: 0 }}>✕</span>
-                <span style={{ color: C.textSecondary, fontSize: 14, lineHeight: 1.4 }}>{row}</span>
-              </div>
-            ))}
-          </div>
-          <div style={{ background: C.bg, border: `1px solid ${C.success}40`, borderRadius: 14, padding: 28 }}>
-            <p style={{ color: C.success, fontSize: 12, fontWeight: 700, letterSpacing: '1.5px', textTransform: 'uppercase', marginBottom: 18 }}>With DecisionMesh</p>
-            {WITH_ROWS.map(row => (
-              <div key={row} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 14 }}>
-                <span style={{ color: C.success, fontSize: 15, lineHeight: 1.3, flexShrink: 0 }}>✓</span>
-                <span style={{ color: C.textSecondary, fontSize: 14, lineHeight: 1.4 }}>{row}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-// ── CIO questions — the section that sells itself without reading a feature
-// list; a prospect scans this and immediately knows whether they have a
-// problem DecisionMesh solves. ────────────────────────────────────────────
-const CIO_QUESTIONS = [
-  { emoji: '👁️', q: 'How many AI-enabled applications do you have?' },
-  { emoji: '👥', q: 'Which AI models are being used — and by whom?' },
-  { emoji: '🛡️', q: 'Who is authorized to access those models?' },
-  { emoji: '🔒', q: 'Is sensitive data being exposed to AI models?' },
-  { emoji: '📄', q: 'Can you explain every AI decision to an auditor?' },
-  { emoji: '🔴', q: 'How quickly can you stop a misbehaving model?' },
-  { emoji: '✏️', q: 'Who changed a prompt or policy — and when?' },
-  { emoji: '💰', q: 'How do you control AI spend across teams?' },
-];
-
-function CIOQuestionsSection() {
-  return (
-    <section style={{ background: C.bg, padding: '80px 24px', borderTop: '1px solid rgba(46,124,184,0.15)' }}>
-      <div style={{ maxWidth: 1080, margin: '0 auto', textAlign: 'center' }}>
-        <h2 style={{ fontSize: 'clamp(22px, 3.2vw, 32px)', fontWeight: 700, color: C.textPrimary, letterSpacing: '-1px', marginBottom: 40 }}>
-          Questions every CIO should be able to answer
-        </h2>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 20 }}>
-          {CIO_QUESTIONS.map(({ emoji, q }) => (
-            <div key={q} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
-              <div style={{ width: 52, height: 52, borderRadius: '50%', background: C.blueLight, border: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22 }}>
-                {emoji}
-              </div>
-              <p style={{ color: C.textSecondary, fontSize: 13.5, lineHeight: 1.45 }}>{q}</p>
+      <div style={{ maxWidth: 1060, margin: '0 auto', textAlign: 'center' }}>
+        <h2 style={{ fontSize: 'clamp(26px, 4vw, 40px)', fontWeight: 700, color: C.textPrimary, letterSpacing: '-1px', marginBottom: 12 }}>AI without governance is a liability</h2>
+        <p style={{ color: C.textSecondary, fontSize: 16, marginBottom: 48 }}>Every team shipping AI faces the same problems. Here are the most expensive ones.</p>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: 16 }}>
+          {PAIN_POINTS.map(({ emoji, title, desc }) => (
+            <div key={title} style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, padding: '24px 20px', textAlign: 'left', transition: 'border-color 0.2s' }}
+              onMouseEnter={e => e.currentTarget.style.borderColor = C.blue}
+              onMouseLeave={e => e.currentTarget.style.borderColor = C.border}>
+              <div style={{ fontSize: 28, marginBottom: 12 }}>{emoji}</div>
+              <h3 style={{ color: C.textPrimary, fontWeight: 600, fontSize: 16, marginBottom: 7 }}>{title}</h3>
+              <p style={{ color: C.textSecondary, fontSize: 13.5, lineHeight: 1.65 }}>{desc}</p>
             </div>
           ))}
         </div>
@@ -1366,61 +1231,15 @@ function BusinessAccelerators() {
   );
 }
 
-// ── Enterprise integrations ────────────────────────────────────────────────
-// Text/icon chips, not real logo images — no licensed brand assets for these
-// (AWS/Azure/Okta/Datadog/Splunk trademarks), same reasoning as this file's
-// existing MODEL_NAMES pill pattern, which this reuses rather than inventing
-// a new logo-grid pattern for one section.
-const INTEGRATIONS = [
-  'Okta', 'Auth0', 'Microsoft Entra', 'Keycloak', 'HashiCorp Vault', 'OpenBao',
-  'AWS', 'Azure', 'Google Cloud', 'Datadog', 'Splunk', 'Kafka', 'PostgreSQL',
-];
-
-function IntegrationsSection() {
-  return (
-    <section style={{ background: C.bg, padding: '60px 24px', borderTop: '1px solid rgba(46,124,184,0.15)' }}>
-      <div style={{ maxWidth: 900, margin: '0 auto', textAlign: 'center' }}>
-        <p style={{ color: C.blue, fontSize: 11, fontWeight: 700, letterSpacing: '2px', textTransform: 'uppercase', marginBottom: 24 }}>
-          Enterprise integrations
-        </p>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, justifyContent: 'center' }}>
-          {INTEGRATIONS.map(name => (
-            <span key={name} style={{ fontSize: 13, fontWeight: 600, color: C.textMuted, background: C.surface, border: `1px solid ${C.border}`, borderRadius: 8, padding: '8px 16px', transition: 'color 0.15s, border-color 0.15s' }}
-              onMouseEnter={e => { e.currentTarget.style.color = C.textSecondary; e.currentTarget.style.borderColor = C.blue; }}
-              onMouseLeave={e => { e.currentTarget.style.color = C.textMuted; e.currentTarget.style.borderColor = C.border; }}>
-              {name}
-            </span>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
-
 // ── Stats ─────────────────────────────────────────────────────────────────────
-// "Up to 40%"/"Up to 90%" are labeled Target — genuine customer-adoption
-// outcomes DecisionMesh doesn't have data for yet (no customers/partners as
-// of this build). "100% audit-ready" and "Kill switch: minutes" describe
-// what the architecture itself does/guarantees regardless of who's using it
-// — not customer outcomes — so those stay as direct claims, same standard
-// the pre-existing "100% audit coverage"/"SOC 2 ready architecture" stats
-// already used here.
-const STATS_DATA = [
-  { value: 'Up to 40%',  label: 'lower AI spend', sub: 'Target — intelligent routing' },
-  { value: 'Up to 90%',  label: 'faster governance rollout', sub: 'Target — centralized policies' },
-  { value: '100%',       label: 'audit-ready architecture', sub: 'Every decision, always recorded' },
-  { value: 'Minutes',    label: 'kill switch response', sub: 'Human-engaged, in the request path' },
-];
-
 function Stats() {
   return (
     <section style={{ background: '#091220', padding: '52px 24px', borderTop: '1px solid rgba(46,124,184,0.20)', borderBottom: '1px solid rgba(46,124,184,0.20)' }}>
-      <div style={{ maxWidth: 900, margin: '0 auto', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 28, textAlign: 'center' }}>
-        {STATS_DATA.map(({ value, label, sub }) => (
+      <div style={{ maxWidth: 900, margin: '0 auto', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 28, textAlign: 'center' }}>
+        {[{ value: '< 50ms', label: 'orchestration overhead' }, { value: '15', label: 'built-in features' }, { value: '100%', label: 'audit coverage' }, { value: '1-click', label: 'decision replay' }, { value: 'SOC 2', label: 'ready architecture' }, { value: 'GDPR', label: 'compliant by design' }].map(({ value, label }) => (
           <div key={label}>
             <div style={{ fontSize: 28, fontWeight: 800, color: C.textPrimary, letterSpacing: '-1px', marginBottom: 4 }}>{value}</div>
-            <div style={{ color: C.textMuted, fontSize: 12, marginBottom: 4 }}>{label}</div>
-            <div style={{ color: C.textMuted, fontSize: 10.5, opacity: 0.7, fontStyle: 'italic' }}>{sub}</div>
+            <div style={{ color: C.textMuted, fontSize: 12 }}>{label}</div>
           </div>
         ))}
       </div>
@@ -1648,7 +1467,7 @@ function Footer() {
   );
 
   return (
-    <footer style={{ background: '#050B15', borderTop: '1px solid rgba(255,255,255,0.06)', padding: '48px 24px 28px' }}>
+    <footer style={{ background: '#020712', borderTop: '1px solid rgba(255,255,255,0.06)', padding: '48px 24px 28px' }}>
       <div style={{ maxWidth: 1060, margin: '0 auto' }}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 32, marginBottom: 44 }}>
           <div>
@@ -1740,12 +1559,9 @@ export default function LandingPage() {
       <div style={{ minHeight: '100vh', background: C.bg }}>
         <NavBar onLogin={handleLogin} onRegister={handleRegister} />
         <Hero onRegister={handleRegister} onLogin={handleLogin} />
-        <ExecutionFlowSection />
         <HourglassSection />
-        <FourPillarsSection />
         <CategorySection />
-        <ComparisonSection />
-        <CIOQuestionsSection />
+        <PainSection />
         <KillSwitchSection />
         <Platform />
         <Features />
@@ -1753,7 +1569,6 @@ export default function LandingPage() {
         <Compliance />
         <Industries />
         <BusinessAccelerators />
-        <IntegrationsSection />
         <Stats />
         <Pricing onRegister={handleRegister} />
         <FinalCTA onRegister={handleRegister} />
