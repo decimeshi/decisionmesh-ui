@@ -1081,8 +1081,8 @@ export default function Playground({ keycloak }) {
       <>
         <Page
             className="space-y-3"
-            title={<span className="text-brand">Workspace for testing DecisionMesh end-to-end</span>}
-            subtitle="Select an intent, review its payload and the policies that govern it, then submit for execution"
+            title={<span className="text-brand">AI Execution Playground</span>}
+            subtitle="Build, govern, and execute AI intents with full policy enforcement, optimization, and auditability."
             action={result && (
                 <Button variant="secondary" size="sm"
                         onClick={() => { setResult(null); setCreditCost(null); setIKey(uuidv4()); }}>
