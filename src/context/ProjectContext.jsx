@@ -25,10 +25,15 @@ const DEFAULT_PROJECT = {
 const ProjectContext = createContext(null);
 
 export function ProjectProvider({ keycloak, children }) {
-  const [org,           setOrg]           = useState(DEFAULT_ORG);
-  const [projects,      setProjects]      = useState([DEFAULT_PROJECT]);
-  const [activeProject, setActiveProject] = useState(DEFAULT_PROJECT);
-  const [loading,       setLoading]       = useState(true);
+  const [org,             setOrg]             = useState(DEFAULT_ORG);
+  const [projects,        setProjects]        = useState([DEFAULT_PROJECT]);
+  const [activeProject,   setActiveProject]   = useState(DEFAULT_PROJECT);
+  const [loading,         setLoading]         = useState(true);
+  // True when the caller has more than one project in this org and nothing
+  // validly remembered picks one for them — App.jsx gates on this to show
+  // ChooseProject instead of the normal app shell. A single-project org
+  // never sets this; auto-select still "just works" for the common case.
+  const [needsProjectPick, setNeedsProjectPick] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -57,15 +62,29 @@ export function ProjectProvider({ keycloak, children }) {
           const list = Array.isArray(data) ? data : (data.content ?? []);
           if (list.length > 0) {
             setProjects(list);
-            // Restore last selected project from localStorage
+            // Restore last selected project from localStorage — but only
+            // within THIS org's own project list. A remembered id from a
+            // different org (or a now-revoked project) simply won't be in
+            // `list`, and falls through to the picker below rather than
+            // silently resolving to some other project — this is what makes
+            // "remember last org + project" a joint, validated restore
+            // instead of two independent guesses.
             const saved = localStorage.getItem('dm_active_project');
             const found = saved ? list.find(p => p.id === saved) : null;
-            const chosen = found ?? list.find(p => p.isDefault) ?? list[0];
-            setActiveProject(chosen);
-            // Restored selections must reach the API layer too, not just switches —
-            // otherwise every request after a page reload is recorded against the
-            // tenant default while the UI shows a different project.
-            setCurrentProject(chosen?.id);
+            if (found) {
+              setActiveProject(found);
+              setCurrentProject(found.id);
+              setNeedsProjectPick(false);
+            } else if (list.length === 1) {
+              // Only one possible answer — no reason to ask.
+              setActiveProject(list[0]);
+              setCurrentProject(list[0].id);
+              setNeedsProjectPick(false);
+            } else {
+              // Multiple candidates, nothing validly remembered — let
+              // App.jsx render ChooseProject instead of guessing.
+              setNeedsProjectPick(true);
+            }
           }
         }
       } catch {
@@ -87,6 +106,14 @@ export function ProjectProvider({ keycloak, children }) {
     setCurrentProject(project.id);
   }
 
+  // Same as switchProject, but also clears needsProjectPick — the answer to
+  // "which project" from ChooseProject's first-run picker, as distinct from
+  // a later, deliberate switch via the sidebar.
+  function chooseProject(project) {
+    switchProject(project);
+    setNeedsProjectPick(false);
+  }
+
   function addProject(project) {
     const newList = [...projects, project];
     setProjects(newList);
@@ -105,6 +132,7 @@ export function ProjectProvider({ keycloak, children }) {
       activeProject, switchProject,
       addProject, updateProject,
       loading,
+      needsProjectPick, chooseProject,
     }}>
       {children}
     </ProjectContext.Provider>

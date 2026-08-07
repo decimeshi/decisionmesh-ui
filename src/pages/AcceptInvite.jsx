@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Loader2, Mail, CheckCircle2, XCircle } from 'lucide-react';
-import { previewInvitation, acceptInvitation, ensureUser, setActiveTenant } from '../utils/api';
+import { previewInvitation, acceptInvitation, ensureUser, setActiveTenant, setCurrentProject } from '../utils/api';
 import { INVITE_TOKEN_KEY } from '../utils/inviteToken';
 
 
@@ -91,12 +91,20 @@ export default function AcceptInvite({ token, auth, keycloak, onConsumed }) {
       // active (or triggering the ChooseOrganization screen for no reason,
       // since they clearly already know which workspace they want).
       if (result?.tenantId) setActiveTenant(result.tenantId);
+      // A project-scoped invite (as opposed to tenant-wide) names exactly
+      // which project the invitee should land in — set it the same way
+      // ProjectContext's own switchProject does, so the fresh mount below
+      // finds it already remembered instead of needing ChooseProject for
+      // an answer the invite already gave.
+      if (result?.projectId) setCurrentProject(result.projectId);
       onConsumed?.();
       setAccepted(true);
       // Roles resolve from role_grant on every request (no token refresh
       // needed — see ZitadelRoleAugmentor) — a plain reload is enough to
-      // land in the newly-joined workspace.
-      setTimeout(() => { window.location.href = '/'; }, 1200);
+      // land in the newly-joined workspace. /playground, not '/', so a
+      // project-scoped invite lands directly where the invite pointed
+      // rather than the dashboard.
+      setTimeout(() => { window.location.href = '/playground'; }, 1200);
     } catch (err) {
       const msg = err?.message || '';
       if (msg.includes('already-in-workspace')) {
