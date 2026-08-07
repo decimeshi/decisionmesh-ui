@@ -21,11 +21,12 @@ import { v4 as uuidv4 } from 'uuid';
 import Page from '../components/shared/Page';
 import { Card, CardHeader, CardTitle, CardContent, Button, KillSwitchNotice } from '../components/shared';
 import ExecutionTimeline from '../components/timeline/ExecutionTimeline';
+import ExecutionPipelineStepper from '../components/shared/ExecutionPipelineStepper';
 import {
   submitIntent, getIntent, getExecutionsByIntent, request, listPolicies,
   previewIntent, getIntentAvailability, extractAttachment,
 } from '../utils/api';
-import { describeAdapterError } from '../lib/utils';
+import { describeAdapterError, RISK_COLORS, ADAPTER_DOT_COLORS } from '../lib/utils';
 import { useCredits, MODEL_TIERS } from '../context/CreditContext';
 import { useProject } from '../context/ProjectContext';
 
@@ -401,7 +402,7 @@ function ModelTierSelector({ selected, onChange, navigate }) {
       <Card>
         <CardHeader className="py-2.5">
           <div className="flex items-center gap-2">
-            <span className="flex items-center justify-center w-5 h-5 rounded-full bg-slate-100 text-slate-500 text-[11px] font-bold shrink-0">3</span>
+            <span className="flex items-center justify-center w-5 h-5 rounded-full badge-brand text-[11px] font-bold shrink-0">3</span>
             <CardTitle>Execution</CardTitle>
           </div>
         </CardHeader>
@@ -439,16 +440,22 @@ function ModelTierSelector({ selected, onChange, navigate }) {
 // SavePolicyRequest rejects any scope other than TENANT/PROJECT) — so there's
 // no way to see or create one today even though it would be enforced.
 // Execution Profile has no backend concept anywhere.
-function PolicyColumn({ title, icon, locked, lockedReason, items, emptyLabel }) {
+// `color` renders the title as a GitHub-label-style pill (tinted background,
+// solid text) instead of flat grey — Tenant/Project/Intent-type/Execution
+// profile were previously indistinguishable at a glance in the 4-column grid.
+function PolicyColumn({ title, color = '#64748b', locked, lockedReason, items, emptyLabel }) {
   return (
       <div className={locked ? 'opacity-40' : ''} title={locked ? lockedReason : undefined}>
-        <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide flex items-center gap-1 mb-1.5">
-          {locked ? <Lock size={9} /> : icon}
-          {title}
+        <div className="flex items-center gap-1.5 mb-1.5">
+          <span className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded"
+            style={{ background: `${color}18`, color }}>
+            {locked ? <Lock size={9} /> : <Shield size={9} />}
+            {title}
+          </span>
           {!locked && items.length > 0 && (
-              <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-400 normal-case font-normal">{items.length}</span>
+              <span className="text-[9px] px-1.5 py-0.5 rounded-full font-normal" style={{ background: `${color}18`, color }}>{items.length}</span>
           )}
-        </p>
+        </div>
         {locked ? (
             <p className="text-xs text-slate-400">Unavailable</p>
         ) : items.length === 0 ? (
@@ -484,7 +491,7 @@ function ActivePoliciesCard({ keycloak, navigate }) {
         <CardHeader className="py-2.5">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <span className="flex items-center justify-center w-5 h-5 rounded-full bg-slate-100 text-slate-500 text-[11px] font-bold shrink-0">4</span>
+              <span className="flex items-center justify-center w-5 h-5 rounded-full badge-brand text-[11px] font-bold shrink-0">4</span>
               <Shield size={14} className="text-slate-500" />
               <CardTitle>Effective policy stack</CardTitle>
             </div>
@@ -499,13 +506,13 @@ function ActivePoliciesCard({ keycloak, navigate }) {
           ) : (
               <>
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-                  <PolicyColumn title="Tenant-wide" icon={<Shield size={9} className="text-slate-400" />}
+                  <PolicyColumn title="Tenant-wide" color="#2563eb"
                     items={tenantPolicies} emptyLabel="None yet" />
-                  <PolicyColumn title="Project" icon={<Shield size={9} className="text-slate-400" />}
+                  <PolicyColumn title="Project" color="#7c3aed"
                     items={projectPolicies} emptyLabel="None yet" />
-                  <PolicyColumn title="Intent-type" locked
+                  <PolicyColumn title="Intent-type" color="#16a34a" locked
                     lockedReason="INTENT_TYPE-scoped policies are enforced server-side but the policy list/create API doesn't expose or accept this scope yet" />
-                  <PolicyColumn title="Execution profile" locked
+                  <PolicyColumn title="Execution profile" color="#ea580c" locked
                     lockedReason="Execution profiles are not a concept in the backend yet" />
                 </div>
                 <p className="text-[10px] text-slate-400 mt-2 pt-2 border-t border-slate-100">
@@ -537,11 +544,6 @@ const DOMAINS = [
   { key: 'EDUCATION',  label: 'Education' },
 ];
 
-const RISK_STYLE = {
-  HIGH:   { bg: '#fef2f2', text: '#991b1b', dot: '#dc2626', label: 'High'   },
-  MEDIUM: { bg: '#fffbeb', text: '#92400e', dot: '#d97706', label: 'Medium' },
-  LOW:    { bg: '#f0fdf4', text: '#14532d', dot: '#16a34a', label: 'Low'    },
-};
 
 function IntentSelection({ keycloak, domain, setDomain, category, setCategory, intentName, setIntentName, onPick, selectedMeta, readOnly = false }) {
   const [categories, setCategories] = useState([]);
@@ -576,13 +578,13 @@ function IntentSelection({ keycloak, domain, setDomain, category, setCategory, i
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [category, domain]);
 
-  const risk = selectedMeta ? (RISK_STYLE[selectedMeta.riskLevel] ?? RISK_STYLE.MEDIUM) : null;
+  const risk = selectedMeta ? (RISK_COLORS[selectedMeta.riskLevel] ?? RISK_COLORS.MEDIUM) : null;
 
   return (
       <Card>
         <CardHeader className="py-2.5">
           <div className="flex items-center gap-2">
-            <span className="flex items-center justify-center w-5 h-5 rounded-full bg-slate-100 text-slate-500 text-[11px] font-bold shrink-0">1</span>
+            <span className="flex items-center justify-center w-5 h-5 rounded-full badge-brand text-[11px] font-bold shrink-0">1</span>
             <CardTitle>Intent selection</CardTitle>
             {readOnly && (
                 <span className="text-[10px] font-medium text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded-full">As submitted</span>
@@ -592,7 +594,7 @@ function IntentSelection({ keycloak, domain, setDomain, category, setCategory, i
         <CardContent className="space-y-1.5 py-3">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <label className="flex items-center gap-2">
-              <span className="text-[10px] font-bold text-blue-600 uppercase tracking-wide bg-blue-50 px-1.5 py-0.5 rounded shrink-0">Domain</span>
+              <span className="text-[10px] font-bold badge-brand uppercase tracking-wide px-1.5 py-0.5 rounded shrink-0">Domain</span>
               <select
                   value={domain}
                   onChange={e => { setDomain(e.target.value); setCategory(''); setIntentName(''); }}
@@ -602,7 +604,7 @@ function IntentSelection({ keycloak, domain, setDomain, category, setCategory, i
               </select>
             </label>
             <label className="flex items-center gap-2">
-              <span className="text-[10px] font-bold text-blue-600 uppercase tracking-wide bg-blue-50 px-1.5 py-0.5 rounded shrink-0">Category</span>
+              <span className="text-[10px] font-bold badge-brand uppercase tracking-wide px-1.5 py-0.5 rounded shrink-0">Category</span>
               <select
                   value={category}
                   onChange={e => setCategory(e.target.value)}
@@ -614,7 +616,7 @@ function IntentSelection({ keycloak, domain, setDomain, category, setCategory, i
               </select>
             </label>
             <label className="flex items-center gap-2">
-              <span className="text-[10px] font-bold text-blue-600 uppercase tracking-wide bg-blue-50 px-1.5 py-0.5 rounded shrink-0">Intent</span>
+              <span className="text-[10px] font-bold badge-brand uppercase tracking-wide px-1.5 py-0.5 rounded shrink-0">Intent</span>
               <select
                   value={intentName}
                   onChange={e => {
@@ -655,7 +657,7 @@ function ExecutionIntelligence({ json, selectedMeta, loading, result, preview, p
   let intentType = null;
   try { intentType = JSON.parse(json)?.intentType; } catch { /* ignore */ }
 
-  const risk   = selectedMeta ? (RISK_STYLE[selectedMeta.riskLevel] ?? RISK_STYLE.MEDIUM) : null;
+  const risk   = selectedMeta ? (RISK_COLORS[selectedMeta.riskLevel] ?? RISK_COLORS.MEDIUM) : null;
   const status = result ? 'Submitted' : loading ? 'Submitting…' : 'Ready to submit';
 
   return (
@@ -664,7 +666,7 @@ function ExecutionIntelligence({ json, selectedMeta, loading, result, preview, p
         <CardContent className="space-y-3 py-3.5">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
-              <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide">Intent</p>
+              <p className="text-[10px] font-semibold text-brand uppercase tracking-wide">Intent</p>
               <p className="text-sm font-mono font-semibold text-slate-800 break-all">{intentType || '—'}</p>
             </div>
             {risk && (
@@ -676,41 +678,46 @@ function ExecutionIntelligence({ json, selectedMeta, loading, result, preview, p
           </div>
 
           <div>
-            <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide">Status</p>
+            <p className="text-[10px] font-semibold text-brand uppercase tracking-wide">Status</p>
             <p className="text-sm font-semibold text-slate-800">{status}</p>
           </div>
 
-          {/* Adapter */}
+          {/* Adapter — purple/"intelligence" tint per the palette spec */}
           <div className="pt-3 border-t border-slate-100">
-            <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide mb-1">Adapter</p>
-            {previewLoading ? (
-                <p className="text-xs text-slate-400">Resolving…</p>
-            ) : previewError ? (
-                <p className="text-xs text-slate-400" title={previewError}>Unavailable</p>
-            ) : preview?.adapter ? (
-                <p className="text-sm text-slate-700" title={preview.adapter.selectionReason}>
-                  Auto — currently <span className="font-semibold text-slate-900">{preview.adapter.provider}/{preview.adapter.model}</span>
-                  <span className="block text-xs text-slate-400 mt-0.5">resolved again at execution</span>
-                </p>
-            ) : preview && !preview.hasCandidates ? (
-                <p className="text-sm font-medium text-amber-600">No eligible adapters configured for this intent type</p>
-            ) : (
-                <p className="text-sm text-slate-400">Auto (resolved at execution)</p>
-            )}
+            <p className="text-[10px] font-semibold text-brand uppercase tracking-wide mb-1">Adapter</p>
+            <div className="rounded-lg px-2.5 py-2" style={{ background: '#F5F3FF' }}>
+              {previewLoading ? (
+                  <p className="text-xs text-slate-400">Resolving…</p>
+              ) : previewError ? (
+                  <p className="text-xs text-slate-400" title={previewError}>Unavailable</p>
+              ) : preview?.adapter ? (
+                  <p className="text-sm text-slate-700" title={preview.adapter.selectionReason}>
+                    Auto — currently{' '}
+                    <span className="font-semibold" style={{ color: ADAPTER_DOT_COLORS[preview.adapter.provider?.toUpperCase()] ?? 'var(--brand-intelligence)' }}>
+                      {preview.adapter.provider}/{preview.adapter.model}
+                    </span>
+                    <span className="block text-xs text-slate-400 mt-0.5">resolved again at execution</span>
+                  </p>
+              ) : preview && !preview.hasCandidates ? (
+                  <p className="text-sm font-medium text-amber-600">No eligible adapters configured for this intent type</p>
+              ) : (
+                  <p className="text-sm text-slate-400">Auto (resolved at execution)</p>
+              )}
+            </div>
           </div>
 
-          {/* Optimization — estimated cost/latency */}
+          {/* Optimization — estimated cost/latency, green/blue tints per the palette spec */}
           <div className="pt-3 border-t border-slate-100">
-            <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide mb-1.5">Optimization</p>
+            <p className="text-[10px] font-semibold text-brand uppercase tracking-wide mb-1.5">Optimization</p>
             <div className="grid grid-cols-2 gap-2">
-              <div className="rounded-lg bg-slate-50 border border-slate-100 px-2.5 py-2">
-                <span className="flex items-center gap-1 text-[10px] text-slate-500 font-medium"><Gauge size={9} />Est. cost</span>
+              <div className="rounded-lg px-2.5 py-2" style={{ background: '#ECFDF5' }}>
+                <span className="flex items-center gap-1 text-[10px] font-medium" style={{ color: 'var(--stage-optimize)' }}><Gauge size={9} />Est. cost</span>
                 <span className="block text-sm font-bold text-slate-800 mt-0.5">
                   {previewLoading ? '…' : preview?.estimatedCostUsd != null ? `$${preview.estimatedCostUsd.toFixed(4)}` : '—'}
                 </span>
               </div>
-              <div className="rounded-lg bg-slate-50 border border-slate-100 px-2.5 py-2">
-                <span className="flex items-center gap-1 text-[10px] text-slate-500 font-medium"><Gauge size={9} />Est. latency</span>
+              <div className="rounded-lg px-2.5 py-2" style={{ background: '#EFF6FF' }}>
+                <span className="flex items-center gap-1 text-[10px] font-medium" style={{ color: 'var(--stage-govern)' }}><Gauge size={9} />Est. latency</span>
                 <span className="block text-sm font-bold text-slate-800 mt-0.5">
                   {previewLoading ? '…' : preview?.estimatedLatencyMs != null ? `${Math.round(preview.estimatedLatencyMs)}ms` : '—'}
                 </span>
@@ -723,24 +730,26 @@ function ExecutionIntelligence({ json, selectedMeta, loading, result, preview, p
 
           {/* Expected output */}
           <div className="pt-3 border-t border-slate-100">
-            <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide mb-1">Expected output</p>
+            <p className="text-[10px] font-semibold text-brand uppercase tracking-wide mb-1">Expected output</p>
             <p className="text-sm text-slate-700 leading-relaxed">
               {previewLoading ? 'Checking…' : preview?.expectedOutput || '—'}
             </p>
           </div>
 
-          {/* Kill switch */}
+          {/* Kill switch — fixed red tint, never brand-customizable (see index.css --stage-kill) */}
           <div className="pt-3 border-t border-slate-100">
-            <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide mb-1">Kill switch</p>
-            {availability === null ? (
-                <p className="text-sm text-slate-400">Checking…</p>
-            ) : availability?.paused ? (
-                <p className="text-sm font-semibold text-red-600" title={availability.reason ?? undefined}>
-                  Active — submissions paused ({availability.scopeType ?? 'unknown scope'})
-                </p>
-            ) : (
-                <p className="text-sm font-semibold text-green-600">Clear</p>
-            )}
+            <p className="text-[10px] font-semibold text-brand uppercase tracking-wide mb-1">Kill switch</p>
+            <div className="rounded-lg px-2.5 py-2" style={{ background: '#FEF2F2' }}>
+              {availability === null ? (
+                  <p className="text-sm text-slate-400">Checking…</p>
+              ) : availability?.paused ? (
+                  <p className="text-sm font-semibold" style={{ color: 'var(--stage-kill)' }} title={availability.reason ?? undefined}>
+                    Active — submissions paused ({availability.scopeType ?? 'unknown scope'})
+                  </p>
+              ) : (
+                  <p className="text-sm font-semibold" style={{ color: 'var(--stage-optimize)' }}>Clear</p>
+              )}
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -1058,18 +1067,20 @@ export default function Playground({ keycloak }) {
       <>
         <Page
             className="space-y-3"
-            title={
-              <span className="text-sm font-normal text-slate-500">
-                <span className="font-semibold text-blue-600">Workspace for testing DecisionMesh end-to-end</span>
-                : Select an intent, review its payload and the policies that govern it, then submit for execution
-              </span>
-            }
+            title={<span className="text-brand">Workspace for testing DecisionMesh end-to-end</span>}
+            subtitle="Select an intent, review its payload and the policies that govern it, then submit for execution"
             action={result && (
                 <Button variant="secondary" size="sm"
                         onClick={() => { setResult(null); setCreditCost(null); setIKey(uuidv4()); }}>
                   <RefreshCw size={13} /> New intent
                 </Button>
             )}>
+
+          <ExecutionPipelineStepper
+              phase={intentData?.phase ?? 'CREATED'}
+              terminal={intentData?.terminal ?? false}
+              satisfactionState={intentData?.satisfactionState}
+          />
 
           <div className="grid grid-cols-1 xl:grid-cols-4 gap-4">
 
@@ -1191,7 +1202,7 @@ export default function Playground({ keycloak }) {
               <Card>
                 <CardHeader className="py-2.5">
                   <div className="flex items-center gap-2">
-                    <span className="flex items-center justify-center w-5 h-5 rounded-full bg-slate-100 text-slate-500 text-[11px] font-bold shrink-0">2</span>
+                    <span className="flex items-center justify-center w-5 h-5 rounded-full badge-brand text-[11px] font-bold shrink-0">2</span>
                     <CardTitle>Intent request</CardTitle>
                     {!!result && (
                         <span className="text-[10px] font-medium text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded-full">As submitted</span>
@@ -1200,7 +1211,7 @@ export default function Playground({ keycloak }) {
                 </CardHeader>
                 <CardContent className="space-y-1.5 py-3">
                   <label className="block">
-                    <span className="text-[10px] font-bold text-blue-600 uppercase tracking-wide bg-blue-50 px-1.5 py-0.5 rounded">Query</span>
+                    <span className="text-[10px] font-bold badge-brand uppercase tracking-wide px-1.5 py-0.5 rounded">Query</span>
                     <input
                         type="text"
                         value={queryValue}

@@ -6,8 +6,13 @@ export { default as KillSwitchNotice } from './KillSwitchNotice';
 export function Card({ children, className, ...props }) {
   return (
     <div
-      className={cn('bg-white rounded-xl border border-slate-200', className)}
-      style={{ boxShadow: 'var(--card-shadow)' }}
+      // Was hardcoded rounded-xl/border-slate-200 — the --card-border and
+      // --card-radius tokens already existed in index.css but nothing
+      // actually read them, so a design-system change to those tokens
+      // (see the "Dark Trust + Neon Intelligence" palette) had no visible
+      // effect on any card anywhere.
+      className={cn('bg-white', className)}
+      style={{ boxShadow: 'var(--card-shadow)', borderRadius: 'var(--card-radius)', border: '1px solid var(--card-border)' }}
       {...props}
     >
       {children}
@@ -47,6 +52,7 @@ export function Button({ children, variant = 'primary', size = 'md', loading, cl
           secondary:   'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50 hover:border-slate-300 shadow-sm',
           ghost:       'text-slate-500 hover:bg-slate-100 hover:text-slate-700',
           destructive: 'bg-red-600 text-white hover:bg-red-700 shadow-sm',
+          success:     'btn-success text-white shadow-sm hover:shadow-md',
         }[variant],
         { sm: 'text-[12px] px-3 py-1.5', md: 'text-[13px] px-4 py-2', lg: 'text-[13px] px-5 py-2.5' }[size],
         className

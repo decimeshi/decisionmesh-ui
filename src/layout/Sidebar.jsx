@@ -19,6 +19,20 @@ import { useBranding } from '../context/BrandingContext';
 // below for why this needs to be distinguished from a real override.
 const NO_BRANDING_ORG_NAME = 'DecisionMesh';
 
+// "Dark Trust + Neon Intelligence" palette — every nav icon previously lit up
+// the same flat --brand blue when active, giving no visual distinction
+// between sections. Keyed by item.label (not route), falls back to --brand
+// for any item not explicitly called out in the spec.
+const NAV_ICON_COLORS = {
+  'Dashboard':      '#2563eb', // blue
+  'Intent Library': '#7c3aed', // purple
+  'Policies':       '#ea580c', // orange
+  'Cost':           '#16a34a', // green — "Analytics"
+  'Drift':          '#16a34a', // green — "Analytics"
+  'AI Spend':       '#16a34a', // green — "Analytics"
+  'Adapters':       '#06b6d4', // cyan
+};
+
 // ── Nav structure ─────────────────────────────────────────────────────────────
 const NAV = [
   {
@@ -329,7 +343,7 @@ function NavItem({ item, collapsed }) {
           <item.icon
             size={14}
             className="shrink-0"
-            style={{ color: isActive ? 'var(--brand)' : 'inherit', opacity: isActive ? 1 : 0.8 }}
+            style={{ color: isActive ? (NAV_ICON_COLORS[item.label] ?? 'var(--brand)') : 'inherit', opacity: isActive ? 1 : 0.8 }}
           />
           {!collapsed && <span className="truncate">{item.label}</span>}
         </>

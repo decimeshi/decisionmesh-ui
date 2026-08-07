@@ -198,7 +198,11 @@ export default function TopBar({ keycloak, sidebarHidden, onToggleSidebar }) {
 
   return (
     <header className="flex items-center justify-between shrink-0 px-4"
-      style={{ height: 'var(--topbar-h)', background: 'var(--topbar-bg)', borderBottom: '1px solid var(--topbar-border)' }}>
+      style={{
+        height: 'var(--topbar-h)',
+        background: 'linear-gradient(180deg, var(--brand-light), #f8fafc)',
+        borderBottom: '2px solid var(--brand)',
+      }}>
       <div className="flex items-center gap-2 min-w-0">
         {sidebarHidden && (
           <button onClick={onToggleSidebar} title="Show sidebar"
@@ -212,7 +216,7 @@ export default function TopBar({ keycloak, sidebarHidden, onToggleSidebar }) {
               {i > 0 && <ChevronRight size={10} className="text-slate-300 shrink-0" />}
               <span className={`truncate text-[13px] ${
                   i === crumbs.length - 1
-                      ? 'font-semibold text-blue-600'
+                      ? 'font-semibold text-brand'
                       : 'font-medium text-slate-500'
               }`}>
                 {c.label}

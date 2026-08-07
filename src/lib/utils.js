@@ -87,3 +87,45 @@ export const PHASE_ORDER = [
   'CREATED', 'PLANNING', 'PLANNED',
   'EXECUTING', 'EVALUATING', 'COMPLETED',
 ];
+
+// ── Fixed semantic colours ("Dark Trust + Neon Intelligence") ─────────────────
+// Deliberately NOT tenant-customizable (unlike --brand*/--stage-govern etc. in
+// index.css, which a tenant can override on /org/branding) — these are
+// comprehension aids, not brand identity. Letting a tenant recolour
+// "Critical risk" or a provider's status dot away from its convention would
+// actively harm scanability, the whole reason these maps exist.
+
+// Was Playground.jsx's local RISK_STYLE (HIGH/MEDIUM/LOW only — CRITICAL
+// silently fell back to MEDIUM's amber, understating an actually critical
+// risk). Centralized here so any page needing risk colours reads the same
+// map instead of each keeping its own partial copy.
+export const RISK_COLORS = {
+  LOW:      { bg: '#f0fdf4', text: '#14532d', dot: '#16a34a', label: 'Low'      },
+  MEDIUM:   { bg: '#fffbeb', text: '#92400e', dot: '#d97706', label: 'Medium'   },
+  HIGH:     { bg: '#fff7ed', text: '#9a3412', dot: '#ea580c', label: 'High'     },
+  CRITICAL: { bg: '#fef2f2', text: '#991b1b', dot: '#dc2626', label: 'Critical' },
+};
+
+// Quick-glance status-dot colours for compact contexts (e.g. Playground's
+// resolved-adapter line). Deliberately separate from Adapters.jsx's
+// PROVIDER_META, which uses each vendor's real brand colour for the full
+// adapter cards — different display purpose, not meant to be unified.
+export const ADAPTER_DOT_COLORS = {
+  ANTHROPIC:    '#7c3aed',
+  GEMINI:       '#16a34a',
+  OPENAI:       '#2563eb',
+  MISTRAL:      '#ea580c',
+  AZURE_OPENAI: '#0284c7',
+  DEEPSEEK:     '#7c3aed',
+  CUSTOM:       '#64748b',
+};
+
+// Intent-library category → colour, for scanability when several intent
+// types are listed together (Playground's intent selector, etc.).
+export const INTENT_CATEGORY_COLORS = {
+  INVOICE_EXTRACTION: '#16a34a',
+  FRAUD_DETECTION:    '#ea580c',
+  CREDIT_DECISION:    '#7c3aed',
+  PAYMENTS:           '#2563eb',
+  IDENTITY:           '#06b6d4',
+};

@@ -2,7 +2,7 @@ import { useState, useRef } from 'react';
 import { Upload, Palette, Type, Check, RefreshCw, Eye } from 'lucide-react';
 import Page from '../components/shared/Page';
 import { Card, CardHeader, CardTitle, CardContent, Button } from '../components/shared';
-import { useBranding } from '../context/BrandingContext';
+import { useBranding, DEFAULT_BRANDING } from '../context/BrandingContext';
 import { request } from '../utils/api';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8080/api';
@@ -18,6 +18,54 @@ const PRESET_COLORS = [
   { name: 'Slate',   value: '#475569' },
 ];
 
+// "Dark Trust + Neon Intelligence" palette — one entry per tenant-customizable
+// field beyond primaryColor, driving both the new Cards below and every
+// place `form`'s new fields need a matching key (save/reload/reset).
+const SEMANTIC_FIELDS = [
+  { key: 'secondaryColor',    label: 'Secondary',    hint: 'Deep slate — supporting UI chrome' },
+  { key: 'aiAccentColor',     label: 'AI accent',     hint: 'Cyan — model/adapter activity' },
+  { key: 'intelligenceColor', label: 'Intelligence',  hint: 'Purple — reasoning, analysis' },
+];
+const STAGE_FIELDS = [
+  { key: 'governColor',   label: 'Govern',   hint: 'Policy checks, permissions' },
+  { key: 'secureColor',   label: 'Secure',   hint: 'PII masking, data protection' },
+  { key: 'optimizeColor', label: 'Optimize', hint: 'Cost/latency, adapter routing' },
+  { key: 'proveColor',    label: 'Prove',    hint: 'Audit trail, evidence' },
+];
+
+// Preset + native-picker + hex-text trio, same interaction as the existing
+// Primary colour card below — factored out so 7 new fields don't mean 7
+// copies of that JSX. `onSelect` commits immediately (swatch/native picker
+// always yield a full valid hex); `onTypeChange` mirrors the existing
+// free-typing behaviour (only commits once 6 valid hex chars are typed, so
+// the input doesn't fight the user mid-keystroke).
+function ColorField({ label, hint, value, onSelect, onTypeChange }) {
+  return (
+    <div>
+      <p className="text-xs font-medium text-slate-600">{label}</p>
+      {hint && <p className="text-2xs text-slate-400 mb-1.5">{hint}</p>}
+      <div className="flex items-center gap-2">
+        <input
+          type="color"
+          value={value}
+          onChange={e => onSelect(e.target.value)}
+          className="w-8 h-8 rounded-lg border border-slate-200 cursor-pointer p-0.5 shrink-0"
+        />
+        <input
+          type="text"
+          value={value}
+          onChange={e => onTypeChange(e.target.value)}
+          maxLength={7}
+          className="w-24 text-xs font-mono border border-slate-200 rounded-lg px-2 py-1.5
+            focus:outline-none focus:ring-2 focus:ring-blue-500 shrink-0"
+          style={{ fontFamily: "'JetBrains Mono', monospace" }}
+        />
+        <div className="w-8 h-8 rounded-lg border border-slate-100 shrink-0" style={{ background: value }} />
+      </div>
+    </div>
+  );
+}
+
 export default function OrgBranding({ keycloak }) {
   const { branding, updateBranding } = useBranding();
 
@@ -25,6 +73,13 @@ export default function OrgBranding({ keycloak }) {
     orgName:      branding.orgName,
     primaryColor: branding.primaryColor,
     logoUrl:      branding.logoUrl,
+    secondaryColor:    branding.secondaryColor,
+    aiAccentColor:     branding.aiAccentColor,
+    intelligenceColor: branding.intelligenceColor,
+    governColor:       branding.governColor,
+    secureColor:       branding.secureColor,
+    optimizeColor:     branding.optimizeColor,
+    proveColor:        branding.proveColor,
   });
   const [saving,    setSaving]    = useState(false);
   const [saved,     setSaved]     = useState(false);
@@ -67,6 +122,17 @@ export default function OrgBranding({ keycloak }) {
     updateBranding({ primaryColor: color }); // instant DOM preview
   }
 
+  // Same instant-preview pattern as handleColorSelect, generalized to any of
+  // the 7 new semantic/stage fields by key instead of one hardcoded field.
+  function handleFieldSelect(field, color) {
+    setForm(f => ({ ...f, [field]: color }));
+    updateBranding({ [field]: color });
+  }
+  function handleFieldType(field, val) {
+    if (/^#[0-9a-fA-F]{6}$/.test(val)) handleFieldSelect(field, val);
+    else setForm(f => ({ ...f, [field]: val })); // let the input hold an in-progress hex while typing
+  }
+
   // ── Reload branding from backend and apply to DOM ───────────────────────────
   // Called after every successful save to confirm what was persisted
   // and apply the exact values returned by the backend.
@@ -87,10 +153,17 @@ export default function OrgBranding({ keycloak }) {
 
         // Normalize — handles both camelCase and snake_case from backend
         const normalized = {
-          primaryColor: data.primaryColor ?? data.primary_color ?? form.primaryColor,
-          orgName:      data.orgName      ?? data.org_name      ?? form.orgName,
-          logoUrl:      data.logoUrl      ?? data.logo_url      ?? null,
-          favicon:      data.favicon      ?? null,
+          primaryColor:      data.primaryColor      ?? data.primary_color      ?? form.primaryColor,
+          orgName:           data.orgName           ?? data.org_name           ?? form.orgName,
+          logoUrl:           data.logoUrl           ?? data.logo_url           ?? null,
+          favicon:           data.favicon           ?? null,
+          secondaryColor:    data.secondaryColor    ?? data.secondary_color    ?? form.secondaryColor,
+          aiAccentColor:     data.aiAccentColor     ?? data.ai_accent_color    ?? form.aiAccentColor,
+          intelligenceColor: data.intelligenceColor ?? data.intelligence_color ?? form.intelligenceColor,
+          governColor:       data.governColor       ?? data.govern_color      ?? form.governColor,
+          secureColor:       data.secureColor       ?? data.secure_color      ?? form.secureColor,
+          optimizeColor:     data.optimizeColor     ?? data.optimize_color    ?? form.optimizeColor,
+          proveColor:        data.proveColor        ?? data.prove_color      ?? form.proveColor,
         };
 
         // Update context + apply to DOM
@@ -137,6 +210,13 @@ export default function OrgBranding({ keycloak }) {
         orgName:      branding.orgName,
         primaryColor: branding.primaryColor,
         logoUrl:      branding.logoUrl,
+        secondaryColor:    branding.secondaryColor,
+        aiAccentColor:     branding.aiAccentColor,
+        intelligenceColor: branding.intelligenceColor,
+        governColor:       branding.governColor,
+        secureColor:       branding.secureColor,
+        optimizeColor:     branding.optimizeColor,
+        proveColor:        branding.proveColor,
       });
     } finally {
       setSaving(false);
@@ -144,8 +224,12 @@ export default function OrgBranding({ keycloak }) {
   }
 
   // ── Reset ───────────────────────────────────────────────────────────────────
+  // Was a second, independent hardcoded copy of the defaults (orgName/
+  // primaryColor/logoUrl only) — now sourced from DEFAULT_BRANDING directly
+  // so the 7 new fields don't need a third place to keep in sync, and so
+  // this can never drift from what BrandingContext actually falls back to.
   function handleReset() {
-    const defaults = { orgName: 'DecisionMesh', primaryColor: '#2563eb', logoUrl: null };
+    const defaults = { ...DEFAULT_BRANDING };
     setForm(defaults);
     setPreview(null);
     updateBranding(defaults);
@@ -272,6 +356,65 @@ export default function OrgBranding({ keycloak }) {
                   />
                   <div className="flex-1 h-8 rounded-lg border border-slate-100"
                     style={{ background: form.primaryColor }} />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Secondary & accent colours */}
+          <Card>
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <Palette size={13} className="text-slate-400" />
+                <CardTitle>Secondary &amp; accent colours</CardTitle>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                {SEMANTIC_FIELDS.map(({ key, label, hint }) => (
+                  <ColorField
+                    key={key}
+                    label={label}
+                    hint={hint}
+                    value={form[key]}
+                    onSelect={c => handleFieldSelect(key, c)}
+                    onTypeChange={v => handleFieldType(key, v)}
+                  />
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Pipeline stage colours */}
+          <Card>
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <Palette size={13} className="text-slate-400" />
+                <CardTitle>Pipeline stage colours</CardTitle>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                {STAGE_FIELDS.map(({ key, label, hint }) => (
+                  <ColorField
+                    key={key}
+                    label={label}
+                    hint={hint}
+                    value={form[key]}
+                    onSelect={c => handleFieldSelect(key, c)}
+                    onTypeChange={v => handleFieldType(key, v)}
+                  />
+                ))}
+                {/* Kill switch is deliberately fixed, not part of `form` or
+                    BrandingRequest at all — see index.css's --stage-kill
+                    comment for why this stays red regardless of branding. */}
+                <div>
+                  <p className="text-xs font-medium text-slate-600">Kill switch</p>
+                  <p className="text-2xs text-slate-400 mb-1.5">Fixed for safety — not customisable</p>
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-lg border border-slate-200" style={{ background: 'var(--stage-kill)' }} />
+                    <span className="text-xs font-mono text-slate-400" style={{ fontFamily: "'JetBrains Mono', monospace" }}>#EF4444</span>
+                  </div>
                 </div>
               </div>
             </CardContent>
