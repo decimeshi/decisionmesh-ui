@@ -25,12 +25,14 @@ const NO_BRANDING_ORG_NAME = 'DecisionMesh';
 // for any item not explicitly called out in the spec.
 const NAV_ICON_COLORS = {
   'Dashboard':      '#2563eb', // blue
+  'Playground':     '#7c3aed', // purple
   'Intent Library': '#7c3aed', // purple
-  'Policies':       '#ea580c', // orange
-  'Cost':           '#16a34a', // green — "Analytics"
-  'Drift':          '#16a34a', // green — "Analytics"
-  'AI Spend':       '#16a34a', // green — "Analytics"
-  'Adapters':       '#06b6d4', // cyan
+  'Policies':       '#f59e0b', // amber
+  'Executions':     '#06b6d4', // cyan
+  'Cost':           '#10b981', // emerald — "Analytics"
+  'Drift':          '#10b981', // emerald — "Analytics"
+  'AI Spend':       '#10b981', // emerald — "Analytics"
+  'Adapters':       '#4f46e5', // indigo
 };
 
 // ── Nav structure ─────────────────────────────────────────────────────────────
@@ -164,13 +166,15 @@ function CreditFooter() {
 
   const pct = allocated ? Math.min(100, (balance / allocated) * 100) : 100;
 
-  // Tiered colour system — gives visual feedback as credits deplete
-  // >60% green, 30-60% blue, 10-30% amber, <10% red
+  // Tiered colour system — gives visual feedback as credits deplete.
+  // Red/amber/blue stay as real warning signals (critical/low/moderate),
+  // not brand colours — only the healthy (>60%) tier, which was flat green
+  // for no reason other than "green means good", becomes the brand gradient.
   const barColor  = isEmpty  ? '#dc2626'
                   : pct < 10 ? '#dc2626'   // red   — critical
                   : pct < 30 ? '#f59e0b'   // amber — low
                   : pct < 60 ? '#3b82f6'   // blue  — moderate
-                  :            '#16a34a';  // green — healthy
+                  :            'var(--brand-gradient)'; // healthy
 
   const labelColor = isEmpty  ? '#dc2626'
                    : pct < 10 ? '#dc2626'
@@ -262,12 +266,16 @@ function SidebarHeader({ collapsed, onHide }) {
     <div className="border-b shrink-0" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
       <div className="flex items-center px-3 py-[11px] gap-2.5" style={{ minHeight: '52px' }}>
         <img src={logoSrc} alt={displayName} className="w-11 h-14 shrink-0 rounded-md object-cover" />
-        <div className="flex-1 overflow-hidden">
-          <p className="text-[14px] font-black leading-none tracking-tight truncate" style={{ color: '#F1F5F9' }}>
+        <div className="flex-1 min-w-0">
+          {/* Was single-line truncate — "Acme Corporation" / "Enterprise AI
+              Control Plane" don't fit the 220px sidebar on one line each, so
+              this is where a real tenant's own branding got cut off to
+              "Acme Corp…" instead of shown in full. Wraps to 2 lines instead. */}
+          <p className="text-[13px] font-black leading-tight tracking-tight" style={{ color: '#F1F5F9' }}>
             {loading ? 'Loading…' : displayName}
           </p>
-          <p className="text-2xs font-semibold tracking-wide uppercase mt-0.5 truncate" style={{ color: '#DBE4FF' }}>
-            AI Control Plane
+          <p className="text-2xs font-semibold tracking-wide uppercase mt-0.5 leading-tight" style={{ color: '#94a3b8' }}>
+            Enterprise AI Control Plane
           </p>
         </div>
         <button onClick={onHide} title="Hide sidebar"
@@ -319,10 +327,14 @@ function NavItem({ item, collapsed }) {
       )}
       style={({ isActive }) => isActive
         ? {
-            background: 'rgba(37,99,235,0.2)',
-            color: '#93c5fd',
-            borderLeft: collapsed ? 'none' : '2px solid #2563eb',
-            paddingLeft: collapsed ? undefined : '10px',
+            // Was a flat rectangle with light-blue (not white) text — GitHub/
+            // Linear/Vercel-style active state: thicker accent bar (2px→4px),
+            // white text instead of a tinted blue that read as "disabled" next
+            // to it, slightly lighter fill.
+            background: 'rgba(37,99,235,0.22)',
+            color: '#ffffff',
+            borderLeft: collapsed ? 'none' : '4px solid var(--brand)',
+            paddingLeft: collapsed ? undefined : '8px',
           }
         : { color: '#94a3b8' }
       }
@@ -395,7 +407,7 @@ export default function Sidebar({ collapsed, onToggle, onHide, keycloak }) {
             {/* Section label */}
             {!collapsed && (
               <p className="px-4 mb-1 text-2xs font-semibold tracking-widest uppercase"
-                style={{ color: '#38bdf8' }}>
+                style={{ color: '#94a3b8' }}>
                 {section.label}
               </p>
             )}
@@ -434,7 +446,7 @@ export default function Sidebar({ collapsed, onToggle, onHide, keycloak }) {
           <div>
             {!collapsed && (
               <p className="px-4 mb-1 text-2xs font-semibold tracking-widest uppercase flex items-center gap-1.5"
-                style={{ color: '#38bdf8' }}>
+                style={{ color: '#94a3b8' }}>
                 <ShieldCheck size={9} /> Admin
               </p>
             )}
