@@ -14,48 +14,30 @@ const ACCELERATOR_EMOJI = {
   'enterprise-shared': '💼',
 };
 
-// ── Design tokens — "Dark Trust + Neon Intelligence" (matches the semantic
-// colors already built into the product app — index.css's --stage-govern/
-// --stage-secure/--stage-optimize/--stage-prove/--stage-kill — as plain hex
-// literals here since this file has no CSS-var/Tailwind usage anywhere to
-// hook into; keeping consistent hex rather than introducing a new pattern
-// just for this file) ────────────────────────────────────────────────────
+// ── Design tokens — Deep Ocean theme (Tailwind UI · Planetscale · Clerk) ─────
+// Rich navy base · electric cyan accents · authoritative & calm
+// Replace your token object C with this for a sharp, readable dark mode:
 const C = {
-  // Backgrounds — richer "enterprise infrastructure" navy, not flat black
-  bg:        '#0B1220',
-  surface:   '#0d1e35',          // card background — matches the value already used everywhere in this file
-  surfaceAlt:'#1f2937',          // lighter accent section
-  border:    '#223049',          // was #374151 — subtler, more premium
-  borderSub: '#1f2937',
-  hover:     '#2D3C57',          // card hover state
+  // Backgrounds - Deeper black/blue for maximum text separation
+  bg:        '#030712',          // Ultra-dark slate-black
+  surface:   '#111827',          // Rich dark card background
+  surfaceAlt:'#1f2937',          // Lighter accent section
+  border:    '#374151',          // Highly visible border
+  borderSub: '#1f2937',          // Subtle divider
 
-  // Brand — gradient now runs blue → purple → cyan (was blue → purple only)
-  blue:      '#3b82f6',
+  // Brand
+  blue:      '#3b82f6',          // Bright vibrant blue for CTA visibility
   blueHover: '#2563eb',
   blueLight: 'rgba(59,130,246,0.1)',
   blueMuted: 'rgba(59,130,246,0.25)',
   blueGlow:  'rgba(59,130,246,0.15)',
-  gradient:  'linear-gradient(135deg, #2563EB, #7C3AED, #06B6D4)',
 
-  // Semantic — the product's own Govern/Secure/Optimize/Prove/Kill-Switch
-  // language, exact same hex as index.css's --stage-* tokens so the
-  // marketing site and the product itself use one consistent visual
-  // vocabulary rather than two independent palettes.
-  stageGovern:   '#2563EB',
-  stageSecure:   '#4F46E5',
-  stageOptimize: '#10B981',
-  stageProve:    '#F59E0B',
-  stageKill:     '#EF4444',
-
-  // Status — softened from the previous bright/neon values for a more
-  // premium, less "developer tool" feel
+  // Status
   amber:     '#f59e0b',
   red:       '#ef4444',
   green:     '#10b981',
   purple:    '#8b5cf6',
   cyan:      '#06b6d4',
-  success:   '#22C55E',
-  error:     '#DC2626',
 
   // Text - Upgraded to ultra high-contrast tints to prevent eye strain
   textPrimary:  '#f9fafb',       // Crisp off-white headings (95% contrast ratio)
@@ -119,7 +101,7 @@ const FEATURES = [
 ];
 
 // Shared with the Hero's model marquee — one list, two places, no drift.
-const MODEL_NAMES = ['OpenAI', 'Anthropic', 'Google Gemini', 'Azure OpenAI', 'AWS Bedrock', 'Vertex AI', 'Mistral', 'Ollama', 'vLLM', 'Private / On-Prem'];
+const MODEL_NAMES = ['OpenAI', 'Anthropic', 'Google Gemini', 'Azure OpenAI', 'Private / On-Prem'];
 
 const PAIN_POINTS = [
   { emoji: '💸', title: 'Runaway AI costs', desc: 'A single prompt loop or misconfigured retry can drain thousands before anyone notices. There are no guardrails.' },
@@ -153,7 +135,7 @@ const PLANS = [
   {
     key: 'free', name: 'Free', price: 'Free', note: '100 credits · full access',
     color: '#64748b', checkColor: '#16a34a',
-    bg: C.surface, border: 'rgba(46,124,184,0.25)',
+    bg: '#0d1e35', border: 'rgba(46,124,184,0.25)',
     cta: 'Get started free',
     features: [
       '100 credits — full product access',
@@ -207,7 +189,7 @@ function NavBar({ onLogin, onRegister }) {
 
   const dropStyle = {
     position: 'absolute', top: '100%', left: 0,
-    background: C.surface, border: '1px solid #0c2040',
+    background: '#0d1e35', border: '1px solid #0c2040',
     borderRadius: 10, padding: 8, minWidth: 210,
     boxShadow: '0 8px 40px rgba(0,0,0,0.50)', zIndex: 200,
   };
@@ -281,10 +263,10 @@ function NavBar({ onLogin, onRegister }) {
 
           <div style={{ width: 1, height: 18, background: C.border, margin: '0 4px' }} />
           <button onClick={onLogin} style={{ ...link, fontWeight: 500 }} onMouseEnter={lHover} onMouseLeave={lLeave}>Sign in</button>
-          <button onClick={onRegister} style={{ background: C.gradient, color: '#fff', fontSize: 13, fontWeight: 700, border: 'none', borderRadius: 8, padding: '7px 16px', cursor: 'pointer', letterSpacing: '-0.2px', transition: 'filter 0.15s, transform 0.1s' }}
-            onMouseEnter={e => { e.target.style.filter = 'brightness(1.1)'; e.target.style.transform = 'translateY(-1px)'; }}
-            onMouseLeave={e => { e.target.style.filter = 'none'; e.target.style.transform = 'none'; }}>
-            Start free
+          <button onClick={onRegister} style={{ background: C.blue, color: '#fff', fontSize: 13, fontWeight: 700, border: 'none', borderRadius: 8, padding: '7px 16px', cursor: 'pointer', letterSpacing: '-0.2px', transition: 'background 0.15s, transform 0.1s' }}
+            onMouseEnter={e => { e.target.style.background = C.blueHover; e.target.style.transform = 'translateY(-1px)'; }}
+            onMouseLeave={e => { e.target.style.background = C.blue; e.target.style.transform = 'none'; }}>
+            Get started free
           </button>
         </div>
 
@@ -519,7 +501,7 @@ function Hero({ onRegister, onLogin }) {
             </div>
             {problemCards.map((card, i) => (
               <div key={i} style={{
-                background: C.surface,
+                background: '#0d1e35',
                 border: `1px solid ${card.color}45`,
                 borderLeft: `3px solid ${card.color}`,
                 borderRadius: 10,
@@ -579,15 +561,15 @@ function Hero({ onRegister, onLogin }) {
 
             {/* Headline */}
             <h1 style={{ fontSize: 'clamp(18px, 2.2vw, 26px)', fontWeight: 800, color: C.textPrimary, lineHeight: 1.08, letterSpacing: '-1.6px', marginBottom: 6 }}>
-              The Enterprise
+              One Control Plane.
               <br />
-              <span style={{ background: C.gradient, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-                AI Control Plane
+              <span style={{ background: `linear-gradient(135deg, #60a5fa, #a78bfa)`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+                Every Model, Governed.
               </span>
             </h1>
 
             <p style={{ fontSize: 'clamp(13px, 1.3vw, 14.5px)', color: C.textSecondary, lineHeight: 1.4, maxWidth: 720, margin: '0 auto 10px', fontWeight: 400 }}>
-              Govern, secure, optimize and prove every AI decision — across every model, cloud, application and AI agent. Applications send DecisionMesh an <strong style={{ color: '#93c5fd', fontWeight: 700 }}>Intent</strong> instead of calling a model directly, and DecisionMesh governs it, secures the data, selects the best model, validates the response, and returns a trusted, provable decision.
+              Applications shouldn't call AI models directly. They send DecisionMesh an <strong style={{ color: '#93c5fd', fontWeight: 700 }}>Intent</strong> — and DecisionMesh governs it, secures the data, selects the best model, validates the response, and returns a trusted, provable decision.
               <br />
               <span style={{ color: '#c4b5fd', fontSize: '1.05em', fontWeight: 600 }}>Your applications stay the same. Your AI stays interchangeable.</span>
             </p>
@@ -601,20 +583,16 @@ function Hero({ onRegister, onLogin }) {
 
             {/* CTAs */}
             <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', justifyContent: 'center', marginBottom: 22 }}>
-              <button onClick={onRegister} style={{ background: C.gradient, color: '#fff', fontSize: 14, fontWeight: 700, border: 'none', borderRadius: 9, padding: '10px 22px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, letterSpacing: '-0.2px', transition: 'filter 0.15s, transform 0.1s' }}
-                onMouseEnter={e => { e.currentTarget.style.filter = 'brightness(1.1)'; e.currentTarget.style.transform = 'translateY(-1px)'; }}
-                onMouseLeave={e => { e.currentTarget.style.filter = 'none'; e.currentTarget.style.transform = 'none'; }}>
-                Start Free <Icon.ArrowRight />
+              <button onClick={onRegister} style={{ background: C.blue, color: '#fff', fontSize: 14, fontWeight: 700, border: 'none', borderRadius: 9, padding: '10px 22px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, letterSpacing: '-0.2px', transition: 'background 0.15s, transform 0.1s' }}
+                onMouseEnter={e => { e.currentTarget.style.background = '#245f91'; e.currentTarget.style.transform = 'translateY(-1px)'; }}
+                onMouseLeave={e => { e.currentTarget.style.background = C.blue; e.currentTarget.style.transform = 'none'; }}>
+                Start for free <Icon.ArrowRight />
               </button>
-              {/* Sign in stays reachable via the navbar — this slot is now the
-                  enterprise-demo path, matching the "Book Enterprise Demo" CTA
-                  from the redesign brief. /demo is an existing public route
-                  (DemoPage.jsx), not a new page. */}
-              <a href="/demo" style={{ background: 'rgba(14,165,233,0.10)', color: '#bae6fd', fontSize: 14, fontWeight: 600, border: '1px solid rgba(14,165,233,0.30)', borderRadius: 9, padding: '10px 20px', cursor: 'pointer', transition: 'background 0.15s', textDecoration: 'none', display: 'inline-flex', alignItems: 'center' }}
+              <button onClick={onLogin} style={{ background: 'rgba(14,165,233,0.10)', color: '#bae6fd', fontSize: 14, fontWeight: 600, border: '1px solid rgba(14,165,233,0.30)', borderRadius: 9, padding: '10px 20px', cursor: 'pointer', transition: 'background 0.15s' }}
                 onMouseEnter={e => e.currentTarget.style.background = 'rgba(14,165,233,0.14)'}
                 onMouseLeave={e => e.currentTarget.style.background = 'rgba(14,165,233,0.08)'}>
-                Book Enterprise Demo
-              </a>
+                Sign in
+              </button>
             </div>
 
             {/* Decision Pipeline — live, looping visualization */}
@@ -642,7 +620,7 @@ function Hero({ onRegister, onLogin }) {
             </div>
             {resolvedCards.map((card, i) => (
               <div key={i} style={{
-                background: C.surface,
+                background: '#0d1e35',
                 border: `1px solid ${card.color}45`,
                 borderLeft: `3px solid ${card.color}`,
                 borderRadius: 12,
@@ -718,7 +696,7 @@ function HourglassSection() {
         <div style={{ fontFamily: C.mono, fontSize: 10.5, color: C.textMuted, letterSpacing: '1.5px', marginBottom: 14 }}>YOUR APPLICATIONS</div>
         <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 10, marginBottom: 4 }}>
           {apps.map(app => (
-            <span key={app} style={{ fontSize: 12.5, fontWeight: 600, color: C.textSecondary, background: C.surface, border: `1px solid ${C.border}`, borderRadius: 999, padding: '7px 15px' }}>{app}</span>
+            <span key={app} style={{ fontSize: 12.5, fontWeight: 600, color: C.textSecondary, background: '#0d1e35', border: `1px solid ${C.border}`, borderRadius: 999, padding: '7px 15px' }}>{app}</span>
           ))}
         </div>
 
@@ -805,7 +783,7 @@ function PainSection() {
         <p style={{ color: C.textSecondary, fontSize: 16, marginBottom: 48 }}>Every team shipping AI faces the same problems. Here are the most expensive ones.</p>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: 16 }}>
           {PAIN_POINTS.map(({ emoji, title, desc }) => (
-            <div key={title} style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, padding: '24px 20px', textAlign: 'left', transition: 'border-color 0.2s' }}
+            <div key={title} style={{ background: '#0d1e35', border: `1px solid ${C.border}`, borderRadius: 12, padding: '24px 20px', textAlign: 'left', transition: 'border-color 0.2s' }}
               onMouseEnter={e => e.currentTarget.style.borderColor = C.blue}
               onMouseLeave={e => e.currentTarget.style.borderColor = C.border}>
               <div style={{ fontSize: 28, marginBottom: 12 }}>{emoji}</div>
@@ -907,7 +885,7 @@ function Platform() {
             { title: 'Control Plane', color: C.blue, icon: '🎯', items: ['Intent intake — receive and validate AI requests', 'Planning — determine how to fulfill the intent', 'Policy enforcement — apply governance rules', 'Decision recording — create immutable audit trail', 'Lifecycle management — track decision state'], tags: ['Deterministic', 'Replayable', 'Auditable', 'Policy-Driven'] },
             { title: 'Execution Plane', color: C.green, icon: '⚡', items: ['LLM calls — execute approved prompts', 'Adapter routing — select and fallback across models', 'Tool integration — connect to databases and APIs', 'Result aggregation — combine outputs', 'Execution reporting — report outcomes back'], tags: ['Isolated', 'Pluggable', 'Observable', 'Fault-Tolerant'] },
           ].map(({ title, color, icon, items, tags }) => (
-            <div key={title} style={{ background: C.surface, border: `1px solid ${color}20`, borderRadius: 14, padding: 26 }}>
+            <div key={title} style={{ background: '#0d1e35', border: `1px solid ${color}20`, borderRadius: 14, padding: 26 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 18 }}>
                 <span style={{ fontSize: 22 }}>{icon}</span>
                 <h3 style={{ color: C.textPrimary, fontWeight: 700, fontSize: 18 }}>{title}</h3>
@@ -930,7 +908,7 @@ function Platform() {
         </div>
 
         {/* 6-stage lifecycle */}
-        <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 14, padding: 28 }}>
+        <div style={{ background: '#0d1e35', border: `1px solid ${C.border}`, borderRadius: 14, padding: 28 }}>
           <h3 style={{ color: C.textPrimary, fontWeight: 700, fontSize: 18, marginBottom: 6, textAlign: 'center' }}>Decision Lifecycle</h3>
           <p style={{ color: C.textMuted, fontSize: 13, textAlign: 'center', marginBottom: 32 }}>Every AI request flows through 6 auditable stages — nothing skipped, nothing hidden</p>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 16 }}>
@@ -967,7 +945,7 @@ function Features() {
           {FEATURES.map(({ icon, title, desc, color, badge }) => {
             const IC = Icon[icon];
             return (
-              <div key={title} style={{ background: C.surface, border: '1px solid rgba(46,124,184,0.20)', borderRadius: 12, padding: 24, textAlign: 'left', transition: 'box-shadow 0.2s, transform 0.2s' }}
+              <div key={title} style={{ background: '#0d1e35', border: '1px solid rgba(46,124,184,0.20)', borderRadius: 12, padding: 24, textAlign: 'left', transition: 'box-shadow 0.2s, transform 0.2s' }}
                 onMouseEnter={e => { e.currentTarget.style.boxShadow = `0 8px 28px ${color}15`; e.currentTarget.style.transform = 'translateY(-2px)'; }}
                 onMouseLeave={e => { e.currentTarget.style.boxShadow = 'none'; e.currentTarget.style.transform = 'none'; }}>
                 <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 14 }}>
@@ -1021,7 +999,7 @@ function Audiences() {
       <span id="executives"    style={{ position: 'absolute', top: -72, display: 'block' }} />
       <span id="compliance-tab" style={{ position: 'absolute', top: -72, display: 'block' }} />
 
-      <section style={{ background: C.surface, padding: '80px 24px', borderTop: '1px solid rgba(46,124,184,0.20)' }}>
+      <section style={{ background: '#0d1e35', padding: '80px 24px', borderTop: '1px solid rgba(46,124,184,0.20)' }}>
         <div style={{ maxWidth: 1060, margin: '0 auto' }}>
           <div style={{ textAlign: 'center', marginBottom: 36 }}>
             <p style={{ color: C.blue, fontSize: 11, fontWeight: 700, letterSpacing: '2px', textTransform: 'uppercase', marginBottom: 10 }}>Built for every stakeholder</p>
@@ -1070,7 +1048,7 @@ function Compliance() {
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: 16, marginBottom: 48 }}>
           {COMPLIANCE_FRAMEWORKS.map(({ name, color, icon, desc, note }) => (
-            <div key={name} style={{ background: C.surface, border: `1px solid ${color}20`, borderRadius: 14, padding: 26 }}>
+            <div key={name} style={{ background: '#0d1e35', border: `1px solid ${color}20`, borderRadius: 14, padding: 26 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}><span style={{ fontSize: 24 }}>{icon}</span><h3 style={{ color: C.textPrimary, fontWeight: 700, fontSize: 17 }}>{name}</h3></div>
               <p style={{ color: C.textSecondary, fontSize: 13.5, lineHeight: 1.65, marginBottom: note ? 10 : 0 }}>{desc}</p>
               {note && <p style={{ color: C.textMuted, fontSize: 11, fontStyle: 'italic', borderTop: `1px solid ${color}18`, paddingTop: 10 }}>{note}</p>}
@@ -1140,7 +1118,7 @@ function Industries() {
               <button key={industry.name} onClick={() => setActive(i)} style={{ padding: '7px 15px', borderRadius: 999, fontSize: 12, fontWeight: 600, cursor: 'pointer', border: '1px solid', transition: 'all 0.2s', background: active === i ? 'rgba(46,124,184,0.18)' : 'rgba(14,165,233,0.05)', borderColor: active === i ? '#2e7cb8' : 'rgba(46,124,184,0.20)', color: active === i ? '#7eb8d4' : C.textMuted }}>{industry.emoji} {industry.name}</button>
             ))}
           </div>
-          <div style={{ background: C.surface, border: '1px solid rgba(46,124,184,0.20)', borderRadius: 18, padding: 32, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 32, alignItems: 'start' }}>
+          <div style={{ background: '#0d1e35', border: '1px solid rgba(46,124,184,0.20)', borderRadius: 18, padding: 32, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 32, alignItems: 'start' }}>
             <div>
               <div style={{ fontSize: 44, marginBottom: 14 }}>{ind.emoji}</div>
               <h3 style={{ color: C.textPrimary, fontWeight: 700, fontSize: 22, marginBottom: 10 }}>{ind.name}</h3>
@@ -1192,7 +1170,7 @@ function BusinessAccelerators() {
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(270px, 1fr))', gap: 14 }}>
           {ACCELERATORS.map(acc => (
-            <div key={acc.id} style={{ background: C.surface, border: '1px solid rgba(46,124,184,0.20)', borderRadius: 14, padding: 20 }}>
+            <div key={acc.id} style={{ background: '#0d1e35', border: '1px solid rgba(46,124,184,0.20)', borderRadius: 14, padding: 20 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 10 }}>
                 <span style={{ fontSize: 20 }}>{ACCELERATOR_EMOJI[acc.id]}</span>
                 <h3 style={{ color: C.textPrimary, fontWeight: 700, fontSize: 15 }}>{acc.name}</h3>
@@ -1281,7 +1259,7 @@ function Pricing({ onRegister }) {
           {PLANS.map(plan => {
             return (
               <div key={plan.key} style={{
-                background: plan.popular ? 'rgba(14,165,233,0.10)' : C.surface, border: plan.popular ? '1px solid rgba(14,165,233,0.35)' : `1px solid ${C.border}`,
+                background: plan.popular ? 'rgba(14,165,233,0.10)' : '#0d1e35', border: plan.popular ? '1px solid rgba(14,165,233,0.35)' : `1px solid ${C.border}`,
                 borderRadius: 14, padding: '24px 20px', textAlign: 'left',
                 position: 'relative', overflow: 'hidden', display: 'flex', flexDirection: 'column',
                 boxShadow: plan.popular ? '0 4px 28px rgba(14,165,233,0.18)' : 'none',
@@ -1348,7 +1326,7 @@ function Pricing({ onRegister }) {
                 breakdown: [{ label: 'Economy', val: '~100,000' }, { label: 'Standard', val: '~20,000' }, { label: 'Premium', val: '~4,000' }] },
             ].map(pack => (
               <div key={pack.name} style={{
-                background: pack.popular ? 'rgba(14,165,233,0.10)' : C.surface,
+                background: pack.popular ? 'rgba(14,165,233,0.10)' : '#0d1e35',
                 border: pack.popular ? '1px solid rgba(14,165,233,0.35)' : `1px solid ${C.border}`,
                 borderRadius: 14, padding: '22px 20px', position: 'relative',
                 boxShadow: pack.popular ? '0 4px 28px rgba(14,165,233,0.18)' : 'none',
@@ -1402,7 +1380,7 @@ function Pricing({ onRegister }) {
               { name: 'BYOK', title: 'Bring Your Own Key', desc: 'Connect your Anthropic, OpenAI, or Azure key. DecisionMesh adds governance — you pay your provider directly.', cost: '1 credit / execution', saving: '80% cost reduction', badge: 'Enterprise', icon: '🔑' },
               { name: 'BYOM', title: 'Bring Your Own Model', desc: 'Connect your own model endpoint — on-prem, fine-tuned, or custom. Zero data egress, full governance.', cost: '1 credit / execution', saving: 'Zero data egress', badge: 'Enterprise', icon: '🧩' },
             ].map(item => (
-              <div key={item.name} style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 14, padding: '24px 22px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <div key={item.name} style={{ background: '#0d1e35', border: `1px solid ${C.border}`, borderRadius: 14, padding: '24px 22px', display: 'flex', flexDirection: 'column', gap: 12 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                   <span style={{ fontSize: 24 }}>{item.icon}</span>
                   <div>
@@ -1556,7 +1534,7 @@ export default function LandingPage() {
           .show-mobile { display: none !important; }
         }
       `}</style>
-      <div style={{ minHeight: '100vh', background: C.bg }}>
+      <div style={{ minHeight: '100vh', background: '#0a1628' }}>
         <NavBar onLogin={handleLogin} onRegister={handleRegister} />
         <Hero onRegister={handleRegister} onLogin={handleLogin} />
         <HourglassSection />
