@@ -104,10 +104,12 @@ function UserMenu({ keycloak }) {
     },
     {
       group: 'Organisation',
+      // Credit ledger dropped — the sidebar's own BILLING group now links
+      // /credits directly and prominently; this was a second entry point to
+      // the exact same page.
       items: [
         { icon: Palette,    label: 'Branding',              action: () => navigate('/org/branding') },
         { icon: CreditCard, label: 'Billing & Plans',       action: () => navigate('/billing') },
-        { icon: Zap,        label: 'Credit ledger',         action: () => navigate('/credits') },
       ],
     },
     {

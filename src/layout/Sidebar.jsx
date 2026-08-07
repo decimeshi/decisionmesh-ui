@@ -29,44 +29,65 @@ const NAV_ICON_COLORS = {
   'Intent Library': '#7c3aed', // purple
   'Policies':       '#f59e0b', // amber
   'Executions':     '#06b6d4', // cyan
-  'Cost':           '#10b981', // emerald — "Analytics"
-  'Drift':          '#10b981', // emerald — "Analytics"
-  'AI Spend':       '#10b981', // emerald — "Analytics"
+  'Cost':           '#10b981', // emerald — "Observability"
+  'Drift':          '#10b981', // emerald — "Observability"
+  'Model Spend':    '#10b981', // emerald — "Observability" (was 'AI Spend')
   'Adapters':       '#4f46e5', // indigo
 };
 
 // ── Nav structure ─────────────────────────────────────────────────────────────
+// Reorganized around the product's own lifecycle (Design → Execute → Observe
+// → Manage → Learn) instead of a flat CRUD list — see the design-feedback
+// review this replaced. Only real, working pages are linked: several items
+// from that review (Execution Profiles, Metrics, Model/Prompt Registry,
+// Compliance, a standalone "Approvals" distinct from Review Queue, Evidence
+// Vault, SDKs, a real Teams/RBAC page) don't exist as backend features yet —
+// confirmed via full-repo research, not an oversight — and a nav link to
+// nothing undermines the enterprise feel this reorg is meant to build, more
+// than a shorter, honest menu would.
 const NAV = [
   {
-    label: 'CORE',
+    label: 'CONTROL PLANE',
     items: [
       { label: 'Dashboard',     icon: LayoutDashboard, to: '/',              end: true },
-    ],
-  },
-  {
-    label: 'PLAYGROUND',
-    items: [
       { label: 'Playground',    icon: FlaskConical,    to: '/playground'     },
-      { label: 'Intent Library',icon: Library,         to: '/intent-library' },
     ],
   },
   {
-    label: 'OPERATIONS',
+    label: 'DESIGN',
     items: [
+      { label: 'Intent Library',icon: Library,         to: '/intent-library' },
       { label: 'Intents',       icon: ListOrdered,     to: '/intents'        },
-      { label: 'Executions',    icon: Cpu,             to: '/executions'     },
-      { label: 'Adapters',      icon: Puzzle,          to: '/adapters'       },
       { label: 'Policies',      icon: ShieldCheck,     to: '/policies'       },
-      { label: 'Review Queue',  icon: ClipboardCheck,  to: '/review-queue'   },
+      { label: 'Adapters',      icon: Puzzle,          to: '/adapters'       },
     ],
   },
   {
-    label: 'ANALYTICS',
+    label: 'EXECUTION',
+    items: [
+      { label: 'Executions',    icon: Cpu,             to: '/executions'     },
+      // Review Queue already IS the product's approval workflow (a real
+      // human-in-the-loop gate — ReviewQueueResource/REVIEW_DECIDE/
+      // requireHumanReview) — kept its own name rather than relabeling to
+      // "Approvals", which would just be a second link to the same page.
+      { label: 'Review Queue',  icon: ClipboardCheck,  to: '/review-queue'   },
+      // Was rendered as its own standalone block below NAV entirely (see
+      // canSeeKillSwitches below) — folded in here since it conceptually
+      // belongs to EXECUTION; killSwitchOnly carries the same 3-capability
+      // gate (isAdmin || canManageKillSwitches || canLiftKillSwitches) that
+      // block used, now handled by the same filter chain as every other item.
+      { label: 'Kill Switches', icon: ShieldAlert,     to: '/admin/kill-switches', killSwitchOnly: true },
+    ],
+  },
+  {
+    label: 'OBSERVABILITY',
     items: [
       { label: 'Cost',          icon: BarChart3,       to: '/analytics/cost' },
+      // Renamed from "AI Spend" — label only, same route/gating. "AI Spend"
+      // could mean anything; "Model Spend" says LLM cost immediately.
+      { label: 'Model Spend',   icon: DollarSign,      to: '/spend', cxoOnly: true },
       { label: 'Drift',         icon: TrendingUp,      to: '/analytics/drift'},
-      // CXO-only — filtered out below for callers without sys_admin/tenant_admin.
-      { label: 'AI Spend',      icon: DollarSign,      to: '/spend', cxoOnly: true },
+      { label: 'Audit Log',     icon: ScrollText,      to: '/audit'          },
     ],
   },
   {
@@ -75,9 +96,6 @@ const NAV = [
       // API Keys/Billing/Invite/Branding: no partial-visibility case for a
       // regular tenant_user (MEMBER/VIEWER/AUDITOR) — tenantAdminOnly hides
       // them entirely rather than showing controls that would just 403.
-      // Audit Log/Credits stay visible to everyone — MEMBER/VIEWER hold
-      // read access to both (see Role.java), and Credits is informational
-      // usage tracking, not a configuration surface.
       // Ungated, matching the old ProjectSwitcher dropdown's "Manage projects"/
       // "New project" links it replaces — those were reachable by anyone who
       // could open that dropdown, no tenantAdminOnly check. Removing them from
@@ -90,18 +108,31 @@ const NAV = [
       // keys, unrelated to bring-your-own-key/model). Previously only
       // reachable via a Playground quick-link card; now a real nav item.
       { label: 'BYOK / BYOM',   icon: Plug,            to: '/billing?tab=byok', tenantAdminOnly: true },
-      { label: 'Audit Log',     icon: ScrollText,      to: '/audit'          },
-      { label: 'Credits',       icon: Receipt,         to: '/credits'        },
-      { label: 'Billing',       icon: CreditCard,      to: '/billing',       tenantAdminOnly: true },
+      // Label stays "Invite Team", not "Teams" — a real Teams/RBAC
+      // management page (roles/groups) doesn't exist yet; this link still
+      // only sends invites, and calling it "Teams" would overpromise.
       { label: 'Invite Team',   icon: UserPlus,        to: '/invite',        tenantAdminOnly: true },
       { label: 'Branding',      icon: Palette,         to: '/org/branding',  tenantAdminOnly: true },
     ],
   },
   {
+    label: 'BILLING',
+    items: [
+      { label: 'Credits',       icon: Receipt,         to: '/credits'        },
+      // Was reachable only by manually typing ?tab=usage — the tab itself
+      // (credits used/intents executed/API calls/billing period) already
+      // existed inside Billing.jsx, just had no nav entry anywhere.
+      { label: 'Usage',         icon: BarChart3,       to: '/billing?tab=usage', tenantAdminOnly: true },
+      { label: 'Billing',       icon: CreditCard,      to: '/billing',       tenantAdminOnly: true },
+    ],
+  },
+  {
     label: 'RESOURCES',
     items: [
-      { label: 'Docs',          icon: BookOpen,        to: '/docs'           },
       { label: 'Architecture',  icon: Layers,          to: '/architecture'   },
+      // Renamed from "Docs" — same route (DocsPage.jsx is already the full
+      // API reference), "Documentation" reads more enterprise.
+      { label: 'Documentation', icon: BookOpen,        to: '/docs'           },
       { label: 'Accelerators',  icon: Rocket,          to: '/accelerators'   },
     ],
   },
@@ -419,27 +450,13 @@ export default function Sidebar({ collapsed, onToggle, onHide, keycloak }) {
               {section.items
                 .filter(item => !item.cxoOnly || isCxo)
                 .filter(item => !item.tenantAdminOnly || isTenantAdmin)
+                .filter(item => !item.killSwitchOnly || canSeeKillSwitches)
                 .map(item => (
                   <NavItem key={item.to} item={item} collapsed={collapsed} />
                 ))}
             </div>
           </div>
         ))}
-
-        {/* Kill Switches — deliberately its own item, not nested in the sys_admin-only
-            Admin section below. The route accepts tenant_admin too (KillSwitchResource
-            authorises both), so gating the nav link on isAdmin alone would hide it from
-            exactly the tenant_admin who can actually use it — an incident-response tool
-            that's reachable by URL but invisible in the nav is worse than not having it. */}
-        {canSeeKillSwitches && (
-          <div>
-            <div className={collapsed ? 'mx-auto mb-1 mt-1' : 'mx-4 mb-1 mt-1'}
-              style={{ height: 1, background: 'rgba(59,130,246,0.3)', width: collapsed ? 24 : undefined }} />
-            <div className="space-y-0.5">
-              <NavItem item={{ label: 'Kill Switches', icon: ShieldAlert, to: '/admin/kill-switches' }} collapsed={collapsed} />
-            </div>
-          </div>
-        )}
 
         {/* Admin section */}
         {isAdmin && (
