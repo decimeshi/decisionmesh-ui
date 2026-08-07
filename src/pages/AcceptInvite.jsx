@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Loader2, Mail, CheckCircle2, XCircle } from 'lucide-react';
-import { previewInvitation, acceptInvitation, ensureUser } from '../utils/api';
+import { previewInvitation, acceptInvitation, ensureUser, setActiveTenant } from '../utils/api';
 import { INVITE_TOKEN_KEY } from '../utils/inviteToken';
 
 
@@ -84,7 +84,13 @@ export default function AcceptInvite({ token, auth, keycloak, onConsumed }) {
       // time to finish; auto-firing on return from Zitadel does not.
       // ensureUser is idempotent, so awaiting it here first is safe.
       await ensureUser(keycloak);
-      await acceptInvitation(keycloak, token);
+      const result = await acceptInvitation(keycloak, token);
+      // A user can belong to more than one tenant now — explicitly select
+      // the one they just joined so the reload below lands there directly
+      // instead of falling through to whichever tenant was previously
+      // active (or triggering the ChooseOrganization screen for no reason,
+      // since they clearly already know which workspace they want).
+      if (result?.tenantId) setActiveTenant(result.tenantId);
       onConsumed?.();
       setAccepted(true);
       // Roles resolve from role_grant on every request (no token refresh
@@ -94,7 +100,7 @@ export default function AcceptInvite({ token, auth, keycloak, onConsumed }) {
     } catch (err) {
       const msg = err?.message || '';
       if (msg.includes('already-in-workspace')) {
-        setAcceptError('This account already belongs to a workspace, so it can’t also join this one.');
+        setAcceptError('You’re already a member of this workspace.');
       } else if (msg.includes('email-mismatch')) {
         setAcceptError('This invitation was sent to a different email address than the one you’re logged in with.');
       } else if (msg.includes('invitation-expired')) {

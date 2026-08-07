@@ -31,7 +31,8 @@ import SecurityPage  from './pages/SecurityPage';
 import DemoPage     from './pages/DemoPage';
 import Onboarding   from './pages/Onboarding';
 import AcceptInvite from './pages/AcceptInvite';
-import { getMe, ensureUser } from './utils/api';
+import ChooseOrganization from './pages/ChooseOrganization';
+import { getMe, ensureUser, getMyOrganizations, setActiveTenant, getActiveTenant, clearActiveTenant } from './utils/api';
 import { oidcConfig, createKeycloakShim, debugToken } from './auth/zitadel';
 import { INVITE_TOKEN_KEY } from './utils/inviteToken';
 import './index.css';
@@ -74,6 +75,16 @@ function AppWrapper() {
   const [provisioned,     setProvisioned]     = useState(false);
   const [needsOnboard,    setNeedsOnboard]    = useState(false);
   const [refreshingToken, setRefreshingToken] = useState(false);
+
+  // ── Multi-tenant membership: which workspace is this session in? ──
+  // orgs === null means "not fetched yet"; an empty/one-item array skips
+  // the chooser screen entirely (the common case — most users belong to
+  // exactly one tenant). tenantPickVersion exists only to force a re-render
+  // after setActiveTenant(), since the active tenant itself lives in a
+  // module-level variable (api.js), not React state — see api.js's own
+  // comment on why X-Project-Id/X-Tenant-Id are module-level.
+  const [orgs, setOrgs] = useState(null);
+  const [tenantPickVersion, setTenantPickVersion] = useState(0);
 
   // FIX 1: was createKeycloakShim(auth.user, auth) — wrong 2-param signature.
   // Updated shim takes only `auth` and reads auth.user live via getter.
@@ -126,6 +137,37 @@ function AppWrapper() {
       });
 
   }, [auth.isAuthenticated, auth.user?.access_token]);
+
+  // ── Fetch the caller's workspace memberships, once onboarded ──
+  // Runs after provisioned/needsOnboard settle so it never races the
+  // onboarding check above. Auto-selects when there's exactly one (or zero,
+  // pre-migration edge case) so the vast majority of logins never render
+  // ChooseOrganization at all; only >1 with no still-valid prior selection
+  // needs the render branch further down.
+  useEffect(() => {
+    if (!provisioned || needsOnboard) return;
+
+    let cancelled = false;
+    getMyOrganizations(keycloak)
+      .then(list => {
+        if (cancelled) return;
+        const safeList = list ?? [];
+        setOrgs(safeList);
+
+        const active = getActiveTenant();
+        const stillValid = active && safeList.some(o => o.tenantId === active);
+        if (!stillValid) {
+          if (safeList.length === 1) {
+            setActiveTenant(safeList[0].tenantId);
+          } else if (safeList.length === 0) {
+            clearActiveTenant();
+          }
+          // length > 1 and no valid prior pick: leave unset, ChooseOrganization renders below
+        }
+      })
+      .catch(() => { if (!cancelled) setOrgs([]); }); // fail open — TenantContextFilter's DB fallback still resolves the user's original tenant
+    return () => { cancelled = true; };
+  }, [provisioned, needsOnboard, keycloak]);
 
   // ── Called by Onboarding after POST /setup-tenant succeeds ─
   //
@@ -283,6 +325,24 @@ function AppWrapper() {
       onComplete={onOnboardingComplete}
     />
   );
+
+  // Waiting on the membership list, or waiting on a pick among more than
+  // one workspace with no still-valid prior selection (see the effect
+  // above — both null and unpicked-multi collapse to the same spinner/
+  // chooser gate here).
+  if (orgs === null) return <FullScreenSpinner />;
+  if (orgs.length > 1 && !orgs.some(o => o.tenantId === getActiveTenant())) {
+    return (
+      <ChooseOrganization
+        organizations={orgs}
+        onSelect={tenantId => {
+          setActiveTenant(tenantId);
+          setTenantPickVersion(v => v + 1); // force re-render — active tenant lives outside React state
+        }}
+        onLogout={() => keycloak?.logout?.()}
+      />
+    );
+  }
 
   return (
     <BrandingProvider keycloak={keycloak}>
