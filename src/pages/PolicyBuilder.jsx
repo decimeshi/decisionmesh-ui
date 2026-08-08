@@ -42,10 +42,18 @@ const CATEGORIES = [
 ];
 
 // ── Industry starter templates from product site ──────────────────────────────
+// Phase 3 of the regulatory policy model: each template now carries country +
+// subcategory (a specific citation) alongside category, tagging the policy it
+// creates the same way — see handleTemplateSelect. This is content-authoring,
+// not engineering: every rule still only checks what the DSL can check
+// (cost/latency/risk/pii_detected/injection_risk thresholds), so a template
+// named after a law is a proxy control aligned to that law's intent, not a
+// certified implementation of it. Read each desc literally, not as a
+// compliance claim.
 const TEMPLATES = [
   {
     id: 'tpl-cost-limit',
-    category: 'Cost control',
+    category: 'Cost control', country: '', subcategory: 'Budget governance',
     name: 'Cost limit enforcement',
     desc: 'Reject requests exceeding $0.10 per intent. Essential for production budget governance.',
     color: '#2563eb',
@@ -53,7 +61,7 @@ const TEMPLATES = [
   },
   {
     id: 'tpl-latency-fallback',
-    category: 'Performance',
+    category: 'Performance', country: '', subcategory: 'SLA enforcement',
     name: 'Latency fallback',
     desc: 'Automatically fall back to a faster adapter when latency exceeds 5 000ms.',
     color: '#d97706',
@@ -61,7 +69,7 @@ const TEMPLATES = [
   },
   {
     id: 'tpl-high-risk-reject',
-    category: 'Safety',
+    category: 'Safety', country: '', subcategory: 'General risk threshold',
     name: 'High-risk rejection',
     desc: 'Block any execution where the risk score exceeds 0.7. Recommended for regulated industries.',
     color: '#ef4444',
@@ -69,20 +77,21 @@ const TEMPLATES = [
   },
   {
     id: 'tpl-healthcare',
-    category: 'Healthcare / HIPAA',
+    category: 'Healthcare / HIPAA', country: 'US', subcategory: 'HIPAA Privacy & Security Rule',
     name: 'PHI protection gate',
-    desc: 'Reject high-risk, high-cost AI calls in healthcare contexts. HIPAA-aligned guardrail.',
+    desc: 'Rejects the moment PII/PHI is actually detected, plus high-risk or high-cost calls in healthcare contexts. HIPAA-aligned, not HIPAA-certified — see the Guardrails page for what pii_detected actually scans.',
     color: '#0d9488',
     rules: [
-      { id: uuidv4(), metric: 'risk',    operator: '>', value: 0.5,  action: 'REJECT' },
-      { id: uuidv4(), metric: 'cost',    operator: '>', value: 0.05, action: 'REJECT' },
+      { id: uuidv4(), metric: 'pii_detected', operator: '=', value: 1,   action: 'REJECT' },
+      { id: uuidv4(), metric: 'risk',         operator: '>', value: 0.5, action: 'REJECT' },
+      { id: uuidv4(), metric: 'cost',         operator: '>', value: 0.05, action: 'REJECT' },
     ],
   },
   {
     id: 'tpl-finserv',
-    category: 'Financial services',
+    category: 'Financial services', country: 'US', subcategory: 'Fair lending (ECOA-aligned)',
     name: 'Fair lending safeguard',
-    desc: 'Retry on high-risk decisions and reject when cost exceeds credit-decision threshold.',
+    desc: 'Retry on high-risk decisions and reject when cost exceeds credit-decision threshold. Adaptable to non-US fair-lending regimes — just retag the country.',
     color: '#7c3aed',
     rules: [
       { id: uuidv4(), metric: 'risk', operator: '>', value: 0.6,  action: 'RETRY' },
@@ -91,7 +100,7 @@ const TEMPLATES = [
   },
   {
     id: 'tpl-enterprise-retry',
-    category: 'Reliability',
+    category: 'Reliability', country: '', subcategory: 'Availability / retry policy',
     name: 'Auto-retry on failure',
     desc: 'Retry low-cost failures automatically — improves success rate without breaking budget.',
     color: '#16a34a',
@@ -102,7 +111,7 @@ const TEMPLATES = [
   },
   {
     id: 'tpl-pii-exposure',
-    category: 'PII / Data privacy',
+    category: 'PII / Data privacy', country: '', subcategory: 'General PII exposure (risk-based)',
     name: 'PII exposure gate',
     desc: 'Reject high-risk executions before personal data can leave the pipeline. A general-purpose guardrail for any flow that may touch PII.',
     color: '#0891b2',
@@ -110,15 +119,58 @@ const TEMPLATES = [
   },
   {
     id: 'tpl-pii-detected',
-    category: 'PII / Data privacy',
+    category: 'PII / Data privacy', country: '', subcategory: 'Real-time detection (all jurisdictions)',
     name: 'Real-time PII detection gate',
     desc: 'Blocks the moment personal data is actually detected by the scan — not a risk-score approximation. Only fires once planning has run.',
     color: '#0e7490',
     rules: [{ id: uuidv4(), metric: 'pii_detected', operator: '=', value: 1, action: 'REJECT' }],
   },
   {
+    id: 'tpl-dpdp-india',
+    category: 'PII / Data privacy', country: 'IN', subcategory: 'DPDP Act 2023 — consent & purpose limitation',
+    name: 'DPDP Act personal-data gate',
+    desc: 'Rejects on real-time PII detection (Aadhaar/PAN/etc., per the India pattern pack) rather than a proxy score — aligned to the DPDP Act’s consent/purpose-limitation intent, not a certified implementation of it.',
+    color: '#0369a1',
+    rules: [{ id: uuidv4(), metric: 'pii_detected', operator: '=', value: 1, action: 'REJECT' }],
+  },
+  {
+    id: 'tpl-uk-gdpr',
+    category: 'GDPR', country: 'UK', subcategory: 'UK GDPR / Data Protection Act 2018',
+    name: 'UK data protection gate',
+    desc: 'Same data-minimization approach as the EU GDPR template below (real-time PII detection plus a cost cap), tagged for UK GDPR / DPA 2018 rather than the EU regulation.',
+    color: '#155e75',
+    rules: [
+      { id: uuidv4(), metric: 'pii_detected', operator: '=', value: 1,    action: 'REJECT' },
+      { id: uuidv4(), metric: 'cost',         operator: '>', value: 0.05, action: 'REJECT' },
+    ],
+  },
+  {
+    id: 'tpl-pdpa-singapore',
+    category: 'PII / Data privacy', country: 'SG', subcategory: 'PDPA — consent obligation',
+    name: 'PDPA consent gate',
+    desc: 'Rejects on real-time PII detection under Singapore’s pattern pack (NRIC/FIN), aligned to the PDPA’s consent-obligation intent.',
+    color: '#0e7490',
+    rules: [{ id: uuidv4(), metric: 'pii_detected', operator: '=', value: 1, action: 'REJECT' }],
+  },
+  {
+    id: 'tpl-pdpl-uae',
+    category: 'PII / Data privacy', country: 'AE', subcategory: 'PDPL (Federal Decree-Law No. 45 of 2021)',
+    name: 'UAE data processing gate',
+    desc: 'Rejects on real-time PII detection under the UAE pattern pack (Emirates ID), aligned to the PDPL’s data-processing-principles intent.',
+    color: '#164e63',
+    rules: [{ id: uuidv4(), metric: 'pii_detected', operator: '=', value: 1, action: 'REJECT' }],
+  },
+  {
+    id: 'tpl-privacy-act-au',
+    category: 'PII / Data privacy', country: 'AU', subcategory: 'Privacy Act 1988 — APP 11 (security)',
+    name: 'Australian Privacy Principles gate',
+    desc: 'Rejects on real-time PII detection under Australia’s pattern pack (TFN), aligned to APP 11’s security-of-personal-information intent.',
+    color: '#0c4a6e',
+    rules: [{ id: uuidv4(), metric: 'pii_detected', operator: '=', value: 1, action: 'REJECT' }],
+  },
+  {
     id: 'tpl-soc2',
-    category: 'SOC 2',
+    category: 'SOC 2', country: 'US', subcategory: 'CC7 — System Monitoring',
     name: 'Change-control cost ceiling',
     desc: 'Retries transient cost spikes and blocks executions past your latency SLA — gives auditors a bounded, observable trail for SOC 2 CC7 monitoring evidence.',
     color: '#475569',
@@ -129,32 +181,33 @@ const TEMPLATES = [
   },
   {
     id: 'tpl-iso27001',
-    category: 'ISO 27001',
+    category: 'ISO 27001', country: '', subcategory: 'Annex A.9 — Access control',
     name: 'Information security guardrail',
-    desc: 'Rejects high-risk executions in line with ISO 27001 Annex A access-control and risk-treatment requirements.',
+    desc: 'Rejects high-risk executions in line with ISO 27001 Annex A access-control and risk-treatment requirements. International standard — not tied to one country.',
     color: '#9333ea',
     rules: [{ id: uuidv4(), metric: 'risk', operator: '>', value: 0.5, action: 'REJECT' }],
   },
   {
     id: 'tpl-gdpr',
-    category: 'GDPR',
+    category: 'GDPR', country: 'EU', subcategory: 'Article 5 & 25 — data minimization by design',
     name: 'Data minimization gate',
-    desc: 'Blocks high-risk executions and caps cost, keeping AI-driven personal-data processing bounded and reviewable under GDPR Art. 5 & 25.',
+    desc: 'Rejects on real-time PII detection plus a cost cap, keeping AI-driven personal-data processing bounded and reviewable under GDPR Art. 5 & 25.',
     color: '#065f46',
     rules: [
-      { id: uuidv4(), metric: 'risk', operator: '>', value: 0.5,  action: 'REJECT' },
-      { id: uuidv4(), metric: 'cost', operator: '>', value: 0.05, action: 'REJECT' },
+      { id: uuidv4(), metric: 'pii_detected', operator: '=', value: 1,    action: 'REJECT' },
+      { id: uuidv4(), metric: 'cost',         operator: '>', value: 0.05, action: 'REJECT' },
     ],
   },
   {
     id: 'tpl-eu-ai-act',
-    category: 'EU AI Act',
+    category: 'EU AI Act', country: 'EU', subcategory: 'Article 9 — risk management system',
     name: 'High-risk system gate',
-    desc: 'For AI systems classified high-risk under the EU AI Act — rejects on elevated risk score and retries on cost overrun, supporting Article 9 risk-management obligations.',
+    desc: 'For AI systems classified high-risk under the EU AI Act — rejects on elevated risk score, actual injection detection, and retries on cost overrun, supporting Article 9 risk-management obligations.',
     color: '#c026d3',
     rules: [
-      { id: uuidv4(), metric: 'risk', operator: '>', value: 0.4,  action: 'REJECT' },
-      { id: uuidv4(), metric: 'cost', operator: '>', value: 0.10, action: 'RETRY' },
+      { id: uuidv4(), metric: 'risk',           operator: '>', value: 0.4,  action: 'REJECT' },
+      { id: uuidv4(), metric: 'injection_risk', operator: '>', value: 0.5,  action: 'REJECT' },
+      { id: uuidv4(), metric: 'cost',           operator: '>', value: 0.10, action: 'RETRY' },
     ],
   },
 ];
@@ -162,11 +215,18 @@ const TEMPLATES = [
 // ── Template library modal ────────────────────────────────────────────────────
 function TemplateLibrary({ onSelect, onClose }) {
   const categories = [...new Set(TEMPLATES.map(t => t.category))];
-  const [activeCategory, setActiveCategory] = useState('All');
+  // Only countries an actual template uses — "All" plus whichever of
+  // COUNTRIES' codes appear in TEMPLATES, in COUNTRIES' own order.
+  const countryCodes = new Set(TEMPLATES.map(t => t.country).filter(Boolean));
+  const countryOptions = COUNTRIES.filter(c => countryCodes.has(c.value));
 
-  const filtered = activeCategory === 'All'
-    ? TEMPLATES
-    : TEMPLATES.filter(t => t.category === activeCategory);
+  const [activeCategory, setActiveCategory] = useState('All');
+  const [activeCountry, setActiveCountry]   = useState('All');
+
+  const filtered = TEMPLATES.filter(t =>
+    (activeCategory === 'All' || t.category === activeCategory) &&
+    (activeCountry  === 'All' || t.country  === activeCountry)
+  );
 
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
@@ -180,7 +240,7 @@ function TemplateLibrary({ onSelect, onClose }) {
         </div>
 
         {/* Category filter */}
-        <div className="px-5 py-3 border-b border-slate-100 flex gap-2 flex-wrap shrink-0">
+        <div className="px-5 pt-3 pb-2 border-b border-slate-100 flex gap-2 flex-wrap shrink-0">
           {['All', ...categories].map(cat => (
             <button key={cat}
               onClick={() => setActiveCategory(cat)}
@@ -192,6 +252,20 @@ function TemplateLibrary({ onSelect, onClose }) {
           ))}
         </div>
 
+        {/* Country filter */}
+        <div className="px-5 pt-2 pb-3 border-b border-slate-100 flex items-center gap-2 flex-wrap shrink-0">
+          <span className="text-2xs font-semibold text-slate-400 uppercase tracking-wide mr-1">Country</span>
+          {['All', ...countryOptions.map(c => c.value)].map(code => (
+            <button key={code || 'all'}
+              onClick={() => setActiveCountry(code)}
+              className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
+                activeCountry === code ? 'bg-amber-500 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+              }`}>
+              {code === 'All' ? 'All' : countryOptions.find(c => c.value === code)?.label}
+            </button>
+          ))}
+        </div>
+
         {/* Templates grid */}
         <div className="overflow-y-auto p-5 grid grid-cols-1 sm:grid-cols-2 gap-3">
           {filtered.map(tpl => (
@@ -199,13 +273,23 @@ function TemplateLibrary({ onSelect, onClose }) {
               onClick={() => { onSelect(tpl); onClose(); }}
               className="text-left p-4 rounded-xl border border-slate-200 hover:border-blue-300 hover:shadow-sm transition-all group">
               <div className="flex items-start justify-between mb-2">
-                <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full"
-                  style={{ backgroundColor: `${tpl.color}18`, color: tpl.color }}>
-                  {tpl.category}
-                </span>
-                <Plus size={13} className="text-slate-300 group-hover:text-blue-500 transition-colors" />
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full"
+                    style={{ backgroundColor: `${tpl.color}18`, color: tpl.color }}>
+                    {tpl.category}
+                  </span>
+                  {tpl.country && (
+                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-50 text-amber-700">
+                      {COUNTRIES.find(c => c.value === tpl.country)?.label ?? tpl.country}
+                    </span>
+                  )}
+                </div>
+                <Plus size={13} className="text-slate-300 group-hover:text-blue-500 transition-colors shrink-0" />
               </div>
               <p className="text-sm font-semibold text-slate-800 mb-1">{tpl.name}</p>
+              {tpl.subcategory && (
+                <p className="text-[11px] text-slate-400 font-medium mb-1">{tpl.subcategory}</p>
+              )}
               <p className="text-xs text-slate-500 leading-relaxed">{tpl.desc}</p>
               <div className="mt-3 flex flex-wrap gap-1">
                 {tpl.rules.map((r, i) => (
@@ -398,6 +482,8 @@ export default function PolicyBuilder({ keycloak }) {
       policyId: null,
       name: tpl.name,
       category: tpl.category,
+      country: tpl.country || null,
+      subcategory: tpl.subcategory || null,
       rules: tpl.rules.map(r => ({ ...r, id: uuidv4() })),
     }, ...p]);
   }
