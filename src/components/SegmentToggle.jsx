@@ -47,6 +47,7 @@ const CONTENT = {
     ],
     ctaText: 'See it in the platform',
     ctaTarget: '#platform',
+    target: 'Built for mid-market and enterprise teams — financial services, healthcare, insurance, government, and SaaS — running 3+ LLM or agent use cases in production, where security and compliance are already asking hard questions.',
   },
   transition: {
     stageColor: C.stageTransition,
@@ -61,6 +62,7 @@ const CONTENT = {
     ],
     ctaText: 'See how we build it',
     ctaTarget: '#features',
+    target: 'The same regulated, risk-sensitive organizations — financial services, healthcare, insurance, government, and SaaS — now weighing cost, timeline, and how to execute a first AI rollout without creating a compliance problem later.',
   },
 };
 
@@ -243,6 +245,22 @@ export default function SegmentToggle({ hero = false, knowMoreTarget = '#hero-se
             Or talk to us directly
           </a>
         </div>
+
+        {/* TARGET strip — who this is built for, matching the reference
+            design's audience-context line. minHeight keeps the strip's
+            height stable across the two states' differently-sized copy. */}
+        {hero && (
+          <div style={{ borderTop: `1px solid ${C.border}`, borderBottom: `1px solid ${C.border}`, marginTop: 40, padding: '22px 0' }}>
+            <div style={{ display: 'flex', gap: 18, alignItems: 'flex-start', maxWidth: 760, margin: '0 auto' }}>
+              <span style={{ fontFamily: C.mono, fontSize: 11, letterSpacing: '0.1em', color: c.stageColor, paddingTop: 3, whiteSpace: 'nowrap', transition: 'color 0.5s ease' }}>
+                TARGET
+              </span>
+              <p style={{ margin: 0, color: C.textMuted, fontSize: 14.5, lineHeight: 1.65, minHeight: 66 }}>
+                {c.target}
+              </p>
+            </div>
+          </div>
+        )}
       </div>
     </section>
   );
