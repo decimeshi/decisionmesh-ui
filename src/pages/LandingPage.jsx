@@ -1,7 +1,8 @@
 import { useAuth } from 'react-oidc-context';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { INVITE_TOKEN_KEY } from '../utils/inviteToken';
 import { ACCELERATORS } from '../data/accelerators';
+import SegmentToggle from '../components/SegmentToggle';
 
 // Emoji per accelerator, matching this file's own icon convention (INDUSTRIES
 // below uses ind.emoji, not lucide-react, which this file doesn't import at
@@ -246,7 +247,6 @@ function NavBar({ onLogin, onRegister }) {
               The Trust Infrastructure<br />for Intelligent Systems
             </span>
           </div>
-          <span style={{ fontSize: 9, fontWeight: 700, color: '#7eb8d4', background: 'rgba(46,124,184,0.12)', border: '1px solid rgba(46,124,184,0.30)', borderRadius: 4, padding: '2px 6px', letterSpacing: '0.8px' }}>BETA</span>
         </div>
 
         {/* Desktop links */}
@@ -1698,6 +1698,7 @@ function Footer() {
 // ── Main ──────────────────────────────────────────────────────────────────────
 export default function LandingPage() {
   const auth = useAuth();
+
   // A stale invite token can be left in sessionStorage if someone previewed
   // an invite link, abandoned it, then came back here to register or log in
   // directly — without this, AppWrapper would route their fresh signup into
@@ -1739,10 +1740,32 @@ export default function LandingPage() {
       `}</style>
       <div style={{ minHeight: '100vh', background: C.bg }}>
         <NavBar onLogin={handleLogin} onRegister={handleRegister} />
-        <Hero onRegister={handleRegister} onLogin={handleLogin} />
-        <ExecutionFlowSection />
-        <HourglassSection />
+        {/* Full-screen hero toggle — the whole first-load impression, right
+            below the fixed nav (paddingTop clears it). "Know more" scrolls
+            to #hero-section rather than gating/revealing anything: every
+            other section is always mounted below it now, so there is
+            nothing left to reveal. The compact embedded SegmentToggle that
+            used to sit again right after Hero was removed — showing the
+            same toggle twice, seconds apart, was redundant once this one
+            is always the first thing visitors see. */}
+        <div style={{ height: '100vh', paddingTop: 58, display: 'flex', flexDirection: 'column', justifyContent: 'center', overflow: 'hidden', boxSizing: 'border-box' }}>
+          <SegmentToggle hero knowMoreTarget="#hero-section" />
+        </div>
         <FourPillarsSection />
+        {/* Hero temporarily hidden to preview the page without it — the
+            toggle above already carries the hero role now, so this was
+            redundant (its own "Now in beta" badge, headline, and pipeline
+            demo repeating what the toggle just established). #hero-section
+            (the "Know more" scroll target) moved to ExecutionFlowSection so
+            that link still resolves while this is commented out.
+        <div id="hero-section">
+          <Hero onRegister={handleRegister} onLogin={handleLogin} />
+        </div>
+        */}
+        <div id="hero-section">
+          <ExecutionFlowSection />
+        </div>
+        <HourglassSection />
         <CategorySection />
         <ComparisonSection />
         <CIOQuestionsSection />
