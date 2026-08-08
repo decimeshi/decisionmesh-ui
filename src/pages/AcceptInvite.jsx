@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Loader2, Mail, CheckCircle2, XCircle } from 'lucide-react';
-import { previewInvitation, acceptInvitation, ensureUser, setActiveTenant, setCurrentProject } from '../utils/api';
+import { previewInvitation, acceptInvitation, declineInvitation, ensureUser, setActiveTenant, setCurrentProject } from '../utils/api';
 import { INVITE_TOKEN_KEY } from '../utils/inviteToken';
 
 
@@ -16,6 +16,9 @@ export default function AcceptInvite({ token, auth, keycloak, onConsumed }) {
   const [accepting, setAccepting] = useState(false);
   const [acceptError, setAcceptError] = useState('');
   const [accepted, setAccepted] = useState(false);
+  const [declining, setDeclining] = useState(false);
+  const [declineError, setDeclineError] = useState('');
+  const [declined, setDeclined] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -53,7 +56,7 @@ export default function AcceptInvite({ token, auth, keycloak, onConsumed }) {
   // message and the manual retry button instead of looping.
   useEffect(() => {
     if (auth?.isAuthenticated && preview && !preview.expired && preview.status === 'PENDING'
-        && !accepted && !accepting && !acceptError) {
+        && !accepted && !accepting && !acceptError && !declined && !declining) {
       handleAccept();
     }
   }, [auth?.isAuthenticated, preview]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -123,6 +126,27 @@ export default function AcceptInvite({ token, auth, keycloak, onConsumed }) {
     }
   }
 
+  async function handleDecline() {
+    setDeclining(true);
+    setDeclineError('');
+    try {
+      await declineInvitation(keycloak, token);
+      onConsumed?.();
+      setDeclined(true);
+    } catch (err) {
+      const msg = err?.message || '';
+      if (msg.includes('invitation-expired')) {
+        setDeclineError('This invitation has expired.');
+      } else if (msg.includes('invitation-already-accepted')) {
+        setDeclineError('This invitation has already been accepted.');
+      } else {
+        setDeclineError('Could not decline this invitation. Please try again.');
+      }
+    } finally {
+      setDeclining(false);
+    }
+  }
+
   return (
     <div style={styles.overlay}>
       <div style={styles.card}>
@@ -156,7 +180,15 @@ export default function AcceptInvite({ token, auth, keycloak, onConsumed }) {
           </>
         )}
 
-        {!loading && !loadError && preview && !accepted && (
+        {!loading && !loadError && preview && declined && (
+          <>
+            <div style={styles.center}><XCircle size={36} color="#64748b" /></div>
+            <h1 style={styles.title}>Invitation declined</h1>
+            <p style={styles.subtitle}>You won't be added to {preview.tenantName}.</p>
+          </>
+        )}
+
+        {!loading && !loadError && preview && !accepted && !declined && (
           <>
             <div style={styles.center}><Mail size={32} color="#2563eb" /></div>
             <h1 style={styles.title}>You're invited to {preview.tenantName}</h1>
@@ -177,6 +209,7 @@ export default function AcceptInvite({ token, auth, keycloak, onConsumed }) {
             {!preview.expired && preview.status === 'PENDING' && (
               <>
                 {acceptError && <p style={styles.error}>{acceptError}</p>}
+                {declineError && <p style={styles.error}>{declineError}</p>}
 
                 {!auth?.isAuthenticated ? (
                   preview.alreadyRegistered ? (
@@ -212,10 +245,21 @@ export default function AcceptInvite({ token, auth, keycloak, onConsumed }) {
                     </>
                   )
                 ) : (
-                  <button style={styles.btn} onClick={handleAccept} disabled={accepting}>
-                    {accepting ? <Loader2 size={16} style={{ animation: 'spin 0.8s linear infinite' }} /> : null}
-                    Accept invitation
-                  </button>
+                  <>
+                    <button style={styles.btn} onClick={handleAccept} disabled={accepting || declining}>
+                      {accepting ? <Loader2 size={16} style={{ animation: 'spin 0.8s linear infinite' }} /> : null}
+                      Accept invitation
+                    </button>
+                    <p style={styles.subtitle}>
+                      <a
+                        href="#"
+                        onClick={e => { e.preventDefault(); if (!accepting && !declining) handleDecline(); }}
+                        style={{ color: '#64748b', fontWeight: 600 }}
+                      >
+                        {declining ? 'Declining…' : 'Decline invitation'}
+                      </a>
+                    </p>
+                  </>
                 )}
               </>
             )}
