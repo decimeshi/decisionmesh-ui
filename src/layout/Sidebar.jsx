@@ -9,7 +9,7 @@ import {
   Check, Palette, CreditCard, Receipt,
   Bug, Library, MessageSquarePlus, TestTube2,
   Users, Coins, Webhook, HeartPulse, Zap, BookOpen, ShieldAlert, DollarSign,
-  Trash2, Globe2, Building2, Plug, Layers, Rocket, Plus, Loader2,
+  Trash2, Globe2, Building2, Plug, Layers, Rocket, Plus, Loader2, Lock,
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { useProject } from '../context/ProjectContext';
@@ -62,6 +62,7 @@ const NAV = [
       { label: 'Intent Library',icon: Library,         to: '/intent-library' },
       { label: 'Intents',       icon: ListOrdered,     to: '/intents'        },
       { label: 'Policies',      icon: ShieldCheck,     to: '/policies'       },
+      { label: 'Guardrails',    icon: Lock,            to: '/guardrails'     },
       { label: 'Adapters',      icon: Puzzle,          to: '/adapters'       },
     ],
   },

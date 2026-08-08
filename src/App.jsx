@@ -32,6 +32,7 @@ const IntentDetail     = lazy(() => import('./pages/IntentDetail'));
 const ExecutionMonitor = lazy(() => import('./pages/ExecutionMonitor'));
 const Adapters         = lazy(() => import('./pages/Adapters'));
 const PolicyBuilder    = lazy(() => import('./pages/PolicyBuilder'));
+const Guardrails       = lazy(() => import('./pages/Guardrails'));
 const CostAnalytics    = lazy(() => import('./pages/CostAnalytics'));
 const AiSpend           = lazy(() => import('./pages/AiSpend'));
 const DriftDashboard   = lazy(() => import('./pages/DriftDashboard'));
@@ -148,6 +149,7 @@ export default function App({ keycloak }) {
                   <Route path="/executions"             element={<ExecutionMonitor keycloak={keycloak} />} />
                   <Route path="/adapters"               element={<Adapters         keycloak={keycloak} />} />
                   <Route path="/policies"               element={<PolicyBuilder    keycloak={keycloak} />} />
+                  <Route path="/guardrails"              element={<Guardrails       />} />
                   <Route path="/analytics/cost"         element={<CostAnalytics    keycloak={keycloak} />} />
                   {/* CXO AI spend — gated on canViewSpend, resolved server-side by
                     AuthCapabilitiesResource from the same checks SpendResource enforces
