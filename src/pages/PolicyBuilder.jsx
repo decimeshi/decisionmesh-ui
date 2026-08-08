@@ -13,6 +13,29 @@ const ACTIONS   = ['REJECT', 'FALLBACK', 'RETRY'];
 const NEW_RULE   = () => ({ id: uuidv4(), metric: 'cost', operator: '>', value: 0.01, action: 'REJECT' });
 const NEW_POLICY = () => ({ name: '', rules: [NEW_RULE()] });
 
+// ── Regulatory taxonomy (Phase 1 — organizational tagging only) ────────────
+// country mirrors PiiJurisdiction's codes (US/UK/IN/EU/SG/AE/AU) so a later
+// phase can connect this to a tenant's actual PII jurisdiction config
+// without a second, incompatible vocabulary. CATEGORIES reuses the exact
+// strings TEMPLATES below already use as tpl.category, so a policy created
+// from a template is tagged consistently with the library it came from.
+const COUNTRIES = [
+  { value: '',    label: 'Not specified' },
+  { value: 'US',  label: 'United States' },
+  { value: 'UK',  label: 'United Kingdom' },
+  { value: 'IN',  label: 'India' },
+  { value: 'EU',  label: 'European Union' },
+  { value: 'SG',  label: 'Singapore' },
+  { value: 'AE',  label: 'UAE' },
+  { value: 'AU',  label: 'Australia' },
+];
+
+const CATEGORIES = [
+  'Cost control', 'Performance', 'Safety', 'Reliability',
+  'PII / Data privacy', 'Healthcare / HIPAA', 'Financial services',
+  'SOC 2', 'ISO 27001', 'GDPR', 'EU AI Act',
+];
+
 // ── Industry starter templates from product site ──────────────────────────────
 const TEMPLATES = [
   {
@@ -254,6 +277,16 @@ function PolicyCard({ policy, projects, onSave, onDelete }) {
           }`}>
             {scopeLabel}
           </span>
+          {form.category && (
+            <span className="text-[10px] font-medium px-2 py-0.5 rounded-full shrink-0 bg-blue-50 text-blue-700">
+              {form.category}
+            </span>
+          )}
+          {form.country && (
+            <span className="text-[10px] font-medium px-2 py-0.5 rounded-full shrink-0 bg-amber-50 text-amber-700">
+              {COUNTRIES.find(c => c.value === form.country)?.label ?? form.country}
+            </span>
+          )}
         </div>
         <div className="flex gap-2">
           {dirty && <Button size="sm" loading={saving} onClick={handleSave}>Save</Button>}
@@ -273,6 +306,33 @@ function PolicyCard({ policy, projects, onSave, onDelete }) {
           </select>
         </div>
 
+        <div className="grid grid-cols-3 gap-2">
+          <div>
+            <label className="block text-[11px] font-medium text-slate-500 mb-1">Country</label>
+            <select value={form.country ?? ''}
+              onChange={e => { setForm(f => ({ ...f, country: e.target.value || null })); setDirty(true); }}
+              className="w-full text-xs border border-slate-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
+              {COUNTRIES.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="block text-[11px] font-medium text-slate-500 mb-1">Category</label>
+            <select value={form.category ?? ''}
+              onChange={e => { setForm(f => ({ ...f, category: e.target.value || null })); setDirty(true); }}
+              className="w-full text-xs border border-slate-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
+              <option value="">Uncategorized</option>
+              {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="block text-[11px] font-medium text-slate-500 mb-1">Subcategory</label>
+            <input value={form.subcategory ?? ''}
+              onChange={e => { setForm(f => ({ ...f, subcategory: e.target.value })); setDirty(true); }}
+              placeholder="e.g. Right to erasure"
+              className="w-full text-xs border border-slate-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500"/>
+          </div>
+        </div>
+
         <p className="text-xs text-slate-400 font-medium uppercase tracking-wide">Rules (all apply)</p>
         {form.rules.map(r => (
           <RuleRow key={r.id} rule={r} onChange={u => updateRule(r.id, u)} onDelete={() => removeRule(r.id)}/>
@@ -290,6 +350,8 @@ export default function PolicyBuilder({ keycloak }) {
   const [policies, setPolicies]     = useState([]);
   const [loading, setLoading]       = useState(true);
   const [showTemplates, setShowTemplates] = useState(false);
+  const [filterCountry, setFilterCountry]   = useState('');
+  const [filterCategory, setFilterCategory] = useState('');
   const { projects } = useProject();
   // 'proj-default' is ProjectContext's placeholder before the real list loads —
   // never a selectable project (same guard Adapters.jsx uses).
@@ -301,6 +363,12 @@ export default function PolicyBuilder({ keycloak }) {
   }
 
   useEffect(() => { load(); }, [keycloak]);
+
+  const filteredPolicies = policies.filter(p =>
+    (!filterCountry  || p.country  === filterCountry) &&
+    (!filterCategory || p.category === filterCategory)
+  );
+  const hasFilters = filterCountry || filterCategory;
 
   async function handleSave(policy) { await savePolicy(keycloak, policy); load(); }
   async function handleDelete(id)   {
@@ -316,6 +384,7 @@ export default function PolicyBuilder({ keycloak }) {
     setPolicies(p => [{
       policyId: null,
       name: tpl.name,
+      category: tpl.category,
       rules: tpl.rules.map(r => ({ ...r, id: uuidv4() })),
     }, ...p]);
   }
@@ -346,6 +415,27 @@ export default function PolicyBuilder({ keycloak }) {
         </div>
       )}
 
+      {!loading && policies.length > 0 && (
+        <div className="flex items-center gap-2 flex-wrap">
+          <select value={filterCountry} onChange={e => setFilterCountry(e.target.value)}
+            className="text-xs border border-slate-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
+            <option value="">All countries</option>
+            {COUNTRIES.filter(c => c.value).map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
+          </select>
+          <select value={filterCategory} onChange={e => setFilterCategory(e.target.value)}
+            className="text-xs border border-slate-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
+            <option value="">All categories</option>
+            {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+          </select>
+          {hasFilters && (
+            <button onClick={() => { setFilterCountry(''); setFilterCategory(''); }}
+              className="text-xs text-slate-400 hover:text-slate-600">
+              Clear filters
+            </button>
+          )}
+        </div>
+      )}
+
       {loading ? (
         <div className="flex justify-center py-16"><Spinner className="w-8 h-8"/></div>
       ) : policies.length === 0 ? (
@@ -359,9 +449,15 @@ export default function PolicyBuilder({ keycloak }) {
               </div>
             }/>
         </Card>
+      ) : filteredPolicies.length === 0 ? (
+        <Card>
+          <EmptyState icon={<ShieldCheck size={22}/>} title="No policies match these filters"
+            description="Try a different country or category, or clear the filters."
+            action={<Button variant="secondary" onClick={() => { setFilterCountry(''); setFilterCategory(''); }}>Clear filters</Button>}/>
+        </Card>
       ) : (
         <div className="space-y-4">
-          {policies.map((p, i) => (
+          {filteredPolicies.map((p, i) => (
             <PolicyCard key={p.policyId ?? i} policy={p} projects={realProjects} onSave={handleSave} onDelete={handleDelete}/>
           ))}
         </div>
