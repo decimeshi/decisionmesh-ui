@@ -6,7 +6,12 @@ import { Card, CardHeader, CardTitle, CardContent, Button, EmptyState, Spinner }
 import { listPolicies, savePolicy, deletePolicy } from '../utils/api';
 import { useProject } from '../context/ProjectContext';
 
-const METRICS   = ['cost', 'latency', 'risk'];
+// pii_detected / injection_risk (Phase 2 of the regulatory policy model) are
+// content/context signals rather than cost-style thresholds — pii_detected
+// is 0 or 1 (use operator "=" with value 1), injection_risk is a 0-1 score
+// like risk. Both only resolve once planning has run (null, so the rule is
+// skipped, before that) — see IntentCentricPolicyEngine.resolveMetric().
+const METRICS   = ['cost', 'latency', 'risk', 'pii_detected', 'injection_risk'];
 const OPERATORS = ['>', '<', '='];
 const ACTIONS   = ['REJECT', 'FALLBACK', 'RETRY'];
 
@@ -102,6 +107,14 @@ const TEMPLATES = [
     desc: 'Reject high-risk executions before personal data can leave the pipeline. A general-purpose guardrail for any flow that may touch PII.',
     color: '#0891b2',
     rules: [{ id: uuidv4(), metric: 'risk', operator: '>', value: 0.6, action: 'REJECT' }],
+  },
+  {
+    id: 'tpl-pii-detected',
+    category: 'PII / Data privacy',
+    name: 'Real-time PII detection gate',
+    desc: 'Blocks the moment personal data is actually detected by the scan — not a risk-score approximation. Only fires once planning has run.',
+    color: '#0e7490',
+    rules: [{ id: uuidv4(), metric: 'pii_detected', operator: '=', value: 1, action: 'REJECT' }],
   },
   {
     id: 'tpl-soc2',

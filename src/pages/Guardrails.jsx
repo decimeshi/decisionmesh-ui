@@ -38,7 +38,7 @@ const STEPS = [
   },
   {
     stage: 'PRE_SUBMISSION', type: 'configurable', name: 'Your policies (pre-submission)',
-    desc: 'Reserved for policies scoped to this stage — empty in practice today. Policy Builder has no phase selector, so every rule you save lands at Post-execution instead (see below), since its only metrics (cost, latency, risk) don’t exist until an execution has actually happened.',
+    desc: 'Reserved for policies scoped to this stage — empty in practice today. Policy Builder has no phase selector, so every rule you save lands at Post-execution instead (see below). None of the current metrics resolve this early either way — pii_detected/injection_risk need Planning to have run, cost/latency/risk need an execution to have happened.',
   },
   {
     stage: 'PRE_SUBMISSION', type: 'built-in', name: 'Budget validation',
@@ -66,7 +66,7 @@ const STEPS = [
   },
   {
     stage: 'PRE_EXECUTION', type: 'configurable', name: 'Your policies (pre-execution)',
-    desc: 'Same reservation as pre-submission — nothing fires here today for the same reason.',
+    desc: 'pii_detected and injection_risk actually resolve from here onward (Planning has already run) — but Policy Builder still saves every rule to Post-execution regardless, so this slot stays empty until a phase selector exists to actually reach it.',
   },
   {
     stage: 'EXECUTING', type: 'built-in', name: 'PII egress scan',
@@ -85,7 +85,7 @@ const STEPS = [
   },
   {
     stage: 'POST_EXECUTION', type: 'configurable', name: 'Your policies (post-execution)',
-    desc: 'Every rule built in Policy Builder lands here today — cost, latency, and risk thresholds, each Log-only or Enforce, evaluated against the completed execution.',
+    desc: 'Every rule built in Policy Builder lands here today — cost, latency, and risk thresholds, plus pii_detected and injection_risk (content/context signals, not just numbers), each Log-only or Enforce, evaluated against the completed execution. Each policy can also be tagged with a country — see Policy Builder — and only applies when that jurisdiction is one the tenant is actually configured to operate in.',
     highlight: true,
   },
 ];
