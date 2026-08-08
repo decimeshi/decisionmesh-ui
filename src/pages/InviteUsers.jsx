@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { UserPlus, Copy, Trash2, Mail, Users, Check, Clock, Shield, Eye } from 'lucide-react';
+import { UserPlus, Copy, Trash2, Mail, Users, Check, Clock, Shield, Eye, AlertCircle } from 'lucide-react';
 import Page from '../components/shared/Page';
 import { Card, CardHeader, CardTitle, CardContent, Button, Spinner, EmptyState } from '../components/shared';
 import { formatDate, formatRelative } from '../lib/utils';
@@ -229,6 +229,7 @@ export default function InviteUsers({ keycloak }) {
   const [loading,     setLoading]     = useState(true);
   const [copied,      setCopied]      = useState(null);
   const [editRole,    setEditRole]    = useState(null); // { userId, current }
+  const [actionError, setActionError] = useState('');
 
   async function load() {
     try {
@@ -256,16 +257,23 @@ export default function InviteUsers({ keycloak }) {
     try { await revokeInvitation(keycloak, id); load(); } catch { /* ignore */ }
   }
 
+  // Silently swallowing these two used to hide real failures — most
+  // importantly the last-Owner guard: clicking remove/demote on a
+  // tenant's sole Owner now correctly gets rejected, and the caller needs
+  // to actually see why nothing happened instead of it looking broken.
   async function handleRemoveMember(userId) {
-    try { await removeMember(keycloak, userId); load(); } catch { /* ignore */ }
+    setActionError('');
+    try { await removeMember(keycloak, userId); load(); }
+    catch (err) { setActionError(err?.message || 'Could not remove this member.'); }
   }
 
   async function handleRoleChange(userId, newRole) {
+    setActionError('');
     try {
       await updateMemberRole(keycloak, userId, newRole);
       setEditRole(null);
       load();
-    } catch { /* ignore */ }
+    } catch (err) { setActionError(err?.message || 'Could not change this member\'s role.'); }
   }
 
   const pending = invitations.filter(i => i.status === 'PENDING');
@@ -275,6 +283,14 @@ export default function InviteUsers({ keycloak }) {
       title="Team members"
       subtitle="Invite colleagues and manage access to your tenant"
     >
+      {actionError && (
+        <div className="flex items-center gap-2.5 px-4 py-3 rounded-xl text-sm font-medium border bg-red-50 border-red-200 text-red-800">
+          <AlertCircle size={14} className="shrink-0" />
+          {actionError}
+          <button onClick={() => setActionError('')} className="ml-auto opacity-50 hover:opacity-100">✕</button>
+        </div>
+      )}
+
       {/* Invite form */}
       <InviteForm keycloak={keycloak} onInvited={load} />
 

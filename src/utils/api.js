@@ -363,6 +363,10 @@ export async function acceptInvitation(keycloak, token) {
   return request(keycloak, `/invitations/accept/${token}`, { method: 'POST' });
 }
 
+export async function declineInvitation(keycloak, token) {
+  return request(keycloak, `/invitations/decline/${token}`, { method: 'POST' });
+}
+
 export async function updateMemberRole(keycloak, userId, role) {
   return request(keycloak, `/members/${userId}/role`, {
     method: 'PATCH',
