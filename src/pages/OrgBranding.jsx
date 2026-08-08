@@ -1,7 +1,7 @@
-import { useState, useRef } from 'react';
-import { Upload, Palette, Type, Check, RefreshCw, Eye } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react';
+import { Upload, Palette, Type, Check, RefreshCw, Eye, Globe2, AlertTriangle } from 'lucide-react';
 import Page from '../components/shared/Page';
-import { Card, CardHeader, CardTitle, CardContent, Button } from '../components/shared';
+import { Card, CardHeader, CardTitle, CardContent, Button, Spinner } from '../components/shared';
 import { useBranding, DEFAULT_BRANDING } from '../context/BrandingContext';
 import { request } from '../utils/api';
 
@@ -63,6 +63,129 @@ function ColorField({ label, hint, value, onSelect, onTypeChange }) {
         <div className="w-8 h-8 rounded-lg border border-slate-100 shrink-0" style={{ background: value }} />
       </div>
     </div>
+  );
+}
+
+// ── PII detection jurisdictions ─────────────────────────────────────────────
+// Self-contained: its own load/save cycle against /api/org/compliance/
+// jurisdictions, deliberately independent of the branding form's save/reset
+// state above — these are unrelated settings (compliance vs. cosmetics) that
+// happen to share this page because it's the only existing tenant-admin
+// settings surface; a dedicated Compliance page didn't exist and one control
+// didn't justify building a whole new page + nav item + route for it.
+//
+// Built because TenantJurisdictionService already reads a real
+// tenants.pii_jurisdictions column with a working cache/fail-safe, but
+// nothing anywhere let a tenant admin actually set it — every tenant was
+// silently scanned under the platform default (India-only) regardless of
+// where they actually operate.
+function PiiJurisdictionsCard({ keycloak }) {
+  const [available,    setAvailable]    = useState([]);
+  const [selected,     setSelected]     = useState([]);
+  const [effective,    setEffective]    = useState([]);
+  const [usingDefault, setUsingDefault] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [saving,  setSaving]  = useState(false);
+  const [saved,   setSaved]   = useState(false);
+  const [error,   setError]   = useState('');
+
+  async function load() {
+    setLoading(true);
+    try {
+      const data = await request(keycloak, '/org/compliance/jurisdictions');
+      setAvailable(data.available ?? []);
+      setSelected(data.configured ?? []);
+      setEffective(data.effective ?? []);
+      setUsingDefault(!!data.usingPlatformDefault);
+    } catch (err) {
+      setError(err?.message || 'Failed to load jurisdiction settings');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => { load(); }, [keycloak]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  function toggle(code) {
+    setSelected(s => s.includes(code) ? s.filter(c => c !== code) : [...s, code]);
+  }
+
+  async function handleSave() {
+    setSaving(true);
+    setError('');
+    try {
+      await request(keycloak, '/org/compliance/jurisdictions', {
+        method: 'PUT',
+        body:   JSON.stringify({ jurisdictions: selected }),
+      });
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2500);
+      await load(); // refresh "effective"/usingPlatformDefault from what was actually persisted
+    } catch (err) {
+      setError(err?.message || 'Failed to save jurisdiction settings');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <div className="flex items-center gap-2">
+          <Globe2 size={13} className="text-slate-400" />
+          <CardTitle>PII detection jurisdictions</CardTitle>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <p className="text-xs text-slate-500 leading-relaxed">
+          Which countries&rsquo; PII patterns (national IDs, tax IDs, bank routing numbers, phone formats)
+          get scanned for in every intent before it reaches a model provider. Leaving this unconfigured
+          scans under the platform default only — not necessarily where you actually operate.
+        </p>
+
+        {loading ? (
+          <div className="flex justify-center py-6"><Spinner /></div>
+        ) : (
+          <>
+            {usingDefault && (
+              <div className="flex items-start gap-2 px-3 py-2 rounded-lg bg-amber-50 border border-amber-200">
+                <AlertTriangle size={13} className="text-amber-600 shrink-0 mt-0.5" />
+                <p className="text-xs text-amber-800">
+                  Not configured — currently scanning under the platform default
+                  ({effective.length ? effective.join(', ') : 'India'} only).
+                </p>
+              </div>
+            )}
+
+            <div className="flex flex-wrap gap-2">
+              {available.map(j => {
+                const active = selected.includes(j.code);
+                return (
+                  <button key={j.code} onClick={() => toggle(j.code)}
+                    className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
+                      active
+                        ? 'bg-blue-600 border-blue-600 text-white'
+                        : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300'
+                    }`}>
+                    {j.label}
+                  </button>
+                );
+              })}
+            </div>
+          </>
+        )}
+
+        {error && (
+          <div className="px-4 py-3 rounded-lg bg-red-50 border border-red-100">
+            <p className="text-sm text-red-600">{error}</p>
+          </div>
+        )}
+
+        <Button size="sm" loading={saving} disabled={loading} onClick={handleSave}>
+          {saved ? <><Check size={13} /> Saved</> : 'Save jurisdictions'}
+        </Button>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -436,6 +559,10 @@ export default function OrgBranding({ keycloak }) {
               <RefreshCw size={13} /> Reset to defaults
             </Button>
           </div>
+
+          {/* Compliance settings — unrelated to branding, own save cycle;
+              see PiiJurisdictionsCard's own comment for why it lives here. */}
+          <PiiJurisdictionsCard keycloak={keycloak} />
         </div>
 
         {/* ── Live preview ────────────────────────────────────────────────── */}
