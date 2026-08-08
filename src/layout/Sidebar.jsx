@@ -9,14 +9,14 @@ import {
   Check, Palette, CreditCard, Receipt,
   Bug, Library, MessageSquarePlus, TestTube2,
   Users, Coins, Webhook, HeartPulse, Zap, BookOpen, ShieldAlert, DollarSign,
-  Trash2, Globe2, Building2, Plug, Layers, Rocket,
+  Trash2, Globe2, Building2, Plug, Layers, Rocket, Plus, Loader2,
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { useProject } from '../context/ProjectContext';
 import { useCredits } from '../context/CreditContext';
 import { useCapabilities } from '../context/CapabilityContext';
 import { useBranding } from '../context/BrandingContext';
-import { getMyOrganizations, setActiveTenant, getActiveTenant } from '../utils/api';
+import { getMyOrganizations, setActiveTenant, getActiveTenant, createOrganization } from '../utils/api';
 
 // BrandingContext's pre-fetch/no-override placeholder — see SidebarHeader
 // below for why this needs to be distinguished from a real override.
@@ -284,6 +284,10 @@ function OrgSwitcher({ keycloak }) {
   const [open, setOpen] = useState(false);
   const [orgs, setOrgs] = useState(null); // null = not fetched yet
   const [menuPos, setMenuPos] = useState(null); // viewport coords, computed on open
+  const [creating, setCreating] = useState(false);
+  const [companyName, setCompanyName] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [createError, setCreateError] = useState('');
   const btnRef = useRef(null);
   const menuRef = useRef(null);
   // Read fresh each render, not from org.id (that's the ORGANIZATION id,
@@ -336,14 +340,32 @@ function OrgSwitcher({ keycloak }) {
     window.location.href = '/';
   }
 
-  // Only render the switcher affordance at all once we know there's
-  // something to switch to — a single-org user sees a static header,
-  // same as before this feature existed.
-  if (orgs !== null && orgs.length <= 1) return null;
+  async function handleCreate() {
+    const name = companyName.trim();
+    if (!name || submitting) return;
+    setSubmitting(true);
+    setCreateError('');
+    try {
+      const result = await createOrganization(keycloak, { companyName: name });
+      // Same "leaving a project id from the old org behind is meaningless"
+      // reasoning as handleSwitch — lands the new org straight into
+      // ChooseProject's "nothing remembered" path instead of a stale id.
+      try { localStorage.removeItem('dm_active_project'); } catch { /* ignore */ }
+      setActiveTenant(result.tenantId);
+      window.location.href = '/';
+    } catch (err) {
+      setCreateError(err?.message || 'Could not create organisation. Please try again.');
+      setSubmitting(false);
+    }
+  }
+
+  // Unlike before "+ Create organization" existed, the switcher button now
+  // always renders — a single-org user still needs a way to reach it, not
+  // just users who already have more than one.
 
   return (
     <div className="relative shrink-0">
-      <button ref={btnRef} onClick={handleOpen} title="Switch organisation"
+      <button ref={btnRef} onClick={handleOpen} title="Organisations"
         className="p-1 rounded-md transition-colors"
         style={{ color: '#94a3b8' }}
         onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.08)'}
@@ -361,30 +383,74 @@ function OrgSwitcher({ keycloak }) {
           className="fixed w-64 bg-white rounded-xl border border-slate-200 overflow-hidden z-50"
           style={{ top: menuPos.top, left: menuPos.left, boxShadow: '0 8px 32px rgba(0,0,0,0.16)' }}
         >
-          <p className="px-3 py-2 text-2xs font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100">
-            Switch organisation
-          </p>
-          <div className="py-1 max-h-64 overflow-y-auto scrollbar-thin">
-            {orgs === null ? (
-              <p className="px-3 py-3 text-xs text-slate-400">Loading…</p>
-            ) : orgs.length === 0 ? (
-              <p className="px-3 py-3 text-xs text-slate-400">No organisations found.</p>
-            ) : orgs.map(o => {
-              const active = o.tenantId === currentTenantId;
-              return (
-                <button key={o.tenantId} onClick={() => handleSwitch(o.tenantId)}
-                  className="w-full flex items-center gap-2.5 px-3 py-2 text-[13px] text-left transition-colors"
-                  style={{ color: active ? '#2563eb' : '#334155', fontWeight: active ? 600 : 500 }}
-                  onMouseEnter={e => { if (!active) e.currentTarget.style.background = '#f8fafc'; }}
-                  onMouseLeave={e => { e.currentTarget.style.background = ''; }}
+          {orgs === null ? (
+            <p className="px-3 py-3 text-xs text-slate-400">Loading…</p>
+          ) : orgs.length > 1 ? (
+            <>
+              <p className="px-3 py-2 text-2xs font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100">
+                Switch organisation
+              </p>
+              <div className="py-1 max-h-64 overflow-y-auto scrollbar-thin">
+                {orgs.map(o => {
+                  const active = o.tenantId === currentTenantId;
+                  return (
+                    <button key={o.tenantId} onClick={() => handleSwitch(o.tenantId)}
+                      className="w-full flex items-center gap-2.5 px-3 py-2 text-[13px] text-left transition-colors"
+                      style={{ color: active ? '#2563eb' : '#334155', fontWeight: active ? 600 : 500 }}
+                      onMouseEnter={e => { if (!active) e.currentTarget.style.background = '#f8fafc'; }}
+                      onMouseLeave={e => { e.currentTarget.style.background = ''; }}
+                    >
+                      <Building2 size={13} className="shrink-0" style={{ color: active ? '#2563eb' : '#94a3b8' }} />
+                      <span className="flex-1 truncate">{o.tenantName}</span>
+                      {active && <Check size={12} className="shrink-0" style={{ color: '#2563eb' }} />}
+                    </button>
+                  );
+                })}
+              </div>
+            </>
+          ) : null}
+
+          {creating ? (
+            <div className={cn('p-3', orgs && orgs.length > 1 && 'border-t border-slate-100')}>
+              <input
+                autoFocus
+                value={companyName}
+                onChange={e => setCompanyName(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') handleCreate(); }}
+                placeholder="Organisation name"
+                className="w-full text-[13px] border border-slate-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              {createError && <p className="text-[11px] text-red-600 mt-1.5">{createError}</p>}
+              <div className="flex gap-2 mt-2">
+                <button onClick={handleCreate} disabled={submitting || !companyName.trim()}
+                  className="flex-1 flex items-center justify-center gap-1.5 text-[12px] font-semibold text-white rounded-lg py-1.5 disabled:opacity-50"
+                  style={{ background: '#2563eb' }}
                 >
-                  <Building2 size={13} className="shrink-0" style={{ color: active ? '#2563eb' : '#94a3b8' }} />
-                  <span className="flex-1 truncate">{o.tenantName}</span>
-                  {active && <Check size={12} className="shrink-0" style={{ color: '#2563eb' }} />}
+                  {submitting ? <Loader2 size={12} className="animate-spin" /> : null}
+                  Create
                 </button>
-              );
-            })}
-          </div>
+                <button
+                  onClick={() => { setCreating(false); setCompanyName(''); setCreateError(''); }}
+                  className="text-[12px] font-medium text-slate-500 rounded-lg px-3 py-1.5 hover:bg-slate-50"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          ) : (
+            <button onClick={() => setCreating(true)}
+              className={cn(
+                'w-full flex items-center gap-2.5 px-3 py-2 text-[13px] text-left transition-colors',
+                orgs && orgs.length > 1 && 'border-t border-slate-100'
+              )}
+              style={{ color: '#2563eb', fontWeight: 600 }}
+              onMouseEnter={e => e.currentTarget.style.background = '#f8fafc'}
+              onMouseLeave={e => e.currentTarget.style.background = ''}
+            >
+              <Plus size={13} className="shrink-0" />
+              Create organisation
+            </button>
+          )}
         </div>,
         document.body
       )}

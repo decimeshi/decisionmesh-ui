@@ -754,6 +754,19 @@ export async function setupTenant(keycloak, payload) {
     body: JSON.stringify(payload),
   });
 }
+
+/**
+ * POST /api/onboard/create-organization
+ * Spins up an ADDITIONAL organization alongside whatever the caller
+ * already owns or belongs to — unlike setupTenant, never fails for an
+ * already-onboarded user. payload: { companyName, companySize? }.
+ */
+export async function createOrganization(keycloak, payload) {
+  return request(keycloak, '/onboard/create-organization', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
 // ── Review Queue ──────────────────────────────────────────────────────────────
 
 export async function getReviewQueue(keycloak, params = {}) {
