@@ -72,6 +72,55 @@ const TEMPLATES = [
       { id: uuidv4(), metric: 'risk', operator: '<', value: 0.3,  action: 'RETRY' },
     ],
   },
+  {
+    id: 'tpl-pii-exposure',
+    category: 'PII / Data privacy',
+    name: 'PII exposure gate',
+    desc: 'Reject high-risk executions before personal data can leave the pipeline. A general-purpose guardrail for any flow that may touch PII.',
+    color: '#0891b2',
+    rules: [{ id: uuidv4(), metric: 'risk', operator: '>', value: 0.6, action: 'REJECT' }],
+  },
+  {
+    id: 'tpl-soc2',
+    category: 'SOC 2',
+    name: 'Change-control cost ceiling',
+    desc: 'Retries transient cost spikes and blocks executions past your latency SLA — gives auditors a bounded, observable trail for SOC 2 CC7 monitoring evidence.',
+    color: '#475569',
+    rules: [
+      { id: uuidv4(), metric: 'cost',    operator: '>', value: 0.15, action: 'RETRY' },
+      { id: uuidv4(), metric: 'latency', operator: '>', value: 8000, action: 'REJECT' },
+    ],
+  },
+  {
+    id: 'tpl-iso27001',
+    category: 'ISO 27001',
+    name: 'Information security guardrail',
+    desc: 'Rejects high-risk executions in line with ISO 27001 Annex A access-control and risk-treatment requirements.',
+    color: '#9333ea',
+    rules: [{ id: uuidv4(), metric: 'risk', operator: '>', value: 0.5, action: 'REJECT' }],
+  },
+  {
+    id: 'tpl-gdpr',
+    category: 'GDPR',
+    name: 'Data minimization gate',
+    desc: 'Blocks high-risk executions and caps cost, keeping AI-driven personal-data processing bounded and reviewable under GDPR Art. 5 & 25.',
+    color: '#065f46',
+    rules: [
+      { id: uuidv4(), metric: 'risk', operator: '>', value: 0.5,  action: 'REJECT' },
+      { id: uuidv4(), metric: 'cost', operator: '>', value: 0.05, action: 'REJECT' },
+    ],
+  },
+  {
+    id: 'tpl-eu-ai-act',
+    category: 'EU AI Act',
+    name: 'High-risk system gate',
+    desc: 'For AI systems classified high-risk under the EU AI Act — rejects on elevated risk score and retries on cost overrun, supporting Article 9 risk-management obligations.',
+    color: '#c026d3',
+    rules: [
+      { id: uuidv4(), metric: 'risk', operator: '>', value: 0.4,  action: 'REJECT' },
+      { id: uuidv4(), metric: 'cost', operator: '>', value: 0.10, action: 'RETRY' },
+    ],
+  },
 ];
 
 // ── Template library modal ────────────────────────────────────────────────────
