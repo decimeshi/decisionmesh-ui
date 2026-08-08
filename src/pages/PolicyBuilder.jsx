@@ -41,6 +41,26 @@ const CATEGORIES = [
   'SOC 2', 'ISO 27001', 'GDPR', 'EU AI Act',
 ];
 
+// Pipeline phase a policy's rules are evaluated at — see Guardrails.jsx for
+// the full pipeline. Defaults to POST_EXECUTION (matches the backend's own
+// default when phase is omitted — see PolicyService.applyRequest()).
+const PHASES = [
+  { value: 'PRE_SUBMISSION', label: 'Pre-submission' },
+  { value: 'PRE_EXECUTION',  label: 'Pre-execution' },
+  { value: 'POST_EXECUTION', label: 'Post-execution' },
+];
+
+// Which metrics never resolve at a given phase — cost/latency/risk need a
+// completed ExecutionRecord (POST_EXECUTION only); pii_detected/
+// injection_risk need Planning to have run (not PRE_SUBMISSION). See
+// IntentCentricPolicyEngine.resolveMetric() — this mirrors it so the UI can
+// warn before saving a rule that will silently never fire.
+const PHASE_INCOMPATIBLE_METRICS = {
+  PRE_SUBMISSION: ['cost', 'latency', 'risk', 'pii_detected', 'injection_risk'],
+  PRE_EXECUTION:  ['cost', 'latency', 'risk'],
+  POST_EXECUTION: [],
+};
+
 // ── Industry starter templates from product site ──────────────────────────────
 // Phase 3 of the regulatory policy model: each template now carries country +
 // subcategory (a specific citation) alongside category, tagging the policy it
@@ -337,10 +357,17 @@ function PolicyCard({ policy, projects, onSave, onDelete }) {
     ...policy,
     scope: policy.scope ?? 'TENANT',
     projectId: policy.projectId ?? null,
+    phase: policy.phase ?? 'POST_EXECUTION',
     rules: [...(policy.rules ?? [])],
   });
   const [saving, setSaving] = useState(false);
   const [dirty, setDirty]   = useState(false);
+
+  const incompatibleMetrics = [...new Set(
+    form.rules
+      .filter(r => PHASE_INCOMPATIBLE_METRICS[form.phase]?.includes(r.metric))
+      .map(r => r.metric)
+  )];
 
   function updateRule(id, updated) { setForm(f => ({ ...f, rules: f.rules.map(r => r.id === id ? updated : r) })); setDirty(true); }
   function addRule()               { setForm(f => ({ ...f, rules: [...f.rules, NEW_RULE()] })); setDirty(true); }
@@ -393,14 +420,24 @@ function PolicyCard({ policy, projects, onSave, onDelete }) {
         </div>
       </CardHeader>
       <CardContent className="space-y-3">
-        <div>
-          <label className="block text-[11px] font-medium text-slate-500 mb-1">Applies to</label>
-          <select value={form.scope === 'PROJECT' ? (form.projectId ?? '') : ''}
-            onChange={e => updateScope(e.target.value)}
-            className="text-xs border border-slate-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
-            <option value="">Organization-wide — every project</option>
-            {projects.map(p => <option key={p.id} value={p.id}>{p.name} only</option>)}
-          </select>
+        <div className="grid grid-cols-2 gap-2">
+          <div>
+            <label className="block text-[11px] font-medium text-slate-500 mb-1">Applies to</label>
+            <select value={form.scope === 'PROJECT' ? (form.projectId ?? '') : ''}
+              onChange={e => updateScope(e.target.value)}
+              className="w-full text-xs border border-slate-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
+              <option value="">Organization-wide — every project</option>
+              {projects.map(p => <option key={p.id} value={p.id}>{p.name} only</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="block text-[11px] font-medium text-slate-500 mb-1">Runs at</label>
+            <select value={form.phase}
+              onChange={e => { setForm(f => ({ ...f, phase: e.target.value })); setDirty(true); }}
+              className="w-full text-xs border border-slate-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
+              {PHASES.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
+            </select>
+          </div>
         </div>
 
         <div className="grid grid-cols-3 gap-2">
@@ -429,6 +466,16 @@ function PolicyCard({ policy, projects, onSave, onDelete }) {
               className="w-full text-xs border border-slate-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500"/>
           </div>
         </div>
+
+        {incompatibleMetrics.length > 0 && (
+          <div className="px-3 py-2 rounded-lg bg-amber-50 border border-amber-200 text-xs text-amber-800">
+            {incompatibleMetrics.join(', ')} {incompatibleMetrics.length > 1 ? "don't" : "doesn't"} resolve at{' '}
+            {PHASES.find(p => p.value === form.phase)?.label.toLowerCase()} — {incompatibleMetrics.some(m => ['cost', 'latency', 'risk'].includes(m))
+              ? 'these need a completed execution.'
+              : 'these need planning to have run first.'}{' '}
+            This rule will never fire until you change the phase or the metric.
+          </div>
+        )}
 
         <p className="text-xs text-slate-400 font-medium uppercase tracking-wide">Rules (all apply)</p>
         {form.rules.map(r => (
